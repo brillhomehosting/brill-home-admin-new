@@ -1,16 +1,21 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { useContext, useEffect } from 'react';
-import { SidebarContext, Header } from '@/shared/components/layout';
-import { ROUTES } from '@/shared/constants';
-import { MainLayout } from '@/shared/components/layout';
-import { ProtectedRoute } from '@/shared/components/auth';
-import LoginPage from '@/features/auth/pages/LoginPage';
-import RoomListPage from '@/features/rooms/pages/RoomListPage';
-import RoomCreatePage from '@/features/rooms/pages/RoomCreatePage';
-import RoomEditPage from '@/features/rooms/pages/RoomEditPage';
-import RoomDetailPage from '@/features/rooms/pages/RoomDetailPage';
 import AmenityListPage from '@/features/amenities/pages/AmenityListPage';
+import LoginPage from '@/features/auth/pages/LoginPage';
+import BookingDetailPage from '@/features/bookings/pages/BookingDetailPage';
+import BookingListPage from '@/features/bookings/pages/BookingListPage';
+import CreateBookingPage from '@/features/bookings/pages/CreateBookingPage';
+import DiscountListPage from '@/features/discounts/pages/DiscountListPage';
+import PaymentListPage from '@/features/payments/pages/PaymentListPage';
+import HolidaySettingsPage from '@/features/settings/pages/HolidaySettingsPage';
 import RoomPasswordPage from '@/features/room-passwords/pages/RoomPasswordPage';
+import RoomCreatePage from '@/features/rooms/pages/RoomCreatePage';
+import RoomDetailPage from '@/features/rooms/pages/RoomDetailPage';
+import RoomEditPage from '@/features/rooms/pages/RoomEditPage';
+import RoomListPage from '@/features/rooms/pages/RoomListPage';
+import { ProtectedRoute } from '@/shared/components/auth';
+import { Header, MainLayout, SidebarContext } from '@/shared/components/layout';
+import { ROUTES } from '@/shared/constants';
+import { useContext, useEffect } from 'react';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 // ── Lazy placeholder for future pages ──
 function PlaceholderPage({ title }: { title: string }) {
@@ -88,7 +93,15 @@ export const router = createBrowserRouter([
       // Bookings
       {
         path: 'apps/bookings',
-        element: <PlaceholderPage title="Đặt phòng" />,
+        element: <BookingListPage />,
+      },
+      {
+        path: 'apps/bookings/create',
+        element: <CreateBookingPage />,
+      },
+      {
+        path: 'apps/bookings/:bookingId',
+        element: <BookingDetailPage />,
       },
       // Schedules
       {
@@ -112,12 +125,21 @@ export const router = createBrowserRouter([
       // Invoices
       {
         path: 'apps/invoices',
-        element: <PlaceholderPage title="Hóa đơn" />,
+        element: <PaymentListPage />,
+      },
+      // Discounts
+      {
+        path: 'apps/discounts',
+        element: <DiscountListPage />,
       },
       // Settings
       {
         path: 'settings',
         element: <PlaceholderPage title="Cài đặt" />,
+      },
+      {
+        path: 'settings/holidays',
+        element: <HolidaySettingsPage />,
       },
     ],
   },

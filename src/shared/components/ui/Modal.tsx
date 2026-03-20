@@ -1,12 +1,12 @@
-import { useEffect, useRef, type ReactNode, type MouseEvent } from 'react';
-import { X } from 'lucide-react';
 import { cn } from '@/shared/utils';
+import { X } from 'lucide-react';
+import { useEffect, useRef, type MouseEvent, type ReactNode } from 'react';
 
 type ModalProps = {
   open: boolean;
   onClose: () => void;
-  title?: string;
-  description?: string;
+  title?: ReactNode;
+  description?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -78,14 +78,14 @@ export function Modal({
       <div
         ref={panelRef}
         className={cn(
-          'relative z-10 w-full rounded-xl bg-surface shadow-xl',
+          'relative z-10 w-full flex flex-col max-h-[calc(100vh-2rem)] rounded-xl bg-surface shadow-xl',
           'animate-zoom-in',
           sizeClasses[size],
         )}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-start justify-between border-b border-border px-6 py-4">
+          <div className="shrink-0 flex items-start justify-between border-b border-border px-6 py-4">
             <div>
               <h2 className="text-lg font-semibold text-foreground">{title}</h2>
               {description && (
@@ -103,11 +103,11 @@ export function Modal({
         )}
 
         {/* Body */}
-        <div className="px-6 py-4">{children}</div>
+        <div className="overflow-y-auto px-6 py-4">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
+          <div className="shrink-0 flex items-center justify-end gap-3 border-t border-border px-6 py-4">
             {footer}
           </div>
         )}

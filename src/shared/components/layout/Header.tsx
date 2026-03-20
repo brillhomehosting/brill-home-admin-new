@@ -1,7 +1,7 @@
+import { cn } from '@/shared/utils';
+import { ChevronRight, Menu } from 'lucide-react';
 import { useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Menu } from 'lucide-react';
-import { cn } from '@/shared/utils';
 import { SidebarContext } from './SidebarContext';
 
 export type BreadcrumbItem = {
@@ -10,12 +10,13 @@ export type BreadcrumbItem = {
 };
 
 type HeaderProps = {
-  title: string;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
   breadcrumbs?: BreadcrumbItem[];
   actions?: React.ReactNode;
 };
 
-export function Header({ title, breadcrumbs, actions }: HeaderProps) {
+export function Header({ title, subtitle, breadcrumbs, actions }: HeaderProps) {
   const sidebar = useContext(SidebarContext);
 
   return (
@@ -32,15 +33,19 @@ export function Header({ title, breadcrumbs, actions }: HeaderProps) {
             <Menu className="h-5 w-5" />
           </button>
         )}
-        <div className="min-w-0">
-        {/* Breadcrumb */}
-        {breadcrumbs && breadcrumbs.length > 0 && (
-          <Breadcrumb items={breadcrumbs} />
-        )}
-        {/* Page title */}
-        <h1 className="truncate text-lg font-semibold text-foreground sm:text-xl">
-          {title}
-        </h1>
+        <div className="min-w-0 flex flex-col justify-center">
+          {/* Breadcrumb */}
+          {breadcrumbs && breadcrumbs.length > 0 && (
+            <Breadcrumb items={breadcrumbs} />
+          )}
+          {/* Page title */}
+          <h1 className="truncate text-xl font-semibold text-foreground sm:text-2xl">
+            {title}
+          </h1>
+          {/* Subtitle */}
+          {subtitle && (
+            <p className="mt-1 text-sm text-secondary-500">{subtitle}</p>
+          )}
         </div>
       </div>
 

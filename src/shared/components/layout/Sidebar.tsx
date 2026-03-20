@@ -9,17 +9,19 @@ import {
   LogOut,
   Package,
   KeyRound,
+  Tag,
+  CalendarRange,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/shared/utils';
 import { ROUTES } from '@/shared/constants';
 import { useAuth } from '@/shared/contexts/AuthContext';
 
-// ── Navigation config ──
 type NavItem = {
   label: string;
   path: string;
   icon: LucideIcon;
+  exact?: boolean;
 };
 
 type NavGroup = {
@@ -37,12 +39,14 @@ const navigation: NavGroup[] = [
       { label: 'Đặt phòng', path: '/apps/bookings', icon: CalendarCheck },
       { label: 'Khách hàng', path: '/apps/customers', icon: Users },
       { label: 'Hóa đơn', path: '/apps/invoices', icon: Receipt },
+      { label: 'Chương trình giảm giá', path: '/apps/discounts', icon: Tag },
+      { label: 'Cấu hình ngày lễ', path: '/settings/holidays', icon: CalendarRange },
     ],
   },
 ];
 
 const bottomNav: NavItem[] = [
-  { label: 'Cài đặt', path: '/settings', icon: Settings },
+  { label: 'Cài đặt', path: '/settings', icon: Settings, exact: true },
 ];
 
 // ── Sidebar component ──
@@ -163,10 +167,11 @@ function SidebarLink({
   currentPath: string;
   onClick?: () => void;
 }) {
-  const isActive =
-    item.path === '/'
-      ? currentPath === '/'
-      : currentPath.startsWith(item.path);
+  const isActive = item.exact
+    ? currentPath === item.path
+    : item.path === '/'
+    ? currentPath === '/'
+    : currentPath.startsWith(item.path);
 
   const Icon = item.icon;
 
