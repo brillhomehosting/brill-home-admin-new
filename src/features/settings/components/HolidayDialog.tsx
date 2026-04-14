@@ -3,42 +3,45 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Select } from '@/shared/components/ui/Select';
-import { CalendarRange } from 'lucide-react';
-
-type HolidayType = 'YEARLY' | 'SPECIFIC_YEAR';
+import { CalendarRange, Loader2 } from 'lucide-react';
+import { useHolidayMutations } from '../hooks/useHolidays';
+import type { Holiday, HolidayType } from '@/shared/types';
+import { useToast } from '@/shared/components/feedback/Toast';
 
 type HolidayFormValues = {
   name: string;
-  type: HolidayType;
-  startDate: string;
-  endDate: string;
+  holidayType: HolidayType;
+  startDay: string;
+  endDay: string;
 };
 
 const DEFAULT_VALUES: HolidayFormValues = {
   name: '',
-  type: 'YEARLY',
-  startDate: '', // Format DD/MM or YYYY-MM-DD
-  endDate: '',   // Format DD/MM or YYYY-MM-DD
+  holidayType: 'ANNUAL',
+  startDay: '',
+  endDay: '',
 };
 
 type HolidayDialogProps = {
   open: boolean;
   onClose: () => void;
-  initialData?: any | null;
+  initialData?: Holiday | null;
   onSuccess?: () => void;
 };
 
 export function HolidayDialog({ open, onClose, initialData, onSuccess }: HolidayDialogProps) {
   const [form, setForm] = useState<HolidayFormValues>(DEFAULT_VALUES);
+  const { create, update } = useHolidayMutations();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       if (initialData) {
         setForm({
           name: initialData.name,
-          type: initialData.type,
-          startDate: initialData.startDate,
-          endDate: initialData.endDate,
+          holidayType: initialData.holidayType,
+          startDay: initialData.startDay,
+          endDay: initialData.endDay,
         });
       } else {
         setForm(DEFAULT_VALUES);
@@ -47,36 +50,46 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
   }, [open, initialData]);
 
   const handleSubmit = () => {
-    if (!form.name || !form.startDate || !form.endDate) {
-      alert('Vui lòng nhập đầy đủ thông tin bắt buộc.');
+    if (!form.name || !form.startDay || !form.endDay) {
+      toast('Vui lòng nhập đầy đủ thông tin bắt buộc.', 'error');
       return;
     }
     
-    // Validate DD/MM format if YEARLY
-    if (form.type === 'YEARLY') {
-      const ddmmRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])$/;
-      if (!ddmmRegex.test(form.startDate) || !ddmmRegex.test(form.endDate)) {
-        alert('Định dạng ngày (Hằng năm) phải là DD/MM (VD: 30/04).');
-        return;
-      }
-    } else {
-      // Validate date order for SPECIFIC_YEAR
-      if (new Date(form.endDate) < new Date(form.startDate)) {
-        alert('Ngày kết thúc không được nhỏ hơn ngày bắt đầu.');
+    // Basic date validation for SPECIFIC_YEAR
+    if (form.holidayType === 'SPECIFIC_YEAR') {
+      if (new Date(form.endDay) < new Date(form.startDay)) {
+        toast('Ngày kết thúc không được nhỏ hơn ngày bắt đầu.', 'error');
         return;
       }
     }
 
-    console.log('Submit Holiday', form);
-    onSuccess?.();
-    onClose();
+    const payload = {
+      ...form,
+    };
+
+    if (initialData) {
+      update.mutate({ id: initialData.id, payload }, {
+        onSuccess: () => {
+          onSuccess?.();
+          onClose();
+        }
+      });
+    } else {
+      create.mutate(payload, {
+        onSuccess: () => {
+          onSuccess?.();
+          onClose();
+        }
+      });
+    }
   };
 
   const isEdit = !!initialData;
+  const isPending = create.isPending || update.isPending;
 
   // Render Date Inputs depending on Type
   const renderDateInputs = () => {
-    if (form.type === 'YEARLY') {
+    if (form.holidayType === 'ANNUAL') {
       return (
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -84,8 +97,8 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
               Ngày bắt đầu <span className="text-danger-500">*</span>
             </label>
             <Input
-              value={form.startDate}
-              onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+              value={form.startDay}
+              onChange={(e) => setForm({ ...form, startDay: e.target.value })}
               placeholder="VD: 30/04"
               maxLength={5}
             />
@@ -96,8 +109,8 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
               Ngày kết thúc <span className="text-danger-500">*</span>
             </label>
             <Input
-              value={form.endDate}
-              onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+              value={form.endDay}
+              onChange={(e) => setForm({ ...form, endDay: e.target.value })}
               placeholder="VD: 01/05"
               maxLength={5}
             />
@@ -115,8 +128,8 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
           </label>
           <Input
             type="date"
-            value={form.startDate}
-            onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+            value={form.startDay}
+            onChange={(e) => setForm({ ...form, startDay: e.target.value })}
           />
         </div>
         <div>
@@ -125,8 +138,8 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
           </label>
           <Input
             type="date"
-            value={form.endDate}
-            onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+            value={form.endDay}
+            onChange={(e) => setForm({ ...form, endDay: e.target.value })}
           />
         </div>
       </div>
@@ -151,8 +164,12 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
           <Button variant="secondary" onClick={onClose} className="border-border px-5">
             Hủy bỏ
           </Button>
-          <Button className="bg-primary-500 text-white hover:bg-primary-600 px-5" onClick={handleSubmit}>
-            {isEdit ? 'Cập nhật' : 'Lưu thông tin'}
+          <Button 
+            className="bg-primary-500 text-white hover:bg-primary-600 px-5" 
+            onClick={handleSubmit}
+            disabled={isPending}
+          >
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEdit ? 'Cập nhật' : 'Lưu thông tin')}
           </Button>
         </>
       }
@@ -174,10 +191,10 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
             Phân loại <span className="text-danger-500">*</span>
           </label>
           <Select
-            value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value as HolidayType, startDate: '', endDate: '' })}
+            value={form.holidayType}
+            onChange={(e) => setForm({ ...form, holidayType: e.target.value as HolidayType, startDay: '', endDay: '' })}
             options={[
-              { value: 'YEARLY', label: 'Hằng năm (Lặp lại mỗi năm)' },
+              { value: 'ANNUAL', label: 'Hằng năm (Lặp lại mỗi năm)' },
               { value: 'SPECIFIC_YEAR', label: 'Một lần (Năm cụ thể)' },
             ]}
           />

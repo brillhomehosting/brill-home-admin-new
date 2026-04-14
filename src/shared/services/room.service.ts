@@ -102,6 +102,22 @@ export async function deleteUploadByUrl(url: string) {
   await api.delete(API.UPLOADS.DELETE_BY_URL, { params: { url } });
 }
 
+/** POST /uploads/credentials — specific for CCCD/Front-Back */
+export async function uploadCredentials(file: File) {
+  const form = new FormData();
+  form.append('file', file);
+
+  const { data } = await api.post<ApiResponse<UploadResponse>>(
+    API.UPLOADS.UPLOAD_CREDENTIALS,
+    form,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    },
+  );
+  return data.data;
+}
+
 // ── Room password ──
 
 /** GET /rooms/current-password → all rooms with their current passwords */
@@ -139,6 +155,7 @@ export const roomService = {
   deleteRoomImage,
   updateRoomAmenities,
   uploadFile,
+  uploadCredentials,
   deleteUploadByUrl,
   getAllRoomPasswords,
   getRoomPassword,

@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Mail, Send, Ticket, Check } from 'lucide-react';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
+import { useBookingMutation } from '../hooks/useBookingMutation';
 
 type ResendEmailDialogProps = {
   open: boolean;
   onClose: () => void;
+  bookingId: string;
   bookingCode: string;
   roomName: string;
   checkInDate: string;
@@ -16,6 +18,7 @@ type ResendEmailDialogProps = {
 export function ResendEmailDialog({
   open,
   onClose,
+  bookingId,
   bookingCode,
   roomName,
   checkInDate,
@@ -23,6 +26,12 @@ export function ResendEmailDialog({
   customerEmail,
 }: ResendEmailDialogProps) {
   const [email, setEmail] = useState(customerEmail);
+  const { resendConfirmation } = useBookingMutation();
+
+  const handleResend = async () => {
+    await resendConfirmation.mutateAsync(bookingId);
+    onClose();
+  };
 
   return (
     <Modal
@@ -39,12 +48,13 @@ export function ResendEmailDialog({
       }
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} className="border-border px-5">
+          <Button variant="secondary" onClick={onClose} className="border-border px-5" disabled={resendConfirmation.isPending}>
             Đóng
           </Button>
           <Button
-            className="flex items-center gap-1.5 bg-primary-500 text-white hover:bg-primary-600 px-5"
-            onClick={onClose}
+            className="flex items-center gap-1.5 px-5"
+            onClick={handleResend}
+            loading={resendConfirmation.isPending}
           >
             <Send className="h-4 w-4" />
             Gửi email

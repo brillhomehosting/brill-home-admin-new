@@ -3,50 +3,75 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Select } from '@/shared/components/ui/Select';
-import { Tag } from 'lucide-react';
-
-type DiscountType = 'ALL' | 'WEEK_DAY' | 'SLOT_TYPE' | 'ROOM_TYPE' | 'ROOM';
-type ValueType = 'PERCENTAGE' | 'FIXED_AMOUNT';
+import { Tag, Loader2 } from 'lucide-react';
+import { useDiscountMutations } from '../hooks/useDiscounts';
+import { useRooms } from '@/features/rooms/hooks/useRooms';
+import type { 
+  Room,
+  DiscountCampaign, 
+  DiscountTargetType, 
+  DiscountValueType,
+  DiscountStatus
+} from '@/shared/types';
+import { useToast } from '@/shared/components/feedback/Toast';
 
 type DiscountFormValues = {
   name: string;
-  valueType: ValueType;
-  value: string;
+  discountType: DiscountValueType;
+  discountValue: string;
   startDate: string;
   endDate: string;
-  type: DiscountType;
-  targetWeekDay: string;
-  targetOvernightSlot: string;
+  type: DiscountTargetType;
+  targetWeekDay: boolean;
+  targetOvernightSlot: boolean;
   targetRoomType: string;
   targetRoomId: string;
+  status: DiscountStatus;
 };
 
 const DEFAULT_VALUES: DiscountFormValues = {
   name: '',
-  valueType: 'PERCENTAGE',
-  value: '',
+  discountType: 'PERCENTAGE',
+  discountValue: '',
   startDate: '',
   endDate: '',
   type: 'ALL',
-  targetWeekDay: 'WEEKDAY', // WEEKDAY | WEEKEND
-  targetOvernightSlot: 'OVERNIGHT', // OVERNIGHT | DAYTIME
+  targetWeekDay: false,
+  targetOvernightSlot: false,
   targetRoomType: 'NORMAL',
   targetRoomId: '',
+  status: 'ACTIVE',
 };
 
 type DiscountDialogProps = {
   open: boolean;
   onClose: () => void;
-  initialData?: any | null; // Pass null for create
+  initialData?: DiscountCampaign | null;
 };
 
 export function DiscountDialog({ open, onClose, initialData }: DiscountDialogProps) {
   const [form, setForm] = useState<DiscountFormValues>(DEFAULT_VALUES);
+  const { toast } = useToast();
+  const { create, update } = useDiscountMutations();
+  const { data: roomsResponse } = useRooms({ limit: 100 });
+  const rooms = roomsResponse?.data.content || [];
 
   useEffect(() => {
     if (open) {
       if (initialData) {
-        setForm({ ...DEFAULT_VALUES, ...initialData });
+        setForm({
+          name: initialData.name,
+          discountType: initialData.discountType,
+          discountValue: String(initialData.discountValue),
+          startDate: initialData.startDate,
+          endDate: initialData.endDate,
+          type: initialData.type,
+          targetWeekDay: initialData.targetWeekDay,
+          targetOvernightSlot: initialData.targetOvernightSlot,
+          targetRoomType: initialData.targetRoomType,
+          targetRoomId: initialData.targetRoomId,
+          status: initialData.status,
+        });
       } else {
         setForm(DEFAULT_VALUES);
       }
@@ -54,34 +79,29 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
   }, [open, initialData]);
 
   const handleSubmit = () => {
-    // Basic validation
-    if (!form.name || !form.value || !form.startDate || !form.endDate) {
-      alert('Vui lòng nhập đầy đủ thông tin bắt buộc.');
+    if (!form.name || !form.discountValue || !form.startDate || !form.endDate) {
+      toast('Vui lòng nhập đầy đủ thông tin bắt buộc.', 'error');
       return;
     }
     
-    if (form.valueType === 'PERCENTAGE' && Number(form.value) > 100) {
-      const confirm = window.confirm('Giảm giá vượt quá 100%. Bạn có chắc chắn muốn tạo flash sale này?');
-      if (!confirm) return;
-    }
+    const payload = {
+      ...form,
+      discountValue: Number(form.discountValue),
+    };
 
-    if (new Date(form.endDate) < new Date(form.startDate)) {
-      alert('Ngày kết thúc không được nhỏ hơn ngày bắt đầu.');
-      return;
+    if (initialData) {
+      update.mutate({ id: initialData.id, payload }, {
+        onSuccess: onClose
+      });
+    } else {
+      create.mutate(payload, {
+        onSuccess: onClose
+      });
     }
-
-    console.log('Submit', form);
-    onClose();
   };
 
   const isEdit = !!initialData;
 
-  // Mock rooms
-  const rooms = [
-    { id: 'r1', name: 'Phòng Cinema' },
-    { id: 'r2', name: 'Phòng Vintage' },
-    { id: 'r3', name: 'Phòng Minimalist' },
-  ];
 
   return (
     <Modal
@@ -101,8 +121,16 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
           <Button variant="secondary" onClick={onClose} className="border-border px-5">
             Hủy bỏ
           </Button>
-          <Button className="bg-primary-500 text-white hover:bg-primary-600 px-5" onClick={handleSubmit}>
-            {isEdit ? 'Cập nhật' : 'Tạo mới'}
+          <Button 
+            className="bg-primary-500 text-white hover:bg-primary-600 px-5" 
+            onClick={handleSubmit}
+            disabled={create.isPending || update.isPending}
+          >
+            {create.isPending || update.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              isEdit ? 'Cập nhật' : 'Tạo mới'
+            )}
           </Button>
         </>
       }
@@ -133,11 +161,11 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                   Kiểu giảm <span className="text-danger-500">*</span>
                 </label>
                 <Select
-                  value={form.valueType}
-                  onChange={(e) => setForm({ ...form, valueType: e.target.value as ValueType })}
+                  value={form.discountType}
+                  onChange={(e) => setForm({ ...form, discountType: e.target.value as any })}
                   options={[
                     { value: 'PERCENTAGE', label: 'Theo Phần trăm (%)' },
-                    { value: 'FIXED_AMOUNT', label: 'Theo Số tiền (VNĐ)' },
+                    { value: 'FIXED', label: 'Theo Số tiền (VNĐ)' },
                   ]}
                 />
               </div>
@@ -148,13 +176,13 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                 <div className="relative">
                   <Input
                     type="number"
-                    value={form.value}
-                    onChange={(e) => setForm({ ...form, value: e.target.value })}
-                    placeholder={form.valueType === 'PERCENTAGE' ? 'VD: 10' : 'VD: 50.000'}
+                    value={form.discountValue}
+                    onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
+                    placeholder={form.discountType === 'PERCENTAGE' ? 'VD: 10' : 'VD: 50.000'}
                     className="pr-8"
                   />
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 font-semibold text-secondary-500">
-                    {form.valueType === 'PERCENTAGE' ? '%' : 'đ'}
+                    {form.discountType === 'PERCENTAGE' ? '%' : 'đ'}
                   </div>
                 </div>
               </div>
@@ -197,7 +225,14 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
             </label>
             <Select
               value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value as DiscountType })}
+              onChange={(e) => setForm({ 
+                ...form, 
+                type: e.target.value as any,
+                // Reset some fields if type changes
+                targetRoomId: '',
+                targetWeekDay: false,
+                targetOvernightSlot: false,
+              })}
               className="mb-4"
               options={[
                 { value: 'ALL', label: 'Tất cả booking' },
@@ -221,9 +256,8 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                   <input
                     type="radio"
                     name="weekDay"
-                    value="WEEKDAY"
-                    checked={form.targetWeekDay === 'WEEKDAY'}
-                    onChange={(e) => setForm({ ...form, targetWeekDay: e.target.value })}
+                    checked={!form.targetWeekDay}
+                    onChange={() => setForm({ ...form, targetWeekDay: false })}
                     className="text-primary-600 focus:ring-primary-500"
                   />
                   Ngày thường (T2–T6)
@@ -232,9 +266,8 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                   <input
                     type="radio"
                     name="weekDay"
-                    value="WEEKEND"
-                    checked={form.targetWeekDay === 'WEEKEND'}
-                    onChange={(e) => setForm({ ...form, targetWeekDay: e.target.value })}
+                    checked={form.targetWeekDay}
+                    onChange={() => setForm({ ...form, targetWeekDay: true })}
                     className="text-primary-600 focus:ring-primary-500"
                   />
                   Cuối tuần (T7–CN)
@@ -248,9 +281,8 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                   <input
                     type="radio"
                     name="slotType"
-                    value="DAYTIME"
-                    checked={form.targetOvernightSlot === 'DAYTIME'}
-                    onChange={(e) => setForm({ ...form, targetOvernightSlot: e.target.value })}
+                    checked={!form.targetOvernightSlot}
+                    onChange={() => setForm({ ...form, targetOvernightSlot: false })}
                     className="text-primary-600 focus:ring-primary-500"
                   />
                   Slot ban ngày
@@ -259,9 +291,8 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                   <input
                     type="radio"
                     name="slotType"
-                    value="OVERNIGHT"
-                    checked={form.targetOvernightSlot === 'OVERNIGHT'}
-                    onChange={(e) => setForm({ ...form, targetOvernightSlot: e.target.value })}
+                    checked={form.targetOvernightSlot}
+                    onChange={() => setForm({ ...form, targetOvernightSlot: true })}
                     className="text-primary-600 focus:ring-primary-500"
                   />
                   Slot qua đêm
@@ -297,7 +328,7 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                   onChange={(e) => setForm({ ...form, targetRoomId: e.target.value })}
                   options={[
                     { value: '', label: '-- Chọn phòng --' },
-                    ...rooms.map((r) => ({ value: r.id, label: r.name })),
+                    ...rooms.map((r: Room) => ({ value: r.id, label: r.name })),
                   ]}
                 />
               </div>

@@ -50,8 +50,21 @@ export const API = {
 
   // ── Bookings ──
   BOOKINGS: {
+    LIST: '/admin/bookings',
+    ADMIN_DETAIL: (bookingId: string) => `/admin/bookings/${bookingId}` as const,
+    CANCEL: (bookingId: string) => `/admin/bookings/${bookingId}/cancel` as const,
+    RESEND_CONFIRMATION: (bookingId: string) => `/admin/bookings/${bookingId}/resend-confirmation` as const,
+    CONFIRM_PAYMENT: (bookingId: string) => `/admin/bookings/${bookingId}/payments` as const,
+    ADMIN_CREATE: '/admin/bookings',
     CREATE: '/bookings',
+    GET_AVAILABILITY: '/bookings/availability',
     DELETE: (bookingId: string) => `/bookings/${bookingId}` as const,
+  },
+
+  // ── Payments ──
+  PAYMENTS: {
+    ADMIN_LIST: '/admin/payments',
+    GET_METHODS: '/payments/methods',
   },
 
   // ── Amenities ──
@@ -71,9 +84,31 @@ export const API = {
     DELETE: (id: string) => `/scheduleTypes/${id}` as const,
   },
 
+  // ── Discounts ──
+  DISCOUNTS: {
+    LIST: '/admin/discount-campaigns',
+    CREATE: '/admin/discount-campaigns',
+    UPDATE: (id: string) => `/admin/discount-campaigns/${id}` as const,
+    DELETE: (id: string) => `/admin/discount-campaigns/${id}` as const,
+    TOGGLE_STATUS: (id: string) => `/admin/discount-campaigns/${id}/status` as const,
+  },
+
+  // ── Dashboard ──
+  DASHBOARD: {
+    STATS: '/admin/dashboard/stats',
+  },
+
   // ── Uploads ──
   UPLOADS: {
     UPLOAD: '/uploads',
+    UPLOAD_CREDENTIALS: '/uploads/credentials',
     DELETE_BY_URL: '/uploads/by-url',
+  },
+  // ── Settings & Holidays ──
+  HOLIDAYS: {
+    LIST: '/admin/holiday-surcharges',
+    CREATE: '/admin/holiday-surcharges',
+    UPDATE: (id: string) => `/admin/holiday-surcharges/${id}` as const,
+    DELETE: (id: string) => `/admin/holiday-surcharges/${id}` as const,
   },
 } as const;

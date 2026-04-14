@@ -1,5 +1,5 @@
 import { forwardRef, type SelectHTMLAttributes, useId } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/utils';
 
 type SelectOption = {
@@ -13,11 +13,12 @@ type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'children'> & {
   hint?: string;
   options: SelectOption[];
   placeholder?: string;
+  loading?: boolean;
 };
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   (
-    { className, label, error, hint, options, placeholder, id: idProp, ...props },
+    { className, label, error, hint, options, placeholder, loading, id: idProp, disabled, ...props },
     ref,
   ) => {
     const autoId = useId();
@@ -37,6 +38,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           <select
             ref={ref}
             id={id}
+            disabled={disabled || loading}
             className={cn(
               'flex h-9 w-full appearance-none rounded-lg border bg-white px-3 pr-8 text-sm text-foreground',
               'transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20',
@@ -59,7 +61,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               </option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
+          <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary-400">
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-primary-500" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </div>
         </div>
         {error && <p className="mt-1 text-xs text-danger-500">{error}</p>}
         {hint && !error && (

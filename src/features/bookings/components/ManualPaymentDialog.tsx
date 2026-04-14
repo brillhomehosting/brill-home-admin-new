@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   CheckCircle,
   X,
@@ -9,24 +9,51 @@ import { Button } from '@/shared/components/ui/Button';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { Input } from '@/shared/components/ui/Input';
 import { Select } from '@/shared/components/ui/Select';
+import { useBookingMutation } from '../hooks/useBookingMutation';
+import { formatCurrency } from '@/shared/utils';
+import type { PaymentMethod } from '@/shared/types';
 
 type ManualPaymentDialogProps = {
   open: boolean;
   onClose: () => void;
+  bookingId: string;
   bookingCode: string;
+  roomName: string;
+  dateInfo: string;
+  customerName: string;
+  totalAmount: number;
 };
 
 export function ManualPaymentDialog({
   open,
   onClose,
+  bookingId,
   bookingCode,
+  roomName,
+  dateInfo,
+  customerName,
+  totalAmount,
 }: ManualPaymentDialogProps) {
-  const [paymentMethod, setPaymentMethod] = useState('BANK_TRANSFER');
-  const [amount, setAmount] = useState('546.250');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('BANK_TRANSFER');
+  const [amountStr, setAmountStr] = useState('');
   const [transactionCode, setTransactionCode] = useState('');
   const [note, setNote] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [isConfirming, setIsConfirming] = useState(false);
+
+  const { confirmPayment } = useBookingMutation();
+
+  // Reset/Initialize state when open
+  useEffect(() => {
+    if (open) {
+      setAmountStr(totalAmount.toLocaleString('vi-VN'));
+      setPaymentMethod('BANK_TRANSFER');
+      setTransactionCode('');
+      setNote('');
+      setImages([]);
+      setIsConfirming(false);
+    }
+  }, [open, totalAmount]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -62,8 +89,21 @@ export function ManualPaymentDialog({
     setIsConfirming(true);
   };
 
-  const finalizePayment = () => {
-    // API call would go here
+  const finalizePayment = async () => {
+    // Convert amount string "546.250" to number 546250
+    const numericAmount = Number(amountStr.replace(/\./g, '').replace(/,/g, ''));
+
+    await confirmPayment.mutateAsync({
+      bookingId,
+      data: {
+        paymentMethod,
+        amount: numericAmount,
+        transactionNo: transactionCode,
+        proofImageUrls: images, // In a real app, these would be uploaded URLs
+        note: note || `Admin xác nhận thanh toán thủ công (${paymentMethod})`,
+      },
+    });
+
     setIsConfirming(false);
     onClose();
   };
@@ -112,24 +152,24 @@ export function ManualPaymentDialog({
               <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
                 <div className="flex flex-col gap-1">
                   <span className="text-xs font-semibold text-secondary-500">Mã booking</span>
-                  <span className="font-bold text-foreground">{bookingCode}</span>
+                  <span className="font-bold text-foreground text-base tracking-tight">{bookingCode}</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs font-semibold text-secondary-500">Tên phòng</span>
-                  <span className="font-semibold text-foreground">Phòng Cinema</span>
+                  <span className="font-semibold text-foreground">{roomName}</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs font-semibold text-secondary-500">Ngày / Khung giờ</span>
-                  <span className="font-semibold text-foreground">01/03/2026 (18:00 - 08:00)</span>
+                  <span className="font-semibold text-foreground">{dateInfo}</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs font-semibold text-secondary-500">Khách hàng</span>
-                  <span className="font-semibold text-foreground">Nguyễn Thị Mai</span>
+                  <span className="font-semibold text-foreground">{customerName}</span>
                 </div>
               </div>
               <div className="mt-3 border-t border-border pt-3 flex justify-between items-center text-sm">
                 <span className="text-secondary-500 font-semibold">Tổng tiền cần thanh toán</span>
-                <span className="text-lg font-bold text-accent-500">546.250đ</span>
+                <span className="text-lg font-bold text-accent-500">{formatCurrency(totalAmount)}</span>
               </div>
             </div>
           </div>
@@ -166,8 +206,8 @@ export function ManualPaymentDialog({
                   <div className="relative">
                     <input
                       type="text"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
+                      value={amountStr}
+                      onChange={(e) => setAmountStr(e.target.value)}
                       className="w-full rounded-lg border border-border bg-surface py-2 pl-3 pr-8 text-sm font-bold outline-none transition-colors focus:border-primary-500"
                     />
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
@@ -253,17 +293,17 @@ export function ManualPaymentDialog({
         title="Xác nhận thanh toán"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setIsConfirming(false)}>
+            <Button variant="secondary" onClick={() => setIsConfirming(false)} disabled={confirmPayment.isPending}>
               Hủy
             </Button>
-            <Button className="bg-success-500 text-white hover:bg-success-600" onClick={finalizePayment}>
+            <Button className="bg-success-500 text-white hover:bg-success-600" onClick={finalizePayment} loading={confirmPayment.isPending}>
               Đồng ý
             </Button>
           </>
         }
       >
         <p className="text-secondary-700 text-sm">
-          Xác nhận khách đã thanh toán <strong className="text-foreground">{amount} VNĐ</strong> cho booking <strong className="text-foreground">{bookingCode}</strong>?
+          Xác nhận khách đã thanh toán <strong className="text-foreground">{amountStr} VNĐ</strong> cho booking <strong className="text-foreground">{bookingCode}</strong>?
         </p>
       </Modal>
     </>
