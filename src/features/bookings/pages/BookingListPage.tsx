@@ -12,7 +12,7 @@ import {
   Search,
   Loader2,
 } from 'lucide-react';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useBookings } from '../hooks/useBookings';
 import { useRooms } from '@/features/rooms/hooks/useRooms';

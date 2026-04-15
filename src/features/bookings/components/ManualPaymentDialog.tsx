@@ -189,7 +189,7 @@ export function ManualPaymentDialog({
                   </label>
                   <Select
                     value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
                     options={[
                       { value: 'BANK_TRANSFER', label: 'Chuyển khoản ngân hàng' },
                       { value: 'CASH', label: 'Tiền mặt' },
