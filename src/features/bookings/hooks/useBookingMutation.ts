@@ -14,7 +14,7 @@ export function useBookingMutation() {
   const cancelMutation = useMutation({
     mutationFn: ({ bookingId, reason }: { bookingId: string; reason: string }) =>
       bookingService.cancelBooking(bookingId, reason),
-    onSuccess: (_, { bookingId }) => {
+    onSuccess: () => {
       toast('Hủy booking thành công', 'success');
       // Invalidate both the list and the specific detail query
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });

@@ -180,21 +180,28 @@ export function TimeSlotSection({ roomId }: TimeSlotSectionProps) {
 
       {!isLoading && !isError && slots && slots.length > 0 && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {slots.map((item, idx) => (
-            <TimeSlotCard
-              key={item.timeSlot.id}
-              item={item}
-              index={idx + 1}
-              onBook={() => setBookingConfirm({ item })}
-              onDeleteBooking={() => setDeleteConfirm({ item })}
-              isMutating={
-                (createBooking.isPending &&
-                  createBooking.variables?.timeSlotId === item.timeSlot.id) ||
-                (deleteBooking.isPending &&
-                  deleteBooking.variables === item.bookingId)
-              }
-            />
-          ))}
+          {slots.map((raw, idx) => {
+            const item: TimeSlotAvailabilityItem = {
+              timeSlot: raw.timeSlot,
+              isActive: raw.status === 'AVAILABLE',
+              bookingId: raw.bookingId ?? undefined,
+            };
+            return (
+              <TimeSlotCard
+                key={item.timeSlot.id}
+                item={item}
+                index={idx + 1}
+                onBook={() => setBookingConfirm({ item })}
+                onDeleteBooking={() => setDeleteConfirm({ item })}
+                isMutating={
+                  (createBooking.isPending &&
+                    createBooking.variables?.timeSlotId === item.timeSlot.id) ||
+                  (deleteBooking.isPending &&
+                    deleteBooking.variables === item.bookingId)
+                }
+              />
+            );
+          })}
         </div>
       )}
 
