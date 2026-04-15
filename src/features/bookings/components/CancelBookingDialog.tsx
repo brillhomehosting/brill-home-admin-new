@@ -4,10 +4,12 @@ import { Select } from '@/shared/components/ui/Select';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
+import { useBookingMutation } from '../hooks/useBookingMutation';
 
 type CancelBookingDialogProps = {
   open: boolean;
   onClose: () => void;
+  bookingId: string;
   bookingCode: string;
   roomName: string;
   customerName: string;
@@ -18,6 +20,7 @@ type CancelBookingDialogProps = {
 export function CancelBookingDialog({
   open,
   onClose,
+  bookingId,
   bookingCode,
   roomName,
   customerName,
@@ -30,17 +33,26 @@ export function CancelBookingDialog({
   const [note, setNote] = useState('');
   const [sendEmail, setSendEmail] = useState(true);
 
-  // Custom Header because Modal title doesn't easily support an icon next to it without passing complex nodes,
-  // Actually Modal takes an optional title string. To match UI exactly, we can use a custom header or hide Modal's default.
-  // Wait, Modal from our UI library expects title as a string or ReactNode (we changed it earlier to ReactNode to support elements).
-  // But wait, Modal.tsx has title logic. If we pass a custom title, it renders the border-b.
-  // The screenshot shows a title with a light red triangle icon.
+  const { cancelBooking } = useBookingMutation();
+
+  const handleCancel = async () => {
+    // Combine base reason and internal note if needed, 
+    // but the API specifically asks for cancellationReason.
+    const fullReason = note ? `${reason}: ${note}` : reason;
+    
+    await cancelBooking.mutateAsync({ 
+      bookingId, 
+      reason: fullReason 
+    });
+    
+    onClose();
+  };
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      size="md" // Changed from lg to md to fit better
+      size="md"
       title={
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-danger-50 text-danger-500">
@@ -51,10 +63,10 @@ export function CancelBookingDialog({
       }
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} className="border-border">
+          <Button variant="secondary" onClick={onClose} className="border-border" disabled={cancelBooking.isPending}>
             Đóng
           </Button>
-          <Button variant="danger" onClick={onClose}>
+          <Button variant="danger" onClick={handleCancel} loading={cancelBooking.isPending}>
             Xác nhận hủy booking
           </Button>
         </>

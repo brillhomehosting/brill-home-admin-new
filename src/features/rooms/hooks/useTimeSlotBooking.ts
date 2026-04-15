@@ -17,7 +17,7 @@ export function useTimeSlotAvailability(
 ) {
   return useQuery({
     queryKey: timeSlotKeys.availability(roomId!, date!),
-    queryFn: () => bookingService.getTimeSlotAvailability(roomId!, date!),
+    queryFn: () => bookingService.getBookingAvailability(roomId!, date!, date!),
     enabled: !!roomId && !!date,
     staleTime: 30_000,
   });

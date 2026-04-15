@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Header, PageWrapper } from '@/shared/components/layout';
 import { Button } from '@/shared/components/ui/Button';
 import { Pagination } from '@/shared/components/ui';
 import { Modal } from '@/shared/components/ui/Modal';
 import { DiscountDialog } from '../components/DiscountDialog';
 import { ROUTES } from '@/shared/constants';
-import { cn } from '@/shared/utils';
+import { cn, formatDate, formatCurrency } from '@/shared/utils';
 import {
   Search,
   ChevronDown,
@@ -13,75 +13,19 @@ import {
   Plus,
   Pencil,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react';
+import { useDiscounts, useDiscountMutations } from '../hooks/useDiscounts';
+import type { 
+  DiscountCampaign, 
+  DiscountStatus, 
+  DiscountTargetType 
+} from '@/shared/types';
 
-// --- Types & Mock Data ---
+// --- Styles mapping ---
 
-type DiscountType = 'ALL' | 'WEEK_DAY' | 'SLOT_TYPE' | 'ROOM_TYPE' | 'ROOM';
-type ValueType = 'PERCENTAGE' | 'FIXED_AMOUNT';
-type Status = 'ACTIVE' | 'INACTIVE';
-
-type DiscountCampaign = {
-  id: string;
-  name: string;
-  type: DiscountType;
-  valueType: ValueType;
-  value: number;
-  startDate: string;
-  endDate: string;
-  target?: string;
-  status: Status;
-};
-
-const mockDiscounts: DiscountCampaign[] = [
-  {
-    id: 'd1',
-    name: 'Flash Sale 20/11',
-    type: 'ALL',
-    valueType: 'PERCENTAGE',
-    value: 20,
-    startDate: '19/11/2026',
-    endDate: '21/11/2026',
-    target: 'Tất cả booking',
-    status: 'ACTIVE',
-  },
-  {
-    id: 'd2',
-    name: 'Weekend Surcharge Free',
-    type: 'WEEK_DAY',
-    valueType: 'PERCENTAGE',
-    value: 10,
-    startDate: '01/03/2026',
-    endDate: '31/12/2026',
-    target: 'Cuối tuần (T7-CN)',
-    status: 'ACTIVE',
-  },
-  {
-    id: 'd3',
-    name: 'Night Owl 50k',
-    type: 'SLOT_TYPE',
-    valueType: 'FIXED_AMOUNT',
-    value: 50000,
-    startDate: '01/04/2026',
-    endDate: '30/04/2026',
-    target: 'Slot qua đêm',
-    status: 'ACTIVE',
-  },
-  {
-    id: 'd4',
-    name: 'Mừng khai trương Cinema',
-    type: 'ROOM',
-    valueType: 'PERCENTAGE',
-    value: 15,
-    startDate: '01/01/2026',
-    endDate: '31/01/2026',
-    target: 'Phòng Cinema',
-    status: 'INACTIVE', // Expired
-  },
-];
-
-const typeStyles: Record<DiscountType, string> = {
+const typeStyles: Record<DiscountTargetType, string> = {
   ALL: 'bg-info-50 text-indigo-700 border border-info-200 font-medium',
   WEEK_DAY: 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium',
   SLOT_TYPE: 'bg-amber-50 text-amber-700 border border-amber-200 font-medium',
@@ -92,15 +36,47 @@ const typeStyles: Record<DiscountType, string> = {
 // --- Component ---
 
 export default function DiscountListPage() {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
-  
-  const [discounts, setDiscounts] = useState<DiscountCampaign[]>(mockDiscounts);
+  const [page, setPage] = useState(0);
+  const [size] = useState(10);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [status, setStatus] = useState<DiscountStatus | undefined>(undefined);
+  const [type, setType] = useState<DiscountTargetType | undefined>(undefined);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<DiscountCampaign | null>(null);
+  
   // Delete Confirm Dialog state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<DiscountCampaign | null>(null);
+
+  // Debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // API Hooks
+  const { data: response, isLoading } = useDiscounts({
+    page,
+    size,
+    name: debouncedSearch,
+    status,
+    type,
+    startDate,
+    endDate,
+  });
+
+  const { toggleStatus, remove } = useDiscountMutations();
+
+  const discounts = response?.content || [];
+  const totalElements = response?.totalElements || 0;
+  const totalPages = response?.totalPages || 0;
 
   const handleCreate = () => {
     setSelectedCampaign(null);
@@ -118,15 +94,19 @@ export default function DiscountListPage() {
   };
 
   const executeDelete = () => {
-    // API call handle soft delete
-    setDeleteConfirmOpen(false);
-    setCampaignToDelete(null);
+    if (campaignToDelete) {
+      remove.mutate(campaignToDelete.id, {
+        onSuccess: () => {
+          setDeleteConfirmOpen(false);
+          setCampaignToDelete(null);
+        }
+      });
+    }
   };
 
-  const handleToggleStatus = (id: string, currentStatus: Status) => {
-    // API Call patch status
-    const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    setDiscounts(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
+  const handleToggleStatus = (campaign: DiscountCampaign) => {
+    const nextStatus = campaign.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    toggleStatus.mutate({ id: campaign.id, status: nextStatus });
   };
 
   return (
@@ -161,9 +141,14 @@ export default function DiscountListPage() {
                   <input
                     type="text"
                     placeholder="Từ ngày"
+                    value={startDate}
                     onFocus={(e) => (e.target.type = 'date')}
                     onBlur={(e) => {
                       if (!e.target.value) e.target.type = 'text';
+                    }}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setPage(0);
                     }}
                     className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
                   />
@@ -174,9 +159,14 @@ export default function DiscountListPage() {
                   <input
                     type="text"
                     placeholder="Đến ngày"
+                    value={endDate}
                     onFocus={(e) => (e.target.type = 'date')}
                     onBlur={(e) => {
                       if (!e.target.value) e.target.type = 'text';
+                    }}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setPage(0);
                     }}
                     className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
                   />
@@ -184,8 +174,15 @@ export default function DiscountListPage() {
               </div>
               
               <div className="relative w-36 shrink-0">
-                <select className="w-full appearance-none rounded-lg border border-border bg-transparent py-2 pl-3 pr-8 text-sm outline-none transition-colors focus:border-primary-500">
-                  <option value="ALL">Tất cả loại</option>
+                <select 
+                  value={type || ''}
+                  onChange={(e) => {
+                    setType((e.target.value as DiscountTargetType) || undefined);
+                    setPage(0);
+                  }}
+                  className="w-full appearance-none rounded-lg border border-border bg-transparent py-2 pl-3 pr-8 text-sm outline-none transition-colors focus:border-primary-500"
+                >
+                  <option value="">Tất cả loại</option>
                   <option value="ALL">ALL</option>
                   <option value="WEEK_DAY">WEEK_DAY</option>
                   <option value="SLOT_TYPE">SLOT_TYPE</option>
@@ -196,8 +193,15 @@ export default function DiscountListPage() {
               </div>
 
               <div className="relative w-40 shrink-0">
-                <select className="w-full appearance-none rounded-lg border border-border bg-transparent py-2 pl-3 pr-8 text-sm outline-none transition-colors focus:border-primary-500">
-                  <option value="ALL">Tất cả trạng thái</option>
+                <select 
+                  value={status || ''}
+                  onChange={(e) => {
+                    setStatus((e.target.value as DiscountStatus) || undefined);
+                    setPage(0);
+                  }}
+                  className="w-full appearance-none rounded-lg border border-border bg-transparent py-2 pl-3 pr-8 text-sm outline-none transition-colors focus:border-primary-500"
+                >
+                  <option value="">Tất cả trạng thái</option>
                   <option value="ACTIVE">ACTIVE</option>
                   <option value="INACTIVE">INACTIVE</option>
                 </select>
@@ -209,111 +213,131 @@ export default function DiscountListPage() {
                 <input
                   type="text"
                   placeholder="Tìm Tên chương trình..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                   className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
                 />
               </div>
             </div>
-            <button className="flex items-center gap-2 rounded-lg bg-secondary-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-secondary-800">
-              Tìm kiếm
-            </button>
           </div>
 
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-surface-dim uppercase text-secondary-500 text-xs font-semibold tracking-wider border-b border-border">
                 <tr>
-                  <th scope="col" className="px-5 py-4 w-12">
-                    <input type="checkbox" className="h-4 w-4 rounded border-border text-primary-600 focus:ring-primary-500" />
-                  </th>
-                  <th scope="col" className="px-5 py-4">Tên chương trình</th>
-                  <th scope="col" className="px-5 py-4">Loại</th>
-                  <th scope="col" className="px-5 py-4">Kiểu giảm / Giá trị</th>
+                  <th scope="col" className="px-5 py-4">Chiến dịch</th>
+                  <th scope="col" className="px-5 py-4">Kiểu giảm</th>
+                  <th scope="col" className="px-5 py-4">Thời gian</th>
+                  <th scope="col" className="px-5 py-4">Phạm vi</th>
                   <th scope="col" className="px-5 py-4">Áp dụng cho</th>
-                  <th scope="col" className="px-5 py-4">Thời hạn</th>
                   <th scope="col" className="px-5 py-4 text-center">Trạng thái</th>
                   <th scope="col" className="px-5 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {discounts.map((item) => (
-                  <tr key={item.id} className="hover:bg-secondary-50/50 transition-colors">
-                    <td className="px-5 py-4">
-                      <input type="checkbox" className="h-4 w-4 rounded border-border text-primary-600 focus:ring-primary-500" />
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="font-medium text-foreground">{item.name}</span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={cn('rounded px-2 py-0.5 text-xs font-semibold', typeStyles[item.type])}>
-                        {item.type}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="font-medium text-accent-600">
-                        Giảm {item.valueType === 'PERCENTAGE' ? `${item.value}%` : `${item.value.toLocaleString()}đ`}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="font-medium text-secondary-600">{item.target}</span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex flex-col text-sm text-secondary-600">
-                        <span className="text-secondary-400 text-xs">Từ: <span className="text-secondary-600 font-medium">{item.startDate}</span></span>
-                        <span className="text-secondary-400 text-xs">Đến: <span className="text-secondary-600 font-medium">{item.endDate}</span></span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <span
-                        className={cn(
-                          'rounded-full px-2.5 py-1 text-xs font-semibold',
-                          item.status === 'ACTIVE'
-                            ? 'bg-success-100 text-success-700'
-                            : 'bg-secondary-100 text-secondary-600'
-                        )}
-                      >
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        {/* Toggle Button */}
-                        <button
-                          onClick={() => handleToggleStatus(item.id, item.status)}
-                          className={cn(
-                            "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent focus:outline-none transition-colors duration-200 ease-in-out",
-                            item.status === 'ACTIVE' ? 'bg-success-500' : 'bg-secondary-300'
-                          )}
-                          role="switch"
-                          aria-checked={item.status === 'ACTIVE'}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={cn(
-                              "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                              item.status === 'ACTIVE' ? 'translate-x-4' : 'translate-x-0'
-                            )}
-                          />
-                        </button>
-                        
-                        <button
-                          onClick={() => handleEdit(item)}
-                          className="p-1.5 text-secondary-400 hover:text-accent-500 hover:bg-accent-50 rounded transition-colors"
-                          title="Sửa chương trình"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-
-                        <button
-                          onClick={() => handleDeleteClick(item)}
-                          className="p-1.5 text-secondary-400 hover:text-danger-500 hover:bg-danger-50 rounded transition-colors"
-                          title="Xóa chương trình"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-10 text-center text-secondary-500">
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+                        <span>Đang tải dữ liệu...</span>
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : discounts.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-10 text-center text-secondary-500">
+                      Chưa có chương trình giảm giá nào.
+                    </td>
+                  </tr>
+                ) : (
+                  discounts.map((item) => (
+                    <tr key={item.id} className="hover:bg-secondary-50/50 transition-colors">
+                      <td className="px-5 py-4">
+                        <span className="font-medium text-foreground">{item.name}</span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={cn('rounded px-2 py-0.5 text-xs font-semibold', typeStyles[item.type])}>
+                          {item.type}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="font-medium text-accent-600">
+                          {item.discountType === 'PERCENTAGE' 
+                            ? `Giảm ${item.discountValue}%` 
+                            : `Giảm ${formatCurrency(item.discountValue)}`}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="font-medium text-secondary-600">
+                          {item.targetRoomName || 'Toàn hệ thống'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col text-sm text-secondary-600">
+                          <span className="text-secondary-400 text-xs">Từ: <span className="text-secondary-600 font-medium">{formatDate(item.startDate)}</span></span>
+                          <span className="text-secondary-400 text-xs">Đến: <span className="text-secondary-600 font-medium">{formatDate(item.endDate)}</span></span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <span
+                          className={cn(
+                            'rounded-full px-2.5 py-1 text-xs font-semibold',
+                            item.status === 'ACTIVE'
+                              ? 'bg-success-100 text-success-700'
+                              : 'bg-secondary-100 text-secondary-600'
+                          )}
+                        >
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          {/* Toggle Button */}
+                          <button
+                            onClick={() => handleToggleStatus(item)}
+                            disabled={toggleStatus.isPending}
+                            className={cn(
+                              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent focus:outline-none transition-colors duration-200 ease-in-out",
+                              item.status === 'ACTIVE' ? 'bg-success-500' : 'bg-secondary-300',
+                              toggleStatus.isPending && "opacity-50 cursor-not-allowed"
+                            )}
+                            role="switch"
+                            aria-checked={item.status === 'ACTIVE'}
+                          >
+                            {toggleStatus.isPending && toggleStatus.variables?.id === item.id ? (
+                              <Loader2 className="absolute inset-x-0 mx-auto h-3 w-3 animate-spin text-white" />
+                            ) : (
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                  item.status === 'ACTIVE' ? 'translate-x-4' : 'translate-x-0'
+                                )}
+                              />
+                            )}
+                          </button>
+                          
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="p-1.5 text-secondary-400 hover:text-accent-500 hover:bg-accent-50 rounded transition-colors"
+                            title="Sửa chương trình"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteClick(item)}
+                            className="p-1.5 text-secondary-400 hover:text-danger-500 hover:bg-danger-50 rounded transition-colors"
+                            title="Xóa chương trình"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -321,10 +345,10 @@ export default function DiscountListPage() {
           {/* Pagination */}
           <div className="border-t border-border px-4 py-4 sm:px-6">
             <Pagination
-              currentPage={currentPage}
-              totalPages={2}
-              onPageChange={setCurrentPage}
-              summary="Hiển thị 4 / 15 kết quả"
+              currentPage={page + 1}
+              totalPages={totalPages}
+              onPageChange={(p) => setPage(p - 1)}
+              summary={`Hiển thị ${discounts.length} / ${totalElements} kết quả`}
             />
           </div>
         </div>

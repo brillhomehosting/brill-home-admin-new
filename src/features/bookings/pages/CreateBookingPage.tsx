@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header, PageWrapper } from '@/shared/components/layout';
 import { ROUTES } from '@/shared/constants';
@@ -6,67 +6,127 @@ import { Select } from '@/shared/components/ui/Select';
 import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { Button } from '@/shared/components/ui/Button';
-import { ChevronRight, UploadCloud, Check, X } from 'lucide-react';
-import { cn } from '@/shared/utils';
+import { ChevronRight, UploadCloud, Check, X, Loader2 } from 'lucide-react';
+import { cn, formatCurrency } from '@/shared/utils';
+import { useRooms } from '@/features/rooms/hooks/useRooms';
+import { useTimeSlotAvailability } from '@/features/rooms/hooks/useTimeSlotBooking';
+import { useBookingMutation } from '../hooks/useBookingMutation';
+import { roomService } from '@/shared/services/room.service';
+import { useToast } from '@/shared/components/feedback/Toast';
 
 export default function CreateBookingPage() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Section 1 State
-  const [selectedRoom, setSelectedRoom] = useState('Phòng Cinema');
-  const [selectedDate, setSelectedDate] = useState('2026-03-03');
-  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
+  const [selectedRoomId, setSelectedRoomId] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
 
   // Section 2 State
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
-  const [frontImage, setFrontImage] = useState<string | null>(null);
-  const [backImage, setBackImage] = useState<string | null>(null);
+  const [frontFile, setFrontFile] = useState<File | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const [note, setNote] = useState('');
 
-  const timeSlots = [
-    { id: 't1', time: '08:00 - 12:00', status: 'Trống' },
-    { id: 't2', time: '12:00 - 14:00', status: 'Đang giữ chỗ' },
-    { id: 't3', time: '14:00 - 18:00', status: 'Trống' },
-    { id: 't4', time: '18:00 - 22:00', status: 'Trống' },
-    { id: 't5', time: '22:00 - 08:00', status: 'Đã đặt' },
-  ];
+  // Local previews
+  const frontPreview = useMemo(() => frontFile ? URL.createObjectURL(frontFile) : null, [frontFile]);
+  const backPreview = useMemo(() => backFile ? URL.createObjectURL(backFile) : null, [backFile]);
 
-  const handleSlotToggle = (id: string, status: string) => {
-    if (status !== 'Trống') return;
-    setSelectedSlots((prev) =>
+  // Queries & Mutations
+  const { data: roomsResponse, isLoading: isLoadingRooms } = useRooms({ limit: 100 });
+  const rooms = roomsResponse?.data?.content || [];
+
+  const { data: slots, isLoading: isLoadingSlots } = useTimeSlotAvailability(
+    selectedRoomId,
+    selectedDate
+  );
+
+  const { adminCreateBooking } = useBookingMutation();
+
+  const handleSlotToggle = (id: string, isAvailable: boolean) => {
+    if (!isAvailable) return;
+    setSelectedSlotIds((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     );
   };
 
-  const handleFileUpload = (
+  const handleFileSelect = (
     e: React.ChangeEvent<HTMLInputElement>,
     type: 'front' | 'back'
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate size (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File quá lớn! Vui lòng chọn ảnh dưới 5MB.');
-      // Reset input value so the same file could be selected again
+      toast('File quá lớn! Vui lòng chọn ảnh dưới 5MB.', 'error');
       e.target.value = '';
       return;
     }
 
-    // Validate type
     if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-      alert('Định dạng không hợp lệ. Vui lòng chọn JPG hoặc PNG.');
+      toast('Định dạng không hợp lệ. Vui lòng chọn JPG hoặc PNG.', 'error');
       e.target.value = '';
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
-    if (type === 'front') setFrontImage(previewUrl);
-    else setBackImage(previewUrl);
-    e.target.value = '';
+    if (type === 'front') setFrontFile(file);
+    else setBackFile(file);
+    
+    e.target.value = ''; // Reset input to allow re-selecting same file
   };
+
+  const handleCreateBooking = async () => {
+    if (!selectedRoomId || !selectedDate || selectedSlotIds.length === 0) {
+      toast('Vui lòng chọn đầy đủ phòng, ngày và khung giờ', 'warning');
+      return;
+    }
+
+    if (!customerEmail || !customerName || !customerPhone || !frontFile || !backFile) {
+      toast('Vui lòng nhập đầy đủ thông tin khách hàng và chọn ảnh CCCD', 'warning');
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+
+      // 1. Upload files first
+      const [frontRes, backRes] = await Promise.all([
+        roomService.uploadCredentials(frontFile),
+        roomService.uploadCredentials(backFile)
+      ]);
+
+      // 2. Create booking with URLs
+      await adminCreateBooking.mutateAsync({
+        roomId: selectedRoomId,
+        date: selectedDate,
+        timeSlotIds: selectedSlotIds,
+        guestName: customerName,
+        guestEmail: customerEmail,
+        guestPhone: customerPhone,
+        nationalIdFrontUrl: frontRes.url,
+        nationalIdBackUrl: backRes.url,
+        note: note || 'Booking được tạo bởi Admin',
+      });
+
+      toast('Tạo booking thành công', 'success');
+      navigate('/apps/bookings');
+    } catch (error) {
+      toast('Có lỗi xảy ra khi tạo booking. Vui lòng thử lại.', 'error');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const totalPrice = useMemo(() => {
+    if (!slots || selectedSlotIds.length === 0) return 0;
+    return slots
+      .filter(s => selectedSlotIds.includes(s.timeSlot.id))
+      .reduce((sum, s) => sum + (s.timeSlot.price || 0), 0);
+  }, [slots, selectedSlotIds]);
 
   return (
     <div className="flex h-full flex-col">
@@ -100,13 +160,17 @@ export default function CreateBookingPage() {
                     Phòng <span className="text-danger-500">*</span>
                   </label>
                   <Select
-                    value={selectedRoom}
-                    onChange={(e) => setSelectedRoom(e.target.value)}
-                    options={[
-                      { value: 'Phòng Cinema', label: 'Phòng Cinema' },
-                      { value: 'Phòng Vintage', label: 'Phòng Vintage' },
-                      { value: 'Phòng Minimalist', label: 'Phòng Minimalist' },
-                    ]}
+                    value={selectedRoomId}
+                    onChange={(e) => {
+                      setSelectedRoomId(e.target.value);
+                      setSelectedSlotIds([]); // Reset slots when room changes
+                    }}
+                    placeholder="Chọn phòng..."
+                    loading={isLoadingRooms}
+                    options={rooms.map((r) => ({
+                      value: r.id,
+                      label: r.name,
+                    }))}
                   />
                 </div>
                 <div>
@@ -126,47 +190,63 @@ export default function CreateBookingPage() {
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
                   Khung giờ (Chọn 1 hoặc nhiều) <span className="text-danger-500">*</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {timeSlots.map((slot) => {
-                    const isSelected = selectedSlots.includes(slot.id);
-                    const isAvailable = slot.status === 'Trống';
-                    
-                    return (
-                      <button
-                        key={slot.id}
-                        type="button"
-                        onClick={() => handleSlotToggle(slot.id, slot.status)}
-                        disabled={!isAvailable}
-                        className={cn(
-                          'relative flex flex-col items-center justify-center rounded-lg border p-3 text-sm transition-all text-left w-full gap-1',
-                          !isAvailable
-                            ? 'border-border bg-secondary-50 cursor-not-allowed opacity-60'
-                            : isSelected
-                              ? 'border-accent-400 bg-accent-50/50 shadow-[0_0_0_1px_var(--color-accent-400)]'
-                              : 'border-border bg-surface hover:border-secondary-300'
-                        )}
-                      >
-                        {isSelected && (
-                          <div className="absolute right-2 top-2 text-accent-500">
-                            <Check className="h-4 w-4" />
-                          </div>
-                        )}
-                        <span className={cn(
-                          'font-bold',
-                          !isAvailable ? 'text-secondary-400' : isSelected ? 'text-accent-600' : 'text-foreground'
-                        )}>
-                          {slot.time}
-                        </span>
-                        <span className={cn(
-                          'text-[10px] font-semibold uppercase',
-                          slot.status === 'Trống' ? 'text-success-600' : slot.status === 'Đang giữ chỗ' ? 'text-warning-600' : 'text-danger-500'
-                        )}>
-                          {slot.status}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                
+                {isLoadingSlots ? (
+                  <div className="flex justify-center p-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+                  </div>
+                ) : !selectedRoomId ? (
+                  <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-secondary-400">
+                    Vui lòng chọn phòng trước
+                  </div>
+                ) : !slots || slots.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-secondary-400">
+                    Không có khung giờ nào cho ngày này
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {slots.map((item) => {
+                      const slot = item.timeSlot;
+                      const isSelected = selectedSlotIds.includes(slot.id);
+                      const isAvailable = item.status === 'AVAILABLE';
+                      
+                      return (
+                        <button
+                          key={slot.id}
+                          type="button"
+                          onClick={() => handleSlotToggle(slot.id, isAvailable)}
+                          disabled={!isAvailable}
+                          className={cn(
+                            'relative flex flex-col items-center justify-center rounded-lg border p-3 text-sm transition-all text-left w-full gap-1',
+                            !isAvailable
+                              ? 'border-border bg-secondary-50 cursor-not-allowed opacity-60'
+                              : isSelected
+                                ? 'border-accent-400 bg-accent-50/50 shadow-[0_0_0_1px_var(--color-accent-400)]'
+                                : 'border-border bg-surface hover:border-secondary-300'
+                          )}
+                        >
+                          {isSelected && (
+                            <div className="absolute right-2 top-2 text-accent-500">
+                              <Check className="h-4 w-4" />
+                            </div>
+                          )}
+                          <span className={cn(
+                            'font-bold',
+                            !isAvailable ? 'text-secondary-400' : isSelected ? 'text-accent-600' : 'text-foreground'
+                          )}>
+                            {slot.startTime} - {slot.endTime}
+                          </span>
+                          <span className={cn(
+                            'text-[10px] font-semibold uppercase',
+                            isAvailable ? 'text-success-600' : 'text-danger-500'
+                          )}>
+                            {isAvailable ? 'Trống' : 'Đã đặt'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -220,11 +300,11 @@ export default function CreateBookingPage() {
                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
                       CCCD Mặt trước <span className="text-danger-500">*</span>
                     </label>
-                    {frontImage ? (
+                    {frontPreview ? (
                       <div className="relative flex h-32 w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary-50">
-                        <img src={frontImage} alt="CCCD Front" className="h-full w-full object-cover" />
+                        <img src={frontPreview} alt="CCCD Front" className="h-full w-full object-cover" />
                         <button 
-                          onClick={() => setFrontImage(null)}
+                          onClick={() => setFrontFile(null)}
                           className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -236,7 +316,7 @@ export default function CreateBookingPage() {
                           type="file" 
                           className="hidden" 
                           accept="image/jpeg, image/png, image/jpg"
-                          onChange={(e) => handleFileUpload(e, 'front')}
+                          onChange={(e) => handleFileSelect(e, 'front')}
                         />
                         <div className="mb-2 rounded-full bg-primary-50 p-2 text-primary-500">
                           <UploadCloud className="h-5 w-5" />
@@ -252,11 +332,11 @@ export default function CreateBookingPage() {
                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
                       CCCD Mặt sau <span className="text-danger-500">*</span>
                     </label>
-                    {backImage ? (
+                    {backPreview ? (
                       <div className="relative flex h-32 w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary-50">
-                        <img src={backImage} alt="CCCD Back" className="h-full w-full object-cover" />
+                        <img src={backPreview} alt="CCCD Back" className="h-full w-full object-cover" />
                         <button 
-                          onClick={() => setBackImage(null)}
+                          onClick={() => setBackFile(null)}
                           className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -268,7 +348,7 @@ export default function CreateBookingPage() {
                           type="file" 
                           className="hidden" 
                           accept="image/jpeg, image/png, image/jpg"
-                          onChange={(e) => handleFileUpload(e, 'back')}
+                          onChange={(e) => handleFileSelect(e, 'back')}
                         />
                         <div className="mb-2 rounded-full bg-primary-50 p-2 text-primary-500">
                           <UploadCloud className="h-5 w-5" />
@@ -307,28 +387,27 @@ export default function CreateBookingPage() {
 
               <div className="flex flex-col gap-3 text-sm">
                 <div className="flex justify-between items-center text-secondary-600">
-                  <span>Giá phòng gốc</span>
-                  <span className="font-semibold text-foreground">500.000đ</span>
+                  <span>Tiền thuê phòng</span>
+                  <span className="font-semibold text-foreground">{formatCurrency(totalPrice)}</span>
                 </div>
+                {/* Simplified surcharge for now */}
                 <div className="flex justify-between items-center text-secondary-600">
-                  <span>Phụ thu lễ rằm</span>
-                  <span className="font-semibold text-foreground">+50.000đ</span>
-                </div>
-                <div className="flex justify-between items-center text-secondary-600">
-                  <span>Mã giảm giá</span>
-                  <span className="font-semibold text-success-600">-0đ</span>
+                  <span>Phụ thu / Giảm giá</span>
+                  <span className="font-semibold text-foreground">+0đ</span>
                 </div>
                 <div className="my-2 border-t border-border border-dashed" />
                 <div className="flex justify-between items-center">
                   <span className="text-base font-bold text-foreground">Tổng cộng</span>
-                  <span className="text-xl font-bold text-accent-500">550.000đ</span>
+                  <span className="text-xl font-bold text-accent-500">{formatCurrency(totalPrice)}</span>
                 </div>
               </div>
 
               <div className="mt-6">
                 <Button 
-                  className="w-full bg-accent-500 text-white hover:bg-accent-600 py-2.5 shadow-sm"
-                  onClick={() => navigate('/apps/bookings')}
+                  className="w-full py-2.5 shadow-sm"
+                  onClick={handleCreateBooking}
+                  loading={isCreating || adminCreateBooking.isPending}
+                  disabled={selectedSlotIds.length === 0}
                 >
                   Tạo booking
                   <ChevronRight className="ml-2 h-4 w-4" />
