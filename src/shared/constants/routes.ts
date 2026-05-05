@@ -17,6 +17,23 @@ export const ROUTES = {
   ROOM_EDIT: (roomId: string) => `/apps/rooms/edit/${roomId}` as const,
   ROOM_VIEW: (roomId: string) => `/apps/rooms/${roomId}` as const,
 
+  // ── Bookings ──
+  BOOKINGS: {
+    LIST: '/apps/bookings',
+    DETAIL: (id: string) => `/apps/bookings/${id}` as const,
+    NEW: '/apps/bookings/new',
+  },
+
+  // ── Invoices ──
+  INVOICES: '/apps/invoices',
+
+  // ── Discounts ──
+  DISCOUNTS: '/apps/discounts',
+
+  // ── Settings ──
+  SETTINGS: '/settings',
+  HOLIDAYS: '/settings/holidays',
+
   // ── Amenities ──
   AMENITIES: '/apps/amenities',
   AMENITIES_LIST: '/apps/amenities/list',

@@ -77,6 +77,7 @@ export type RoomPasswordResponse = {
 export type GetRoomsParams = {
   page?: number;
   limit?: number;
+  sortBy?: string;
   sortDir?: 'asc' | 'desc';
   name?: string;
   isActive?: boolean;

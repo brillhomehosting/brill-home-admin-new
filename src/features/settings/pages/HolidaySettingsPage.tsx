@@ -5,7 +5,7 @@ import { Pagination } from '@/shared/components/ui';
 import { Modal } from '@/shared/components/ui/Modal';
 import { HolidayDialog } from '../components/HolidayDialog';
 import { ROUTES } from '@/shared/constants';
-import { cn, formatDate } from '@/shared/utils';
+import { cn, formatCurrency } from '@/shared/utils';
 import {
   Search,
   ChevronDown,
@@ -13,9 +13,9 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
-  Settings2,
   CalendarRange,
   Loader2,
+  TrendingUp,
 } from 'lucide-react';
 import { useHolidays, useHolidayMutations } from '../hooks/useHolidays';
 import type { Holiday, HolidayType } from '@/shared/types';
@@ -76,7 +76,7 @@ export default function HolidaySettingsPage() {
   const executeDelete = () => {
     if (holidayToDelete) {
       remove.mutate(holidayToDelete.id, {
-        onSuccess: () => {
+        onSettled: () => {
           setDeleteConfirmOpen(false);
           setHolidayToDelete(null);
         }
@@ -92,46 +92,26 @@ export default function HolidaySettingsPage() {
         title="Danh sách ngày lễ"
         breadcrumbs={[
           { label: 'Dashboard', path: ROUTES.HOME },
-          { label: 'Cấu hình' },
           { label: 'Phụ thu ngày lễ' },
         ]}
         actions={
           <Button
             onClick={handleCreate}
-            className="flex items-center gap-2 rounded-lg bg-accent-400 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-500"
+            className="bg-accent-400 hover:bg-accent-500"
+            icon={Plus}
           >
-            <Plus className="h-4 w-4" />
             Thêm ngày lễ
           </Button>
         }
       />
 
       <PageWrapper className="flex-1 space-y-6">
-        
-        {/* Settings Block Header (Story 13 mock) */}
-        <div className="flex items-center justify-between rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
-              <Settings2 className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-foreground">Cấu hình mức phụ thu Lễ/Tết</h2>
-              <p className="mt-0.5 text-sm text-secondary-500">
-                Tự động cộng thêm phụ thu cho các booking vào những ngày thuộc danh sách bên dưới.
-              </p>
-            </div>
-          </div>
-          <Button variant="secondary" className="border-border text-secondary-700 bg-secondary-50 font-semibold px-6 hover:bg-secondary-100">
-            Thiết lập mức giá
-          </Button>
-        </div>
-
         {/* Table Section */}
-        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm">
+        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
           {/* Filters */}
           <div className="flex flex-col gap-4 border-b border-border p-4 sm:flex-row sm:items-center justify-between">
             <div className="flex flex-1 flex-wrap items-center gap-3">
-              <div className="relative w-48 shrink-0">
+              <div className="relative w-full sm:w-48 shrink-0">
                 <select 
                   value={holidayType || ''}
                   onChange={(e) => {
@@ -158,17 +138,21 @@ export default function HolidaySettingsPage() {
                 />
               </div>
             </div>
+            <span className="text-sm text-secondary-400">
+              Tìm thấy {totalElements} ngày lễ
+            </span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-surface-dim uppercase text-secondary-500 text-xs font-semibold tracking-wider border-b border-border">
                 <tr>
                   <th scope="col" className="px-5 py-4">Tên ngày lễ</th>
-                  <th scope="col" className="px-5 py-4">Ngày bắt đầu</th>
-                  <th scope="col" className="px-5 py-4">Ngày kết thúc</th>
+                  <th scope="col" className="px-5 py-4">Thời gian</th>
                   <th scope="col" className="px-5 py-4">Phân loại</th>
-                  <th scope="col" className="px-5 py-4 text-right">Actions</th>
+                  <th scope="col" className="px-5 py-4">Phụ thu</th>
+                  <th scope="col" className="px-5 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -177,13 +161,13 @@ export default function HolidaySettingsPage() {
                     <td colSpan={5} className="px-5 py-10 text-center text-secondary-500">
                       <div className="flex flex-col items-center gap-2">
                         <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
-                        <span>Đang tải danh sách ngày lễ...</span>
+                        <span className="text-sm font-medium">Đang tải dữ liệu...</span>
                       </div>
                     </td>
                   </tr>
                 ) : holidays.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-5 py-10 text-center text-secondary-500">
+                    <td colSpan={5} className="px-5 py-10 text-center text-secondary-500 font-medium">
                       Chưa có ngày lễ nào được thiết lập.
                     </td>
                   </tr>
@@ -191,31 +175,34 @@ export default function HolidaySettingsPage() {
                   holidays.map((item) => (
                     <tr key={item.id} className="hover:bg-secondary-50/50 transition-colors">
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 text-foreground font-medium">
                           <CalendarRange className="h-4 w-4 text-secondary-400" />
-                          <span className="font-medium text-foreground">{item.name}</span>
+                          {item.name}
                         </div>
                       </td>
-                      <td className="px-5 py-4 font-semibold text-accent-600">
-                        {item.holidayType === 'ANNUAL' 
-                          ? formatDate(item.startDay, { day: '2-digit', month: '2-digit' })
-                          : formatDate(item.startDay)}
-                      </td>
-                      <td className="px-5 py-4 font-semibold text-accent-600">
-                        {item.holidayType === 'ANNUAL'
-                          ? formatDate(item.endDay, { day: '2-digit', month: '2-digit' })
-                          : formatDate(item.endDay)}
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col text-sm text-secondary-600">
+                          <span className="text-secondary-400 text-xs">Từ: <span className="text-secondary-600 font-medium">{item.startDay}</span></span>
+                          <span className="text-secondary-400 text-xs">Đến: <span className="text-secondary-600 font-medium">{item.endDay}</span></span>
+                        </div>
                       </td>
                       <td className="px-5 py-4">
                         <span
                           className={cn(
-                            'rounded-full px-2.5 py-1 text-xs font-semibold',
+                            'rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase',
                             item.holidayType === 'ANNUAL'
                               ? 'bg-blue-100 text-blue-700'
                               : 'bg-emerald-100 text-emerald-700'
                           )}
                         >
-                          {item.holidayType === 'ANNUAL' ? 'Lặp lại Hằng năm' : 'Theo năm Sự kiện'}
+                          {item.holidayType === 'ANNUAL' ? 'Hằng năm' : 'Năm cụ thể'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="font-bold text-accent-600">
+                          {item.surchargeType === 'AMOUNT'
+                            ? formatCurrency(item.surchargeAmount)
+                            : `${item.surchargePercent}%`}
                         </span>
                       </td>
                       <td className="px-5 py-4">
@@ -223,14 +210,12 @@ export default function HolidaySettingsPage() {
                           <button
                             onClick={() => handleEdit(item)}
                             className="p-1.5 text-secondary-400 hover:text-accent-500 hover:bg-accent-50 rounded transition-colors"
-                            title="Sửa ngày lễ"
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteClick(item)}
                             className="p-1.5 text-secondary-400 hover:text-danger-500 hover:bg-danger-50 rounded transition-colors"
-                            title="Xóa ngày lễ"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -241,6 +226,64 @@ export default function HolidaySettingsPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile View */}
+          <div className="md:hidden divide-y divide-border">
+            {isLoading ? (
+              <div className="px-5 py-10 text-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary-500 mx-auto" />
+              </div>
+            ) : holidays.length === 0 ? (
+              <div className="px-5 py-10 text-center text-secondary-500 text-sm">
+                Chưa có ngày lễ nào.
+              </div>
+            ) : (
+              holidays.map((item) => (
+                <div 
+                  key={item.id} 
+                  className="flex flex-col p-4 gap-3 bg-surface hover:bg-secondary-50 transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary-100 text-secondary-500">
+                        <CalendarRange className="h-4 w-4" />
+                      </div>
+                      <p className="font-bold text-foreground text-sm">{item.name}</p>
+                    </div>
+                    <span
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-[9px] font-bold uppercase',
+                        item.holidayType === 'ANNUAL' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+                      )}
+                    >
+                      {item.holidayType === 'ANNUAL' ? 'Hằng năm' : 'Năm cụ thể'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg bg-secondary-50 p-2 border border-border">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-secondary-400">Thời gian</p>
+                      <p className="mt-1 text-[10px] font-medium text-secondary-600">
+                        {item.startDay} - {item.endDay}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-secondary-50 p-2 border border-border">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-secondary-400">Phụ thu</p>
+                      <div className="mt-1 flex items-center gap-1.5 text-accent-600 font-bold text-sm">
+                        <TrendingUp className="h-3 w-3" />
+                        {item.surchargeType === 'AMOUNT' ? formatCurrency(item.surchargeAmount) : `${item.surchargePercent}%`}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
+                    <Button variant="ghost" size="sm" icon={Pencil} onClick={() => handleEdit(item)}>Sửa</Button>
+                    <Button variant="ghost" size="sm" icon={Trash2} className="text-danger-500" onClick={() => handleDeleteClick(item)}>Xóa</Button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Pagination */}
@@ -271,7 +314,7 @@ export default function HolidaySettingsPage() {
         title={
           <div className="flex items-center gap-2 text-danger-600">
             <AlertTriangle className="h-5 w-5" />
-            <span className="font-bold">Xóa ngày lễ này?</span>
+            <span className="font-bold">Xác nhận xóa</span>
           </div>
         }
         footer={
@@ -279,13 +322,13 @@ export default function HolidaySettingsPage() {
             <Button variant="secondary" onClick={() => setDeleteConfirmOpen(false)}>
               Hủy
             </Button>
-            <Button className="bg-danger-500 text-white hover:bg-danger-600" onClick={executeDelete}>
+            <Button className="bg-danger-500 text-white hover:bg-danger-600" onClick={executeDelete} loading={remove.isPending}>
               Xóa xác nhận
             </Button>
           </>
         }
       >
-        <p className="text-secondary-700 text-sm">
+        <p className="text-secondary-700 text-sm leading-relaxed">
           Bạn có chắc chắn muốn xóa hệ thống phụ thu cho ngày <strong className="text-foreground">{holidayToDelete?.name}</strong>?
           <br /><br />
           <span className="text-xs text-secondary-500">

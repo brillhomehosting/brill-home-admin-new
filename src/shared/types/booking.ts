@@ -64,6 +64,11 @@ export type BookingSlot = {
   slotOriginalPrice: number;
   slotHolidaySurcharge: number;
   slotDiscountAmount: number;
+  appliedCampaignId?: string;
+  appliedCampaignName?: string;
+  appliedCampaignType?: string;
+  appliedDiscountType?: string;
+  appliedDiscountValue?: number;
   isHolidaySlot: boolean;
 };
 
@@ -95,6 +100,15 @@ export type AdminBookingDetail = AdminBooking & {
   roomId: string;
   slots: BookingSlot[];
   payment?: BookingPayment;
+  copyMessage?: string;
+  tuyaPasswordCreated?: boolean;
+};
+
+export type TuyaSyncResponse = {
+  copyMessage: string;
+  tuyaPasswordCreated: boolean;
+  tuyaSyncStatus: string;
+  gatePassword: string;
 };
 
 export type ConfirmPaymentData = {
@@ -107,14 +121,23 @@ export type ConfirmPaymentData = {
 
 export type AdminCreateBookingData = {
   roomId: string;
-  date: string;
-  timeSlotIds: string[];
+  date?: string;
+  timeSlotIds?: string[];
+  bookingSlots?: Array<{
+    date: string;
+    timeSlotIds: string[];
+  }>;
   guestName: string;
   guestEmail: string;
   guestPhone: string;
   nationalIdFrontUrl?: string;
   nationalIdBackUrl?: string;
   note?: string;
+  paymentMethod?: PaymentMethod;
+  transactionNo?: string;
+  proofImageUrls?: string[];
+  paymentNote?: string;
+  sendConfirmationEmail?: boolean;
 };
 
 export type BookingAvailabilitySlot = {

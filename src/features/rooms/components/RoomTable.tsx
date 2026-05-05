@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Pencil, Trash2, RotateCcw } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, RotateCcw, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/utils';
 import { formatCurrency } from '@/shared/utils';
 import { Badge } from '@/shared/components/ui';
@@ -33,75 +33,74 @@ type RoomTableProps = {
 export function RoomTable({ rooms, loading, onDelete, onRestore }: RoomTableProps) {
   const navigate = useNavigate();
 
-  if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center text-sm text-secondary-400">
-        Đang tải danh sách phòng...
-      </div>
-    );
-  }
-
-  if (rooms.length === 0) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-2 text-secondary-400">
-        <span className="text-4xl">🏠</span>
-        <p className="text-sm">Không có phòng nào</p>
-      </div>
-    );
-  }
-
   return (
     <>
       {/* Desktop table — md+ */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="w-full min-w-[900px] border-collapse text-left">
-          <thead>
-            <tr className="border-b border-border bg-secondary-50">
-              <th className="px-6 py-4 text-[13px] font-bold uppercase tracking-wider text-secondary-600">
-                Hình ảnh
-              </th>
-              <th className="px-6 py-4 text-[13px] font-bold uppercase tracking-wider text-secondary-600">
-                Tên &amp; Loại phòng
-              </th>
-              <th className="px-6 py-4 text-right text-[13px] font-bold uppercase tracking-wider text-secondary-600">
-                Giá theo giờ
-              </th>
-              <th className="px-6 py-4 text-right text-[13px] font-bold uppercase tracking-wider text-secondary-600">
-                Giá qua đêm
-              </th>
-              <th className="px-6 py-4 text-center text-[13px] font-bold uppercase tracking-wider text-secondary-600">
-                Trạng thái
-              </th>
-              <th className="px-6 py-4 text-center text-[13px] font-bold uppercase tracking-wider text-secondary-600">
-                Thao tác
-              </th>
+        <table className="min-w-full text-left text-sm whitespace-nowrap">
+          <thead className="bg-surface-dim uppercase text-secondary-500 text-xs font-semibold tracking-wider border-b border-border">
+            <tr>
+              <th scope="col" className="px-5 py-4">Hình ảnh</th>
+              <th scope="col" className="px-5 py-4">Tên & Loại phòng</th>
+              <th scope="col" className="px-5 py-4 text-right">Giá theo giờ</th>
+              <th scope="col" className="px-5 py-4 text-right">Giá qua đêm</th>
+              <th scope="col" className="px-5 py-4 text-center">Trạng thái</th>
+              <th scope="col" className="px-5 py-4 text-center">Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border-light">
-            {rooms.map((room) => (
-              <RoomRow
-                key={room.id}
-                room={room}
-                onEdit={() => navigate(ROUTES.ROOM_EDIT(room.id))}
-                onDelete={() => onDelete(room)}
-                onRestore={onRestore ? () => onRestore(room) : undefined}
-              />
-            ))}
+          <tbody className="divide-y divide-border">
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-10 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+                    <span className="text-sm text-secondary-500 font-medium">Đang tải danh sách phòng...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : rooms.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-10 text-center text-secondary-500 font-medium">
+                  Không có phòng nào
+                </td>
+              </tr>
+            ) : (
+              rooms.map((room) => (
+                <RoomRow
+                  key={room.id}
+                  room={room}
+                  onEdit={() => navigate(ROUTES.ROOM_EDIT(room.id))}
+                  onDelete={() => onDelete(room)}
+                  onRestore={onRestore ? () => onRestore(room) : undefined}
+                />
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Mobile card list — below md */}
-      <div className="md:hidden divide-y divide-border-light">
-        {rooms.map((room) => (
-          <RoomCard
-            key={room.id}
-            room={room}
-            onEdit={() => navigate(ROUTES.ROOM_EDIT(room.id))}
-            onDelete={() => onDelete(room)}
-            onRestore={onRestore ? () => onRestore(room) : undefined}
-          />
-        ))}
+      <div className="md:hidden divide-y divide-border">
+        {loading ? (
+          <div className="flex h-64 items-center justify-center text-sm text-secondary-400">
+            <Loader2 className="h-6 w-6 animate-spin text-primary-500 mr-2" />
+            Đang tải...
+          </div>
+        ) : rooms.length === 0 ? (
+          <div className="flex h-64 flex-col items-center justify-center gap-2 text-secondary-400">
+            <p className="text-sm">Không có phòng nào</p>
+          </div>
+        ) : (
+          rooms.map((room) => (
+            <RoomCard
+              key={room.id}
+              room={room}
+              onEdit={() => navigate(ROUTES.ROOM_EDIT(room.id))}
+              onDelete={() => onDelete(room)}
+              onRestore={onRestore ? () => onRestore(room) : undefined}
+            />
+          ))
+        )}
       </div>
     </>
   );
@@ -189,11 +188,11 @@ function RoomRow({
 
   return (
     <tr
-      className="group cursor-pointer transition-colors hover:bg-secondary-50/80"
+      className="group cursor-pointer transition-colors hover:bg-secondary-50/50"
       onClick={() => navigate(ROUTES.ROOM_VIEW(room.id))}
     >
       {/* Image */}
-      <td className="px-6 py-4">
+      <td className="px-5 py-4">
         <div
           className={cn(
             'h-12 w-12 rounded-lg border border-border bg-secondary-100 bg-cover bg-center',
@@ -203,9 +202,9 @@ function RoomRow({
       </td>
 
       {/* Name & type */}
-      <td className="px-6 py-4">
+      <td className="px-5 py-4">
         <div className="flex flex-col gap-1">
-          <span className="font-semibold text-foreground group-hover:text-accent-500 transition-colors">
+          <span className="font-medium text-foreground group-hover:text-accent-500 transition-colors">
             {room.name}
           </span>
           <div>
@@ -215,17 +214,17 @@ function RoomRow({
       </td>
 
       {/* Hourly rate */}
-      <td className="px-6 py-4 text-right text-sm font-medium text-foreground">
+      <td className="px-5 py-4 text-right text-sm font-medium text-foreground">
         {room.hourlyRate != null ? formatCurrency(room.hourlyRate) : '—'}
       </td>
 
       {/* Overnight rate */}
-      <td className="px-6 py-4 text-right text-sm font-medium text-foreground">
+      <td className="px-5 py-4 text-right text-sm font-medium text-foreground">
         {room.overnightRate != null ? formatCurrency(room.overnightRate) : '—'}
       </td>
 
       {/* Status */}
-      <td className="px-6 py-4 text-center">
+      <td className="px-5 py-4 text-center">
         {room.isActive !== false ? (
           <Badge variant="success" dot>
             Hoạt động
@@ -238,7 +237,7 @@ function RoomRow({
       </td>
 
       {/* Actions */}
-      <td className="px-6 py-4 text-center">
+      <td className="px-5 py-4 text-center">
         <ActionMenu room={room} onEdit={onEdit} onDelete={onDelete} onRestore={onRestore} />
       </td>
     </tr>
@@ -265,7 +264,7 @@ function RoomCard({
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-secondary-50/80"
+      className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-secondary-50/50"
       onClick={() => navigate(ROUTES.ROOM_VIEW(room.id))}
     >
       {/* Thumbnail */}
@@ -278,7 +277,7 @@ function RoomCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="truncate font-semibold text-foreground">{room.name}</p>
+            <p className="truncate font-medium text-foreground">{room.name}</p>
             <div className="mt-0.5">
               <Badge variant={typeBadge as ERoomType}>{typeLabel}</Badge>
             </div>

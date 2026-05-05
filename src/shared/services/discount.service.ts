@@ -1,11 +1,11 @@
-import api from './api';
 import { API } from '@/shared/constants';
-import type { 
-  ApiResponse, 
-  PagedApiResponse, 
-  DiscountCampaign, 
-  GetDiscountsParams 
+import type {
+    ApiResponse,
+    DiscountCampaign,
+    GetDiscountsParams,
+    PagedApiResponse
 } from '@/shared/types';
+import api from './api';
 
 /** GET /admin/discount-campaigns */
 export async function getDiscounts(params: GetDiscountsParams) {

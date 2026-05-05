@@ -6,18 +6,21 @@ import {
   Banknote,
   CalendarDays,
   ChevronDown,
-  ClipboardList,
-  Hourglass,
   Plus,
   Search,
   Loader2,
+  Hourglass,
+  User,
+  Home,
+  Clock,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useBookings } from '../hooks/useBookings';
 import { useRooms } from '@/features/rooms/hooks/useRooms';
-import { useDashboardStats } from '../hooks/useDashboardStats';
+import { useDashboardStats } from '@/features/dashboard/hooks/useDashboard';
 import type { BookingStatus } from '@/shared/types';
+import { Button } from '@/shared/components/ui/Button';
 
 // --- Types ---
 
@@ -46,7 +49,7 @@ const renderStatusPill = (status: BookingStatus) => {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-tight',
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-tight',
         config.classes,
       )}
     >
@@ -56,7 +59,7 @@ const renderStatusPill = (status: BookingStatus) => {
 };
 
 export default function BookingListPage() {
-  const [page, setPage] = useState(0); // API is 0-indexed typically
+  const [page, setPage] = useState(0); 
   const [size] = useState(10);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -99,7 +102,7 @@ export default function BookingListPage() {
     ...rooms.map((room) => ({
       id: room.id,
       label: room.name,
-      count: null, // API doesn't provide count per room easily in one call
+      count: null, 
     })),
   ];
 
@@ -112,13 +115,15 @@ export default function BookingListPage() {
           { label: 'Đặt phòng' },
         ]}
         actions={
-          <Link
+          <Button
+            onClick={() => {}} // navigate via Link in future or use navigate
+            as={Link}
             to="/apps/bookings/create"
-            className="flex items-center gap-2 rounded-lg bg-accent-400 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-500"
+            className="bg-accent-400 hover:bg-accent-500"
+            icon={Plus}
           >
-            <Plus className="h-4 w-4" />
-            Tạo booking thủ công
-          </Link>
+            Tạo booking
+          </Button>
         }
       />
 
@@ -128,7 +133,7 @@ export default function BookingListPage() {
           <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-secondary-500">Booking hôm nay</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Booking hôm nay</p>
                 <p className="mt-1 text-2xl font-bold text-foreground">
                   {stats?.totalBookingsToday ?? 0}
                 </p>
@@ -137,15 +142,15 @@ export default function BookingListPage() {
                 <CalendarDays className="h-5 w-5" />
               </div>
             </div>
-            <div className="text-xs font-medium text-success-600 flex items-center gap-1 mt-1">
-              <span className="font-semibold text-primary-600">{stats?.confirmedBookingsToday ?? 0}</span> đã xác nhận
+            <div className="text-[10px] font-bold text-success-600 flex items-center gap-1 mt-1 uppercase tracking-tighter">
+              <span className="font-extrabold">{stats?.confirmedBookingsToday ?? 0}</span> đã xác nhận
             </div>
           </div>
 
           <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-secondary-500">Đang giữ chỗ</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Đang giữ chỗ</p>
                 <p className="mt-1 text-2xl font-bold text-foreground">
                   {stats?.pendingBookingsToday ?? 0}
                 </p>
@@ -165,22 +170,7 @@ export default function BookingListPage() {
           <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-secondary-500">Chờ duyệt CCCD</p>
-                <p className="mt-1 text-2xl font-bold text-foreground">
-                  {stats?.pendingCccdCount ?? 0}
-                </p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info-50 text-indigo-500">
-                <ClipboardList className="h-5 w-5" />
-              </div>
-            </div>
-            <p className="text-xs text-secondary-400 mt-1">Cần hậu kiểm thông tin khách</p>
-          </div>
-
-          <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-secondary-500">Doanh thu hôm nay</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Doanh thu hôm nay</p>
                 <p className="mt-1 text-2xl font-bold text-foreground">
                   {formatCurrency(stats?.revenueToday ?? 0)}
                 </p>
@@ -189,9 +179,24 @@ export default function BookingListPage() {
                 <Banknote className="h-5 w-5" />
               </div>
             </div>
-            <div className="text-xs font-medium text-success-600 flex items-center gap-1 mt-1 text-right italic">
-              Cập nhật lúc: {stats?.date ? formatDate(stats.date) : '...'}
+            <div className="text-[10px] font-bold text-success-600 flex items-center gap-1 mt-1 italic uppercase tracking-tighter">
+              Cập nhật trực tiếp
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 shadow-sm">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Phòng hoạt động</p>
+                <p className="mt-1 text-2xl font-bold text-foreground">
+                  {rooms.length}
+                </p>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info-50 text-info-500">
+                <CalendarDays className="h-5 w-5" />
+              </div>
+            </div>
+            <p className="text-[10px] text-secondary-400 mt-1 italic uppercase tracking-tighter">Dựa trên danh sách</p>
           </div>
         </div>
 
@@ -208,20 +213,20 @@ export default function BookingListPage() {
                     setPage(0);
                   }}
                   className={cn(
-                    'flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors whitespace-nowrap',
+                    'flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-bold transition-colors whitespace-nowrap uppercase tracking-tight',
                     isActive
                       ? 'border-accent-400 text-accent-500'
-                      : 'border-transparent text-secondary-500 hover:border-secondary-300 hover:text-secondary-700',
+                      : 'border-transparent text-secondary-400 hover:border-secondary-300 hover:text-secondary-600',
                   )}
                 >
                   {tab.label}
                   {tab.count !== null && (
                     <span
                       className={cn(
-                        'rounded-full px-2 py-0.5 text-xs',
+                        'rounded-full px-2 py-0.5 text-[10px] font-bold',
                         isActive
                           ? 'bg-accent-50 text-accent-600'
-                          : 'bg-secondary-100 text-secondary-600',
+                          : 'bg-secondary-100 text-secondary-500',
                       )}
                     >
                       {tab.count}
@@ -234,12 +239,12 @@ export default function BookingListPage() {
         </div>
 
         {/* --- Table Section --- */}
-        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm">
+        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
           {/* Filters */}
-          <div className="flex flex-col gap-4 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-1 items-center gap-3">
-              <div className="flex items-center gap-2">
-                <div className="relative w-36 shrink-0">
+          <div className="flex flex-col gap-4 border-b border-border p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="flex items-center gap-2 lg:col-span-1">
+                <div className="relative flex-1">
                   <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
                   <input
                     type="text"
@@ -256,7 +261,7 @@ export default function BookingListPage() {
                   />
                 </div>
                 <span className="text-secondary-400 font-medium">-</span>
-                <div className="relative w-36 shrink-0">
+                <div className="relative flex-1">
                   <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
                   <input
                     type="text"
@@ -273,7 +278,7 @@ export default function BookingListPage() {
                   />
                 </div>
               </div>
-              <div className="relative w-40 shrink-0">
+              <div className="relative">
                 <select
                   value={status || ''}
                   onChange={(e) => {
@@ -291,7 +296,7 @@ export default function BookingListPage() {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 pointer-events-none text-secondary-400" />
               </div>
-              <div className="relative w-full max-w-sm">
+              <div className="relative sm:col-span-2 lg:col-span-2">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
                 <input
                   type="text"
@@ -302,85 +307,130 @@ export default function BookingListPage() {
                 />
               </div>
             </div>
-            <button className="flex items-center gap-2 rounded-lg bg-secondary-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-secondary-800">
-              Tìm kiếm
-            </button>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-secondary-400">
+                Tìm thấy {totalElements} booking
+              </span>
+            </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-surface-dim uppercase text-secondary-500 text-xs font-semibold tracking-wider">
+              <thead className="bg-surface-dim uppercase text-secondary-500 text-xs font-semibold tracking-wider border-b border-border">
                 <tr>
-                  <th scope="col" className="px-5 py-4 w-12">
-                    <input type="checkbox" className="h-4 w-4 rounded border-border text-primary-600 focus:ring-primary-500" />
-                  </th>
                   <th scope="col" className="px-5 py-4">Mã Booking</th>
+                  <th scope="col" className="px-5 py-4 text-center">Trạng thái</th>
                   <th scope="col" className="px-5 py-4">Phòng</th>
                   <th scope="col" className="px-5 py-4">Khách hàng</th>
                   <th scope="col" className="px-5 py-4">SĐT</th>
                   <th scope="col" className="px-5 py-4">Thời gian</th>
-                  <th scope="col" className="px-5 py-4">Tổng tiền</th>
-                  <th scope="col" className="px-5 py-4 text-center">Trạng thái</th>
+                  <th scope="col" className="px-5 py-4 text-right">Tổng tiền</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-10 text-center">
+                    <td colSpan={7} className="px-5 py-10 text-center text-secondary-500">
                       <div className="flex flex-col items-center gap-2">
                         <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
-                        <span className="text-sm text-secondary-500 font-medium">Đang tải dữ liệu...</span>
+                        <span className="text-sm font-medium">Đang tải dữ liệu...</span>
                       </div>
                     </td>
                   </tr>
                 ) : bookings.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-10 text-center text-secondary-500 font-medium">
+                    <td colSpan={7} className="px-5 py-10 text-center text-secondary-500 font-medium">
                       Không tìm thấy booking nào phù hợp.
                     </td>
                   </tr>
                 ) : (
                   bookings.map((booking) => (
-                    <tr key={booking.bookingId} className="hover:bg-secondary-50/50 transition-colors">
+                    <tr key={booking.bookingId} className="hover:bg-secondary-50/50 transition-colors group cursor-pointer" onClick={() => window.location.href = `/apps/bookings/${booking.bookingId}`}>
                       <td className="px-5 py-4">
-                        <input type="checkbox" className="h-4 w-4 rounded border-border text-primary-600 focus:ring-primary-500" />
-                      </td>
-                      <td className="px-5 py-4 font-medium">
                         <Link
                           to={`/apps/bookings/${booking.bookingId}`}
-                          className="text-accent-500 hover:text-accent-600 hover:underline inline-block max-w-[120px] truncate align-bottom"
-                          title={booking.bookingCode}
+                          className="text-sm font-bold text-primary-600 hover:underline"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           #{booking.bookingCode}
                         </Link>
                       </td>
-                      <td className="px-5 py-4 font-medium text-foreground">{booking.roomName}</td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={cn('flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold bg-info-200 text-info-700')}>
-                            {booking.guestName.charAt(0)}
-                          </div>
-                          <span className="font-medium text-foreground">{booking.guestName}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-secondary-600">{booking.guestPhone}</td>
-                      <td className="px-5 py-4">
-                        <p className="font-medium text-foreground">
-                          {formatDate(booking.checkInAt, { hour: '2-digit', minute: '2-digit', hour12: false })} -{' '}
-                          {formatDate(booking.checkOutAt, { hour: '2-digit', minute: '2-digit', hour12: false })}
-                        </p>
-                        <p className="text-xs text-secondary-400">{formatDate(booking.date)}</p>
-                      </td>
-                      <td className="px-5 py-4 font-semibold text-foreground">{formatCurrency(booking.finalAmount)}</td>
                       <td className="px-5 py-4 text-center">
                         {renderStatusPill(booking.status)}
                       </td>
+                      <td className="px-5 py-4 font-bold text-foreground">{booking.roomName}</td>
+                      <td className="px-5 py-4 font-medium text-foreground">{booking.guestName}</td>
+                      <td className="px-5 py-4 text-secondary-600 font-medium">{booking.guestPhone}</td>
+                      <td className="px-5 py-4">
+                        <p className="font-bold text-foreground text-xs">
+                          {formatDate(booking.checkInAt, { hour: '2-digit', minute: '2-digit' })} -{' '}
+                          {formatDate(booking.checkOutAt, { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                        <p className="text-[10px] text-secondary-400 font-bold uppercase tracking-tighter">{formatDate(booking.date)}</p>
+                      </td>
+                      <td className="px-5 py-4 text-right font-extrabold text-foreground">{formatCurrency(booking.finalAmount)}</td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden divide-y divide-border">
+            {isLoading ? (
+              <div className="px-5 py-10 text-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary-500 mx-auto" />
+              </div>
+            ) : bookings.length === 0 ? (
+              <div className="px-5 py-10 text-center text-secondary-500 text-sm">
+                Không tìm thấy booking.
+              </div>
+            ) : (
+              bookings.map((booking) => (
+                <Link 
+                  key={booking.bookingId} 
+                  to={`/apps/bookings/${booking.bookingId}`}
+                  className="flex flex-col p-4 gap-3 bg-surface hover:bg-secondary-50 active:bg-secondary-100 transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-50 text-primary-500">
+                        <Home className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-foreground text-sm">#{booking.bookingCode}</p>
+                        <p className="text-[10px] text-secondary-400 font-bold uppercase">{booking.roomName}</p>
+                      </div>
+                    </div>
+                    {renderStatusPill(booking.status)}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-secondary-600">
+                      <User className="h-3.5 w-3.5 text-secondary-400" />
+                      <span className="text-xs font-bold">{booking.guestName}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-accent-600 font-extrabold text-sm">
+                      <Banknote className="h-3.5 w-3.5" />
+                      {formatCurrency(booking.finalAmount)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-[10px] font-bold text-secondary-400 uppercase tracking-tighter border-t border-border pt-2">
+                    <div className="flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3" />
+                      {formatDate(booking.date)}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatDate(booking.checkInAt, { hour: '2-digit', minute: '2-digit' })} - {formatDate(booking.checkOutAt, { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
 
           {/* Pagination */}

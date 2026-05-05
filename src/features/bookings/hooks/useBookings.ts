@@ -26,3 +26,22 @@ export function useBookingByCode(code: string | undefined) {
     staleTime: 60_000,
   });
 }
+/**
+ * Calculate dynamic price for a set of slots.
+ */
+export function useCalculatePrice(payload: {
+  roomId: string;
+  bookingSlots: Array<{
+    date: string;
+    timeSlotIds: string[];
+  }>;
+}) {
+  const hasSlots = payload.roomId && payload.bookingSlots.some(s => s.timeSlotIds.length > 0);
+  
+  return useQuery({
+    queryKey: ['bookings', 'calculate-price', payload],
+    queryFn: () => bookingService.calculatePrice(payload),
+    enabled: !!hasSlots,
+    staleTime: 5000, // Short stale time as price depends on many factors
+  });
+}

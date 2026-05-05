@@ -70,10 +70,53 @@ export function useBookingMutation() {
     },
   });
 
+  const syncTuyaMutation = useMutation({
+    mutationFn: (bookingId: string) => bookingService.retryTuya(bookingId),
+    onSuccess: (data, bookingId) => {
+      toast('Đồng bộ Tuya thành công', 'success');
+      // Update the cache with new data
+      queryClient.setQueryData(bookingKeys.detail(bookingId), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          copyMessage: data.copyMessage,
+          tuyaPasswordCreated: data.tuyaPasswordCreated,
+          tuyaSyncStatus: data.tuyaSyncStatus,
+          gatePassword: data.gatePassword,
+        };
+      });
+    },
+    onError: (error: any) => {
+      const message =
+        error.response?.data?.message || 'Có lỗi xảy ra khi đồng bộ Tuya';
+      toast(message, 'error');
+    },
+  });
+
+  const syncStatusMutation = useMutation({
+    mutationFn: ({ bookingId, tuyaSyncStatus }: { bookingId: string; tuyaSyncStatus: string }) =>
+      bookingService.syncTuyaStatus(bookingId, tuyaSyncStatus),
+    onSuccess: (data, { bookingId }) => {
+      // Update the cache silently without toast
+      queryClient.setQueryData(bookingKeys.detail(bookingId), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          copyMessage: data.copyMessage,
+          tuyaPasswordCreated: data.tuyaPasswordCreated,
+          tuyaSyncStatus: data.tuyaSyncStatus,
+          gatePassword: data.gatePassword,
+        };
+      });
+    },
+  });
+
   return {
     cancelBooking: cancelMutation,
     resendConfirmation: resendMutation,
     confirmPayment: confirmPaymentMutation,
     adminCreateBooking: adminCreateMutation,
+    retryTuya: syncTuyaMutation,
+    syncTuyaStatus: syncStatusMutation,
   };
 }

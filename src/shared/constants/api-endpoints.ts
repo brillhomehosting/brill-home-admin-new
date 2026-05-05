@@ -58,7 +58,10 @@ export const API = {
     ADMIN_CREATE: '/admin/bookings',
     CREATE: '/bookings',
     GET_AVAILABILITY: '/bookings/availability',
+    CALCULATE_PRICE: '/bookings/calculate-price',
     DELETE: (bookingId: string) => `/bookings/${bookingId}` as const,
+    TUYA_SYNC_STATUS: (bookingId: string) => `/admin/bookings/${bookingId}/tuya-sync-status` as const,
+    RETRY_TUYA: (bookingId: string) => `/admin/bookings/${bookingId}/retry-tuya` as const,
   },
 
   // ── Payments ──
@@ -91,11 +94,14 @@ export const API = {
     UPDATE: (id: string) => `/admin/discount-campaigns/${id}` as const,
     DELETE: (id: string) => `/admin/discount-campaigns/${id}` as const,
     TOGGLE_STATUS: (id: string) => `/admin/discount-campaigns/${id}/status` as const,
+    APPLICABLE: '/discount-campaigns/applicable',
   },
 
   // ── Dashboard ──
   DASHBOARD: {
     STATS: '/admin/dashboard/stats',
+    RECENT_BOOKINGS: '/admin/dashboard/recent-bookings',
+    UPCOMING_BOOKINGS: '/admin/dashboard/upcoming-bookings',
   },
 
   // ── Uploads ──
@@ -110,5 +116,11 @@ export const API = {
     CREATE: '/admin/holiday-surcharges',
     UPDATE: (id: string) => `/admin/holiday-surcharges/${id}` as const,
     DELETE: (id: string) => `/admin/holiday-surcharges/${id}` as const,
+    CHECK_DATE: '/admin/holiday-surcharges/check-date',
+  },
+
+  // ── Combos ──
+  COMBOS: {
+    LIST: '/combo-configs',
   },
 } as const;

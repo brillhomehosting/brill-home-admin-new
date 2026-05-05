@@ -11,6 +11,7 @@ import RoomCreatePage from '@/features/rooms/pages/RoomCreatePage';
 import RoomDetailPage from '@/features/rooms/pages/RoomDetailPage';
 import RoomEditPage from '@/features/rooms/pages/RoomEditPage';
 import RoomListPage from '@/features/rooms/pages/RoomListPage';
+import DashboardPage from '@/features/dashboard/pages/DashboardPage';
 import { ProtectedRoute } from '@/shared/components/auth';
 import { Header, MainLayout, SidebarContext } from '@/shared/components/layout';
 import { ROUTES } from '@/shared/constants';
@@ -62,7 +63,7 @@ export const router = createBrowserRouter([
       // Dashboard — redirect / → dashboard placeholder
       {
         index: true,
-        element: <PlaceholderPage title="Dashboard" />,
+        element: <DashboardPage />,
       },
       // Rooms
       {

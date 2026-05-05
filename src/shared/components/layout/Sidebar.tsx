@@ -3,12 +3,10 @@ import {
   LayoutDashboard,
   BedDouble,
   CalendarCheck,
-  Users,
   Receipt,
   Settings,
   LogOut,
   Package,
-  KeyRound,
   Tag,
   CalendarRange,
   type LucideIcon,
@@ -35,18 +33,16 @@ const navigation: NavGroup[] = [
       { label: 'Dashboard', path: ROUTES.HOME, icon: LayoutDashboard },
       { label: 'Phòng', path: ROUTES.ROOMS, icon: BedDouble },
       { label: 'Tiện nghi', path: ROUTES.AMENITIES_LIST, icon: Package },
-      { label: 'Mật khẩu phòng', path: ROUTES.RANDOM_GENERATOR, icon: KeyRound },
-      { label: 'Đặt phòng', path: '/apps/bookings', icon: CalendarCheck },
-      { label: 'Khách hàng', path: '/apps/customers', icon: Users },
-      { label: 'Hóa đơn', path: '/apps/invoices', icon: Receipt },
-      { label: 'Chương trình giảm giá', path: '/apps/discounts', icon: Tag },
-      { label: 'Cấu hình ngày lễ', path: '/settings/holidays', icon: CalendarRange },
+      { label: 'Đặt phòng', path: ROUTES.BOOKINGS.LIST, icon: CalendarCheck },
+      { label: 'Hóa đơn', path: ROUTES.INVOICES, icon: Receipt },
+      { label: 'Chương trình giảm giá', path: ROUTES.DISCOUNTS, icon: Tag },
+      { label: 'Cấu hình ngày lễ', path: ROUTES.HOLIDAYS, icon: CalendarRange },
     ],
   },
 ];
 
 const bottomNav: NavItem[] = [
-  { label: 'Cài đặt', path: '/settings', icon: Settings, exact: true },
+  { label: 'Cài đặt', path: ROUTES.SETTINGS, icon: Settings, exact: true },
 ];
 
 // ── Sidebar component ──

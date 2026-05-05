@@ -14,6 +14,7 @@ import type {
   AdminCreateBookingData,
   BookingAvailabilityResponse,
   BookingAvailabilitySlot,
+  TuyaSyncResponse,
 } from '@/shared/types';
 
 // ================================================================
@@ -125,6 +126,38 @@ export async function adminCreateBooking(data: AdminCreateBookingData) {
   return response.data;
 }
 
+/** PATCH /admin/bookings/:id/tuya-sync-status */
+export async function syncTuyaStatus(bookingId: string, tuyaSyncStatus: string): Promise<TuyaSyncResponse> {
+  const { data } = await api.patch<ApiResponse<TuyaSyncResponse>>(
+    API.BOOKINGS.TUYA_SYNC_STATUS(bookingId),
+    { tuyaSyncStatus },
+  );
+  return data.data;
+}
+
+/** POST /admin/bookings/:id/retry-tuya */
+export async function retryTuya(bookingId: string): Promise<TuyaSyncResponse> {
+  const { data } = await api.post<ApiResponse<TuyaSyncResponse>>(
+    API.BOOKINGS.RETRY_TUYA(bookingId),
+  );
+  return data.data;
+}
+
+/** POST /bookings/calculate-price */
+export async function calculatePrice(payload: {
+  roomId: string;
+  bookingSlots: Array<{
+    date: string;
+    timeSlotIds: string[];
+  }>;
+}) {
+  const { data } = await api.post<ApiResponse<any>>(
+    API.BOOKINGS.CALCULATE_PRICE,
+    payload
+  );
+  return data.data;
+}
+
 export const bookingService = {
   getBookingAvailability,
   getTimeSlotAvailability,
@@ -137,4 +170,7 @@ export const bookingService = {
   resendConfirmation,
   confirmPayment,
   adminCreateBooking,
+  syncTuyaStatus,
+  retryTuya,
+  calculatePrice,
 };

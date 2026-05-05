@@ -83,11 +83,42 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
       toast('Vui lòng nhập đầy đủ thông tin bắt buộc.', 'error');
       return;
     }
+
+    if (form.type === 'ROOM' && !form.targetRoomId) {
+      toast('Vui lòng chọn phòng áp dụng.', 'error');
+      return;
+    }
     
-    const payload = {
-      ...form,
+    // Build payload with only relevant target fields based on type
+    const base = {
+      name: form.name,
+      type: form.type,
+      discountType: form.discountType,
       discountValue: Number(form.discountValue),
+      startDate: form.startDate,
+      endDate: form.endDate,
+      status: form.status,
     };
+
+    let payload: Record<string, any> = { ...base };
+
+    switch (form.type) {
+      case 'WEEK_DAY':
+        payload.targetWeekDay = form.targetWeekDay;
+        break;
+      case 'SLOT_TYPE':
+        payload.targetOvernightSlot = form.targetOvernightSlot;
+        break;
+      case 'ROOM_TYPE':
+        payload.targetRoomType = form.targetRoomType;
+        break;
+      case 'ROOM':
+        payload.targetRoomId = form.targetRoomId;
+        break;
+      case 'ALL':
+        // No target fields needed
+        break;
+    }
 
     if (initialData) {
       update.mutate({ id: initialData.id, payload }, {
@@ -165,7 +196,7 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                   onChange={(e) => setForm({ ...form, discountType: e.target.value as any })}
                   options={[
                     { value: 'PERCENTAGE', label: 'Theo Phần trăm (%)' },
-                    { value: 'FIXED', label: 'Theo Số tiền (VNĐ)' },
+                    { value: 'FIXED_AMOUNT', label: 'Theo Số tiền (VNĐ)' },
                   ]}
                 />
               </div>
