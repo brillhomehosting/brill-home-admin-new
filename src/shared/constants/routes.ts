@@ -21,7 +21,7 @@ export const ROUTES = {
   BOOKINGS: {
     LIST: '/apps/bookings',
     DETAIL: (id: string) => `/apps/bookings/${id}` as const,
-    NEW: '/apps/bookings/new',
+    NEW: '/apps/bookings/create',
   },
 
   // ── Invoices ──

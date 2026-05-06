@@ -115,6 +115,11 @@ export async function resendConfirmation(bookingId: string) {
   await api.post(API.BOOKINGS.RESEND_CONFIRMATION(bookingId));
 }
 
+/** POST /admin/bookings/:id/resend-cancellation */
+export async function resendCancellation(bookingId: string, email?: string) {
+  await api.post(API.BOOKINGS.RESEND_CANCELLATION(bookingId), { email });
+}
+
 /** POST /admin/bookings/:id/payments */
 export async function confirmPayment(bookingId: string, data: ConfirmPaymentData) {
   await api.post(API.BOOKINGS.CONFIRM_PAYMENT(bookingId), data);
@@ -168,6 +173,7 @@ export const bookingService = {
   getBookingDetail,
   cancelBooking,
   resendConfirmation,
+  resendCancellation,
   confirmPayment,
   adminCreateBooking,
   syncTuyaStatus,

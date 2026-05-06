@@ -54,6 +54,7 @@ export const API = {
     ADMIN_DETAIL: (bookingId: string) => `/admin/bookings/${bookingId}` as const,
     CANCEL: (bookingId: string) => `/admin/bookings/${bookingId}/cancel` as const,
     RESEND_CONFIRMATION: (bookingId: string) => `/admin/bookings/${bookingId}/resend-confirmation` as const,
+    RESEND_CANCELLATION: (bookingId: string) => `/admin/bookings/${bookingId}/resend-cancellation` as const,
     CONFIRM_PAYMENT: (bookingId: string) => `/admin/bookings/${bookingId}/payments` as const,
     ADMIN_CREATE: '/admin/bookings',
     CREATE: '/bookings',
@@ -67,6 +68,7 @@ export const API = {
   // ── Payments ──
   PAYMENTS: {
     ADMIN_LIST: '/admin/payments',
+    STATS: '/admin/payments/stats',
     GET_METHODS: '/payments/methods',
   },
 

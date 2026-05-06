@@ -36,7 +36,6 @@ export default function CreateBookingPage() {
   const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
   const [transactionNo, setTransactionNo] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
-  const [proofFiles, setProofFiles] = useState<File[]>([]);
   const [sendEmail, setSendEmail] = useState(true);
 
   // Queries & Mutations
@@ -154,22 +153,7 @@ export default function CreateBookingPage() {
     setViewDate(d.toISOString().split('T')[0]);
   };
 
-  const handleProofFilesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
 
-    const validFiles = files.filter(f => f.size <= 5 * 1024 * 1024);
-    if (validFiles.length < files.length) {
-      toast('Một số file quá lớn (>5MB) đã bị loại bỏ.', 'warning');
-    }
-
-    setProofFiles(prev => [...prev, ...validFiles]);
-    e.target.value = '';
-  };
-
-  const removeProofFile = (index: number) => {
-    setProofFiles(prev => prev.filter((_, i) => i !== index));
-  };
 
   const handleCreateBooking = async () => {
     if (!selectedRoomId || bookingSlotsPayload.length === 0) {
@@ -185,24 +169,24 @@ export default function CreateBookingPage() {
     try {
       setIsCreating(true);
 
-      const proofRes = await Promise.all(proofFiles.map(f => roomService.uploadFile(f, 'PAYMENTS')));
-
       adminCreateBooking.mutate({
         roomId: selectedRoomId,
-        // Send as bookingSlots if multiple days, else fallback to date/timeSlotIds for compatibility
-        bookingSlots: bookingSlotsPayload,
+        slots: bookingSlotsPayload,
         guestName: customerName,
         guestEmail: customerEmail,
         guestPhone: customerPhone,
         note: note || 'Booking được tạo bởi Admin',
-        paymentMethod: paymentMethod as any,
+        paymentMethod: paymentMethod as any, // Cast as any if union types mismatch string state
         transactionNo: transactionNo || undefined,
-        proofImageUrls: proofRes.map(r => r.url),
         paymentNote: paymentNote || undefined,
         sendConfirmationEmail: sendEmail,
       }, {
-        onSuccess: () => {
-          navigate(ROUTES.BOOKINGS.LIST);
+        onSuccess: (res) => {
+          if (res?.data?.bookingId) {
+            navigate(ROUTES.BOOKINGS.DETAIL(res.data.bookingId));
+          } else {
+            navigate(ROUTES.BOOKINGS.LIST);
+          }
         },
         onSettled: () => {
           setIsCreating(false);
@@ -226,8 +210,8 @@ export default function CreateBookingPage() {
     <div className="flex h-full flex-col">
       <Header
         title="Tạo booking thủ công"
-        breadcrumb={[
-          { label: 'Booking', href: ROUTES.BOOKINGS.LIST },
+        breadcrumbs={[
+          { label: 'Booking', path: ROUTES.BOOKINGS.LIST },
           { label: 'Tạo mới' },
         ]}
       />
@@ -260,7 +244,7 @@ export default function CreateBookingPage() {
                       { value: '', label: 'Chọn phòng...' },
                       ...rooms.map((r) => ({ value: r.id, label: r.name })),
                     ]}
-                    isLoading={isLoadingRooms}
+                    loading={isLoadingRooms}
                   />
                 </div>
 
@@ -296,7 +280,7 @@ export default function CreateBookingPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Button 
-                    variant="outline" 
+                    variant="secondary" 
                     size="sm" 
                     className="h-8 w-8 p-0"
                     onClick={handlePrevDays}
@@ -307,7 +291,7 @@ export default function CreateBookingPage() {
                      Đang xem {new Date(viewDate).toLocaleDateString('vi-VN')}
                   </div>
                   <Button 
-                    variant="outline" 
+                    variant="secondary" 
                     size="sm" 
                     className="h-8 w-8 p-0"
                     onClick={handleNextDays}
@@ -500,40 +484,7 @@ export default function CreateBookingPage() {
                   />
                 </div>
 
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
-                    Minh chứng thanh toán ({proofFiles.length})
-                  </label>
-                  
-                  <div className="mt-2 flex flex-wrap gap-3">
-                    {proofFiles.map((file, idx) => (
-                      <div key={idx} className="relative h-20 w-20 rounded-lg border border-border bg-secondary-50 overflow-hidden group">
-                        <img 
-                          src={URL.createObjectURL(file)} 
-                          alt={`Proof ${idx}`} 
-                          className="h-full w-full object-cover" 
-                        />
-                        <button 
-                          onClick={() => removeProofFile(idx)}
-                          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-4 w-4 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                    
-                    <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-surface-dim hover:bg-secondary-50 transition-colors">
-                      <input 
-                        type="file" 
-                        multiple 
-                        className="hidden" 
-                        accept="image/*"
-                        onChange={handleProofFilesSelect}
-                      />
-                      <PlusCircle className="h-5 w-5 text-secondary-400" />
-                    </label>
-                  </div>
-                </div>
+
 
                 <div className="sm:col-span-2 pt-2">
                   <label className="flex items-center gap-2 cursor-pointer group">

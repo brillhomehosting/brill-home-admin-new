@@ -21,3 +21,40 @@ export type GetPaymentsParams = {
   startDate?: string;
   endDate?: string;
 };
+
+export type PaymentStatsParams = {
+  paymentCode?: string;
+  bookingCode?: string;
+  transactionNo?: string;
+  paymentMethod?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
+export type StatItem = {
+  key: string;
+  count: number;
+  amount: number;
+};
+
+export type PaymentStats = {
+  totalCount: number;
+  paidCount: number;
+  refundedCount: number;
+  totalPaidAmount: number;
+  totalRefundedAmount: number;
+  netRevenue: number;
+  avgPaidAmount: number;
+  minAmount: number;
+  maxAmount: number;
+  refundRate: number;
+  refundCount: number;
+  byStatus: StatItem[];
+  byMethod: StatItem[];
+  bySource: StatItem[];
+  revenueToday: number;
+  revenueThisWeek: number;
+  revenueThisMonth: number;
+  revenueInRange: number;
+};

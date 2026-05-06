@@ -15,7 +15,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useBookings } from '../hooks/useBookings';
 import { useRooms } from '@/features/rooms/hooks/useRooms';
 import { useDashboardStats } from '@/features/dashboard/hooks/useDashboard';
@@ -59,6 +59,7 @@ const renderStatusPill = (status: BookingStatus) => {
 };
 
 export default function BookingListPage() {
+  const navigate = useNavigate();
   const [page, setPage] = useState(0); 
   const [size] = useState(10);
   const [search, setSearch] = useState('');
@@ -115,15 +116,14 @@ export default function BookingListPage() {
           { label: 'Đặt phòng' },
         ]}
         actions={
-          <Button
-            onClick={() => {}} // navigate via Link in future or use navigate
-            as={Link}
-            to="/apps/bookings/create"
-            className="bg-accent-400 hover:bg-accent-500"
-            icon={Plus}
-          >
-            Tạo booking
-          </Button>
+          <Link to={ROUTES.BOOKINGS.NEW}>
+            <Button
+              className="bg-accent-400 hover:bg-accent-500"
+              icon={Plus}
+            >
+              Tạo booking
+            </Button>
+          </Link>
         }
       />
 
@@ -346,7 +346,7 @@ export default function BookingListPage() {
                   </tr>
                 ) : (
                   bookings.map((booking) => (
-                    <tr key={booking.bookingId} className="hover:bg-secondary-50/50 transition-colors group cursor-pointer" onClick={() => window.location.href = `/apps/bookings/${booking.bookingId}`}>
+                    <tr key={booking.bookingId} className="hover:bg-secondary-50/50 transition-colors group cursor-pointer" onClick={() => navigate(`/apps/bookings/${booking.bookingId}`)}>
                       <td className="px-5 py-4">
                         <Link
                           to={`/apps/bookings/${booking.bookingId}`}

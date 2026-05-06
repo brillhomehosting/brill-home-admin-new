@@ -123,7 +123,7 @@ export type AdminCreateBookingData = {
   roomId: string;
   date?: string;
   timeSlotIds?: string[];
-  bookingSlots?: Array<{
+  slots?: Array<{
     date: string;
     timeSlotIds: string[];
   }>;
