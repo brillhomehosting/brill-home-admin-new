@@ -47,7 +47,7 @@ export default function DashboardPage() {
         }
       />
 
-      <PageWrapper className="flex-1 space-y-6 pt-6 pb-10">
+      <PageWrapper className="flex-1 space-y-6 pt-4 pb-10 px-4 sm:pt-6 sm:px-6">
         {/* --- Stats Row --- */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard 
@@ -191,22 +191,22 @@ export default function DashboardPage() {
           </div>
 
           {/* Growth & Actions Card */}
-          <div className="flex flex-col rounded-2xl border border-border bg-surface p-6 shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-primary-50 rounded-bl-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500" />
+          <div className="flex flex-col rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300">
+            <div className="absolute top-0 right-0 w-20 h-20 sm:w-24 sm:h-24 bg-primary-50 rounded-bl-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500" />
             
             <div className="relative z-10 flex flex-col h-full">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-2 rounded-xl bg-primary-100 text-primary-600">
-                  <TrendingUp className="h-5 w-5" />
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <div className="p-1.5 sm:p-2 rounded-xl bg-primary-100 text-primary-600">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <span className="text-[10px] font-bold text-success-600 bg-success-50 px-2 py-0.5 rounded-full border border-success-100">
+                <span className="text-[9px] sm:text-[10px] font-bold text-success-600 bg-success-50 px-2 py-0.5 rounded-full border border-success-100">
                   +12.5%
                 </span>
               </div>
 
-              <div className="mb-6">
-                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-wider mb-1">Doanh thu tháng này</p>
-                <h3 className="text-2xl font-black text-foreground tracking-tight">
+              <div className="mb-4 sm:mb-6">
+                <p className="text-[9px] sm:text-[10px] font-bold text-secondary-400 uppercase tracking-wider mb-1">Doanh thu tháng này</p>
+                <h3 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
                   {formatCurrency(paymentStats?.revenueThisMonth ?? 0)}
                 </h3>
               </div>
@@ -214,13 +214,13 @@ export default function DashboardPage() {
               <div className="mt-auto flex flex-col gap-2">
                 <Link 
                   to="/apps/bookings/create" 
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-primary-600 text-white font-bold text-xs hover:bg-primary-700 transition-all shadow-sm"
+                  className="flex items-center justify-center gap-2 w-full py-2 sm:py-2.5 rounded-xl bg-primary-600 text-white font-bold text-[10px] sm:text-xs hover:bg-primary-700 transition-all shadow-sm"
                 >
                   TẠO BOOKING MỚI
                 </Link>
                 <Link 
                   to="/apps/invoices" 
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-secondary-50 text-secondary-600 font-bold text-xs hover:bg-secondary-100 transition-all border border-secondary-100"
+                  className="flex items-center justify-center gap-2 w-full py-2 sm:py-2.5 rounded-xl bg-secondary-50 text-secondary-600 font-bold text-[10px] sm:text-xs hover:bg-secondary-100 transition-all border border-secondary-100"
                 >
                   Chi tiết doanh thu
                 </Link>
@@ -305,19 +305,19 @@ function StatCard({
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
+    <div className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-bold text-secondary-500 uppercase tracking-wider">{title}</p>
-          <p className="mt-1 text-2xl font-black text-foreground tracking-tight group-hover:text-primary-600 transition-colors">
+          <p className="text-[10px] font-bold text-secondary-500 uppercase tracking-wider">{title}</p>
+          <p className="mt-0.5 sm:mt-1 text-xl sm:text-2xl font-black text-foreground tracking-tight group-hover:text-primary-600 transition-colors">
             {value}
           </p>
         </div>
-        <div className={cn('flex h-11 w-11 items-center justify-center rounded-xl ring-1 transition-transform group-hover:scale-110', colorMapping[color])}>
-          <Icon className="h-5 w-5" />
+        <div className={cn('flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl ring-1 transition-transform group-hover:scale-110', colorMapping[color])}>
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
       </div>
-      <div className="mt-1">
+      <div className="mt-0.5 sm:mt-1">
         {footer}
       </div>
     </div>

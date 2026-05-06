@@ -77,29 +77,32 @@ export default function AmenityListPage() {
           { label: 'Tiện nghi' },
         ]}
         actions={
-          <Button icon={Plus} onClick={handleAdd} className="bg-accent-400 hover:bg-accent-500">
-            Thêm tiện nghi
+          <Button icon={Plus} onClick={handleAdd} className="bg-primary-600 hover:bg-primary-700 shadow-sm h-10 px-3 sm:px-4">
+            <span className="hidden sm:inline">Thêm tiện nghi</span>
+            <span className="sm:hidden">Thêm</span>
           </Button>
         }
       />
 
-      <PageWrapper className="flex-1 space-y-6">
-        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+      <PageWrapper className="flex-1 space-y-6 min-w-0">
+        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden max-w-full">
           {/* Filters inside card */}
-          <div className="flex flex-col gap-4 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full max-w-sm">
+          <div className="flex flex-col gap-4 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between bg-surface/50">
+            <div className="relative w-full sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
               <input
                 type="text"
-                placeholder="Tìm kiếm tiện nghi..."
+                placeholder="Tìm tiện nghi..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
+                className="w-full rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
               />
             </div>
-            <span className="text-sm text-secondary-400">
-              {amenities.length} tiện nghi
-            </span>
+            <div className="flex items-center justify-between sm:justify-end gap-3 px-1 sm:px-0">
+               <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider">
+                 Tổng số: {amenities.length}
+               </span>
+            </div>
           </div>
 
           <AmenityTable

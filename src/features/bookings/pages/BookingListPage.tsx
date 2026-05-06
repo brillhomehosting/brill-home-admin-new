@@ -1,11 +1,10 @@
 import { Header, PageWrapper } from '@/shared/components/layout';
-import { Pagination } from '@/shared/components/ui';
+import { Pagination, Select } from '@/shared/components/ui';
 import { ROUTES } from '@/shared/constants';
 import { cn, formatDate, formatCurrency } from '@/shared/utils';
 import {
   Banknote,
   CalendarDays,
-  ChevronDown,
   Plus,
   Search,
   Loader2,
@@ -241,14 +240,15 @@ export default function BookingListPage() {
         {/* --- Table Section --- */}
         <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
           {/* Filters */}
-          <div className="flex flex-col gap-4 border-b border-border p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex flex-col gap-3 border-b border-border p-3.5 bg-surface/50">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Date Filter */}
               <div className="flex items-center gap-2 lg:col-span-1">
                 <div className="relative flex-1">
-                  <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
+                  <CalendarDays className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
                   <input
                     type="text"
-                    placeholder="Từ ngày"
+                    placeholder="Từ"
                     onFocus={(e) => (e.target.type = 'date')}
                     onBlur={(e) => {
                       if (!e.target.value) e.target.type = 'text';
@@ -257,15 +257,15 @@ export default function BookingListPage() {
                       setStartDate(e.target.value);
                       setPage(0);
                     }}
-                    className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
+                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-8 pr-2 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
                   />
                 </div>
-                <span className="text-secondary-400 font-medium">-</span>
+                <span className="text-secondary-400 font-bold">-</span>
                 <div className="relative flex-1">
-                  <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
+                  <CalendarDays className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
                   <input
                     type="text"
-                    placeholder="Đến ngày"
+                    placeholder="Đến"
                     onFocus={(e) => (e.target.type = 'date')}
                     onBlur={(e) => {
                       if (!e.target.value) e.target.type = 'text';
@@ -274,43 +274,46 @@ export default function BookingListPage() {
                       setEndDate(e.target.value);
                       setPage(0);
                     }}
-                    className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
+                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-8 pr-2 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
                   />
                 </div>
               </div>
-              <div className="relative">
-                <select
+
+              {/* Nhóm Status và Search trên di động */}
+              <div className="grid grid-cols-2 gap-3 sm:contents">
+                <Select
                   value={status || ''}
                   onChange={(e) => {
                     setStatus((e.target.value as BookingStatus) || undefined);
                     setPage(0);
                   }}
-                  className="w-full appearance-none rounded-lg border border-border bg-transparent py-2 pl-3 pr-8 text-sm outline-none transition-colors focus:border-primary-500"
-                >
-                  <option value="">Tất cả trạng thái</option>
-                  <option value="PENDING">Đang giữ chỗ</option>
-                  <option value="CONFIRMED">Đã xác nhận</option>
-                  <option value="SUCCESS">Đã thanh toán</option>
-                  <option value="COMPLETED">Hoàn thành</option>
-                  <option value="CANCELLED">Đã hủy</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 pointer-events-none text-secondary-400" />
-              </div>
-              <div className="relative sm:col-span-2 lg:col-span-2">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
-                <input
-                  type="text"
-                  placeholder="Tìm theo mã, tên KH, SĐT..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
+                  options={[
+                    { value: '', label: 'Trạng thái' },
+                    { value: 'PENDING', label: 'Đang giữ' },
+                    { value: 'CONFIRMED', label: 'Xác nhận' },
+                    { value: 'SUCCESS', label: 'Thành công' },
+                    { value: 'COMPLETED', label: 'Xong' },
+                    { value: 'CANCELLED', label: 'Hủy' },
+                  ]}
+                  className="h-10"
                 />
+
+                <div className="relative sm:col-span-2 lg:col-span-2">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
+                  <input
+                    type="text"
+                    placeholder="Mã, Tên, SĐT..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+                  />
+                </div>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-secondary-400">
-                Tìm thấy {totalElements} booking
-              </span>
+            <div className="flex items-center justify-between sm:justify-end gap-3 px-1 sm:px-0">
+               <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider">
+                 Tổng số: {totalElements}
+               </span>
             </div>
           </div>
 

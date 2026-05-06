@@ -8,7 +8,7 @@ import { Select } from '@/shared/components/ui/Select';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { ROUTES } from '@/shared/constants';
 import { cn, formatCurrency } from '@/shared/utils';
-import { Check, ChevronRight, Loader2, Calendar, ChevronLeft } from 'lucide-react';
+import { Calendar, Check, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBookingMutation } from '../hooks/useBookingMutation';

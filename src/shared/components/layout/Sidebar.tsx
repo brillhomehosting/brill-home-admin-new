@@ -35,8 +35,8 @@ const navigation: NavGroup[] = [
       { label: 'Tiện nghi', path: ROUTES.AMENITIES_LIST, icon: Package },
       { label: 'Đặt phòng', path: ROUTES.BOOKINGS.LIST, icon: CalendarCheck },
       { label: 'Hóa đơn', path: ROUTES.INVOICES, icon: Receipt },
-      { label: 'Chương trình giảm giá', path: ROUTES.DISCOUNTS, icon: Tag },
-      { label: 'Cấu hình ngày lễ', path: ROUTES.HOLIDAYS, icon: CalendarRange },
+      { label: 'Giảm giá', path: ROUTES.DISCOUNTS, icon: Tag },
+      { label: 'Ngày lễ', path: ROUTES.HOLIDAYS, icon: CalendarRange },
     ],
   },
 ];
