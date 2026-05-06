@@ -14,8 +14,14 @@ export function useBookingMutation() {
   const cancelMutation = useMutation({
     mutationFn: ({ bookingId, reason }: { bookingId: string; reason: string }) =>
       bookingService.cancelBooking(bookingId, reason),
-    onSuccess: () => {
+    onSuccess: (_, { bookingId }) => {
       toast('Hủy booking thành công', 'success');
+      
+      // Automatically trigger cancellation email
+      bookingService.resendCancellation(bookingId).catch(() => {
+        console.error('Failed to send auto cancellation email');
+      });
+
       // Invalidate both the list and the specific detail query
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });
     },
@@ -33,6 +39,19 @@ export function useBookingMutation() {
     onError: (error: any) => {
       const message =
         error.response?.data?.message || 'Có lỗi xảy ra khi gửi lại email';
+      toast(message, 'error');
+    },
+  });
+
+  const resendCancellationMutation = useMutation({
+    mutationFn: ({ bookingId, email }: { bookingId: string; email?: string }) =>
+      bookingService.resendCancellation(bookingId, email),
+    onSuccess: () => {
+      toast('Gửi lại email hủy thành công', 'success');
+    },
+    onError: (error: any) => {
+      const message =
+        error.response?.data?.message || 'Có lỗi xảy ra khi gửi lại email hủy';
       toast(message, 'error');
     },
   });
@@ -70,10 +89,54 @@ export function useBookingMutation() {
     },
   });
 
+  const syncTuyaMutation = useMutation({
+    mutationFn: (bookingId: string) => bookingService.retryTuya(bookingId),
+    onSuccess: (data, bookingId) => {
+      toast('Đồng bộ Tuya thành công', 'success');
+      // Update the cache with new data
+      queryClient.setQueryData(bookingKeys.detail(bookingId), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          copyMessage: data.copyMessage,
+          tuyaPasswordCreated: data.tuyaPasswordCreated,
+          tuyaSyncStatus: data.tuyaSyncStatus,
+          gatePassword: data.gatePassword,
+        };
+      });
+    },
+    onError: (error: any) => {
+      const message =
+        error.response?.data?.message || 'Có lỗi xảy ra khi đồng bộ Tuya';
+      toast(message, 'error');
+    },
+  });
+
+  const syncStatusMutation = useMutation({
+    mutationFn: ({ bookingId, tuyaSyncStatus }: { bookingId: string; tuyaSyncStatus: string }) =>
+      bookingService.syncTuyaStatus(bookingId, tuyaSyncStatus),
+    onSuccess: (data, { bookingId }) => {
+      // Update the cache silently without toast
+      queryClient.setQueryData(bookingKeys.detail(bookingId), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          copyMessage: data.copyMessage,
+          tuyaPasswordCreated: data.tuyaPasswordCreated,
+          tuyaSyncStatus: data.tuyaSyncStatus,
+          gatePassword: data.gatePassword,
+        };
+      });
+    },
+  });
+
   return {
     cancelBooking: cancelMutation,
     resendConfirmation: resendMutation,
+    resendCancellation: resendCancellationMutation,
     confirmPayment: confirmPaymentMutation,
     adminCreateBooking: adminCreateMutation,
+    retryTuya: syncTuyaMutation,
+    syncTuyaStatus: syncStatusMutation,
   };
 }

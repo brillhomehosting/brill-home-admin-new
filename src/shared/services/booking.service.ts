@@ -14,6 +14,7 @@ import type {
   AdminCreateBookingData,
   BookingAvailabilityResponse,
   BookingAvailabilitySlot,
+  TuyaSyncResponse,
 } from '@/shared/types';
 
 // ================================================================
@@ -114,6 +115,11 @@ export async function resendConfirmation(bookingId: string) {
   await api.post(API.BOOKINGS.RESEND_CONFIRMATION(bookingId));
 }
 
+/** POST /admin/bookings/:id/resend-cancellation */
+export async function resendCancellation(bookingId: string, email?: string) {
+  await api.post(API.BOOKINGS.RESEND_CANCELLATION(bookingId), { email });
+}
+
 /** POST /admin/bookings/:id/payments */
 export async function confirmPayment(bookingId: string, data: ConfirmPaymentData) {
   await api.post(API.BOOKINGS.CONFIRM_PAYMENT(bookingId), data);
@@ -123,6 +129,38 @@ export async function confirmPayment(bookingId: string, data: ConfirmPaymentData
 export async function adminCreateBooking(data: AdminCreateBookingData) {
   const response = await api.post(API.BOOKINGS.ADMIN_CREATE, data);
   return response.data;
+}
+
+/** PATCH /admin/bookings/:id/tuya-sync-status */
+export async function syncTuyaStatus(bookingId: string, tuyaSyncStatus: string): Promise<TuyaSyncResponse> {
+  const { data } = await api.patch<ApiResponse<TuyaSyncResponse>>(
+    API.BOOKINGS.TUYA_SYNC_STATUS(bookingId),
+    { tuyaSyncStatus },
+  );
+  return data.data;
+}
+
+/** POST /admin/bookings/:id/retry-tuya */
+export async function retryTuya(bookingId: string): Promise<TuyaSyncResponse> {
+  const { data } = await api.post<ApiResponse<TuyaSyncResponse>>(
+    API.BOOKINGS.RETRY_TUYA(bookingId),
+  );
+  return data.data;
+}
+
+/** POST /bookings/calculate-price */
+export async function calculatePrice(payload: {
+  roomId: string;
+  bookingSlots: Array<{
+    date: string;
+    timeSlotIds: string[];
+  }>;
+}) {
+  const { data } = await api.post<ApiResponse<any>>(
+    API.BOOKINGS.CALCULATE_PRICE,
+    payload
+  );
+  return data.data;
 }
 
 export const bookingService = {
@@ -135,6 +173,10 @@ export const bookingService = {
   getBookingDetail,
   cancelBooking,
   resendConfirmation,
+  resendCancellation,
   confirmPayment,
   adminCreateBooking,
+  syncTuyaStatus,
+  retryTuya,
+  calculatePrice,
 };

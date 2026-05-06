@@ -1,7 +1,7 @@
 import type { BaseDTO } from './api';
 
 export type DiscountTargetType = 'ROOM' | 'WEEK_DAY' | 'ROOM_TYPE' | 'SLOT_TYPE' | 'ALL';
-export type DiscountValueType = 'PERCENTAGE' | 'FIXED' | string;
+export type DiscountValueType = 'PERCENTAGE' | 'FIXED_AMOUNT';
 export type DiscountStatus = 'ACTIVE' | 'INACTIVE';
 
 export type DiscountCampaign = BaseDTO & {

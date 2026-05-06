@@ -1,6 +1,6 @@
 import api from './api';
 import { API } from '@/shared/constants';
-import type { ApiResponse, DashboardStats } from '@/shared/types';
+import type { ApiResponse, DashboardStats, DashboardBooking } from '@/shared/types';
 
 /** GET /admin/dashboard/stats */
 export async function getDashboardStats() {
@@ -10,6 +10,24 @@ export async function getDashboardStats() {
   return data.data;
 }
 
+/** GET /admin/dashboard/recent-bookings */
+export async function getRecentBookings() {
+  const { data } = await api.get<ApiResponse<DashboardBooking[]>>(
+    API.DASHBOARD.RECENT_BOOKINGS
+  );
+  return data.data;
+}
+
+/** GET /admin/dashboard/upcoming-bookings */
+export async function getUpcomingBookings() {
+  const { data } = await api.get<ApiResponse<DashboardBooking[]>>(
+    API.DASHBOARD.UPCOMING_BOOKINGS
+  );
+  return data.data;
+}
+
 export const dashboardService = {
   getDashboardStats,
+  getRecentBookings,
+  getUpcomingBookings,
 };

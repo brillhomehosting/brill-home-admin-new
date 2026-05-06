@@ -34,3 +34,8 @@ pnpm-lock.yaml
 
 # Antigravity agent configuration
 .agent
+claude
+docs 
+scratch
+scripts
+claude.md

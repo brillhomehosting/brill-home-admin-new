@@ -5,7 +5,7 @@ import { Input } from '@/shared/components/ui/Input';
 import { Select } from '@/shared/components/ui/Select';
 import { CalendarRange, Loader2 } from 'lucide-react';
 import { useHolidayMutations } from '../hooks/useHolidays';
-import type { Holiday, HolidayType } from '@/shared/types';
+import type { Holiday, HolidayType, SurchargeType } from '@/shared/types';
 import { useToast } from '@/shared/components/feedback/Toast';
 
 type HolidayFormValues = {
@@ -13,6 +13,9 @@ type HolidayFormValues = {
   holidayType: HolidayType;
   startDay: string;
   endDay: string;
+  surchargeType: SurchargeType;
+  surchargeAmount: string;
+  surchargePercent: string;
 };
 
 const DEFAULT_VALUES: HolidayFormValues = {
@@ -20,6 +23,9 @@ const DEFAULT_VALUES: HolidayFormValues = {
   holidayType: 'ANNUAL',
   startDay: '',
   endDay: '',
+  surchargeType: 'AMOUNT',
+  surchargeAmount: '',
+  surchargePercent: '',
 };
 
 type HolidayDialogProps = {
@@ -37,11 +43,24 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
   useEffect(() => {
     if (open) {
       if (initialData) {
+        // Convert dd/MM/yyyy back to YYYY-MM-DD for date input if SPECIFIC_YEAR
+        const formatForInput = (dateStr: string) => {
+          if (initialData.holidayType === 'ANNUAL') {
+            const [d, m] = dateStr.split('/');
+            return `2000-${m}-${d}`; // Use a fixed dummy year for input compatibility
+          }
+          const [d, m, y] = dateStr.split('/');
+          return `${y}-${m}-${d}`;
+        };
+
         setForm({
           name: initialData.name,
           holidayType: initialData.holidayType,
-          startDay: initialData.startDay,
-          endDay: initialData.endDay,
+          startDay: formatForInput(initialData.startDay),
+          endDay: formatForInput(initialData.endDay),
+          surchargeType: initialData.surchargeType || 'AMOUNT',
+          surchargeAmount: String(initialData.surchargeAmount ?? ''),
+          surchargePercent: String(initialData.surchargePercent ?? ''),
         });
       } else {
         setForm(DEFAULT_VALUES);
@@ -54,6 +73,15 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
       toast('Vui lòng nhập đầy đủ thông tin bắt buộc.', 'error');
       return;
     }
+
+    if (form.surchargeType === 'AMOUNT' && !form.surchargeAmount) {
+      toast('Vui lòng nhập số tiền phụ thu.', 'error');
+      return;
+    }
+    if (form.surchargeType === 'PERCENT' && !form.surchargePercent) {
+      toast('Vui lòng nhập phần trăm phụ thu.', 'error');
+      return;
+    }
     
     // Basic date validation for SPECIFIC_YEAR
     if (form.holidayType === 'SPECIFIC_YEAR') {
@@ -63,8 +91,21 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
       }
     }
 
+    // Convert YYYY-MM-DD to backend format (dd/MM or dd/MM/yyyy)
+    const formatForBackend = (dateStr: string) => {
+      const [y, m, d] = dateStr.split('-');
+      if (form.holidayType === 'ANNUAL') return `${d}/${m}`;
+      return `${d}/${m}/${y}`;
+    };
+
     const payload = {
-      ...form,
+      name: form.name,
+      holidayType: form.holidayType,
+      startDay: formatForBackend(form.startDay),
+      endDay: formatForBackend(form.endDay),
+      surchargeType: form.surchargeType,
+      surchargeAmount: Number(form.surchargeAmount) || 0,
+      surchargePercent: Number(form.surchargePercent) || 0,
     };
 
     if (initialData) {
@@ -89,42 +130,11 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
 
   // Render Date Inputs depending on Type
   const renderDateInputs = () => {
-    if (form.holidayType === 'ANNUAL') {
-      return (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
-              Ngày bắt đầu <span className="text-danger-500">*</span>
-            </label>
-            <Input
-              value={form.startDay}
-              onChange={(e) => setForm({ ...form, startDay: e.target.value })}
-              placeholder="VD: 30/04"
-              maxLength={5}
-            />
-            <p className="mt-1 text-[10px] text-secondary-400">Định dạng: DD/MM</p>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
-              Ngày kết thúc <span className="text-danger-500">*</span>
-            </label>
-            <Input
-              value={form.endDay}
-              onChange={(e) => setForm({ ...form, endDay: e.target.value })}
-              placeholder="VD: 01/05"
-              maxLength={5}
-            />
-            <p className="mt-1 text-[10px] text-secondary-400">Định dạng: DD/MM</p>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
-            Từ ngày <span className="text-danger-500">*</span>
+            {form.holidayType === 'ANNUAL' ? 'Ngày bắt đầu' : 'Từ ngày'} <span className="text-danger-500">*</span>
           </label>
           <Input
             type="date"
@@ -134,7 +144,7 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
-            Đến ngày <span className="text-danger-500">*</span>
+            {form.holidayType === 'ANNUAL' ? 'Ngày kết thúc' : 'Đến ngày'} <span className="text-danger-500">*</span>
           </label>
           <Input
             type="date"
@@ -201,6 +211,65 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
         </div>
 
         {renderDateInputs()}
+
+        {/* Surcharge Section */}
+        <div className="border-t border-border pt-4">
+          <h4 className="mb-3 text-xs font-semibold text-secondary-500 uppercase tracking-wider">Phụ thu</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
+                Loại phụ thu <span className="text-danger-500">*</span>
+              </label>
+              <Select
+                value={form.surchargeType}
+                onChange={(e) => setForm({ ...form, surchargeType: e.target.value as SurchargeType })}
+                options={[
+                  { value: 'AMOUNT', label: 'Số tiền cố định (VNĐ)' },
+                  { value: 'PERCENT', label: 'Phần trăm (%)' },
+                ]}
+              />
+            </div>
+            <div>
+              {form.surchargeType === 'AMOUNT' ? (
+                <>
+                  <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
+                    Số tiền <span className="text-danger-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      value={form.surchargeAmount}
+                      onChange={(e) => setForm({ ...form, surchargeAmount: e.target.value })}
+                      placeholder="VD: 100000"
+                      className="pr-8"
+                    />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 font-semibold text-secondary-500">
+                      đ
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
+                    Phần trăm <span className="text-danger-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      value={form.surchargePercent}
+                      onChange={(e) => setForm({ ...form, surchargePercent: e.target.value })}
+                      placeholder="VD: 20"
+                      className="pr-8"
+                    />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 font-semibold text-secondary-500">
+                      %
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
 
         <p className="mt-2 text-xs text-secondary-500 italic bg-secondary-50 p-2 text-center rounded">
           * Những loại booking rơi vào khoảng thời gian ngày lễ sẽ auto phát sinh phụ thu.

@@ -1,13 +1,17 @@
 import type { BaseDTO } from './api';
 
 export type HolidayType = 'ANNUAL' | 'SPECIFIC_YEAR';
+export type SurchargeType = 'AMOUNT' | 'PERCENT';
 
 export type Holiday = BaseDTO & {
   name: string;
   holidayType: HolidayType;
-  startDay: string; // ISO Date string: "2026-04-14"
-  endDay: string;   // ISO Date string: "2026-04-14"
+  startDay: string;
+  endDay: string;
   isSystemDefault: boolean;
+  surchargeType: SurchargeType;
+  surchargeAmount: number;
+  surchargePercent: number;
 };
 
 export type GetHolidaysParams = {

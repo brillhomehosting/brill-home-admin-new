@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Header, PageWrapper } from '@/shared/components/layout';
 import { ConfirmDialog } from '@/shared/components/ui';
+import { Button } from '@/shared/components/ui/Button';
 import { ROUTES, MESSAGES } from '@/shared/constants';
 import { useAmenities } from '../hooks/useAmenities';
 import {
@@ -9,13 +10,9 @@ import {
   useDeleteAmenity,
 } from '../hooks/useAmenityMutations';
 import { AmenityTable } from '../components/AmenityTable';
-import { AmenityListHeader } from '../components/AmenityListHeader';
 import { AmenityFormModal } from '../components/AmenityFormModal';
 import type { Amenity } from '@/shared/types';
-
-// ================================================================
-// AmenityListPage — full CRUD page with modal form + confirm delete
-// ================================================================
+import { Plus, Search } from 'lucide-react';
 
 export default function AmenityListPage() {
   // ── Data fetching ──
@@ -72,25 +69,39 @@ export default function AmenityListPage() {
   }, [deleteTarget, deleteMutation]);
 
   return (
-    <>
+    <div className="flex h-full flex-col">
       <Header
         title="Tiện nghi"
         breadcrumbs={[
           { label: 'Dashboard', path: ROUTES.HOME },
           { label: 'Tiện nghi' },
         ]}
+        actions={
+          <Button icon={Plus} onClick={handleAdd} className="bg-accent-400 hover:bg-accent-500">
+            Thêm tiện nghi
+          </Button>
+        }
       />
 
-      <PageWrapper>
-        {/* ── Search + Add button ── */}
-        <AmenityListHeader
-          searchTerm={search}
-          onSearchChange={setSearch}
-          onAdd={handleAdd}
-        />
+      <PageWrapper className="flex-1 space-y-6">
+        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+          {/* Filters inside card */}
+          <div className="flex flex-col gap-4 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm tiện nghi..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
+              />
+            </div>
+            <span className="text-sm text-secondary-400">
+              {amenities.length} tiện nghi
+            </span>
+          </div>
 
-        {/* ── Table ── */}
-        <div className="mt-4">
           <AmenityTable
             amenities={amenities}
             loading={isLoading}
@@ -124,6 +135,6 @@ export default function AmenityListPage() {
         confirmLabel="Xóa"
         loading={deleteMutation.isPending}
       />
-    </>
+    </div>
   );
 }

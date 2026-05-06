@@ -15,6 +15,7 @@ import {
   Trash2,
   AlertTriangle,
   Loader2,
+  Tag,
 } from 'lucide-react';
 import { useDiscounts, useDiscountMutations } from '../hooks/useDiscounts';
 import type { 
@@ -96,7 +97,7 @@ export default function DiscountListPage() {
   const executeDelete = () => {
     if (campaignToDelete) {
       remove.mutate(campaignToDelete.id, {
-        onSuccess: () => {
+        onSettled: () => {
           setDeleteConfirmOpen(false);
           setCampaignToDelete(null);
         }
@@ -120,9 +121,9 @@ export default function DiscountListPage() {
         actions={
           <Button
             onClick={handleCreate}
-            className="flex items-center gap-2 rounded-lg bg-accent-400 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-500"
+            className="bg-accent-400 hover:bg-accent-500"
+            icon={Plus}
           >
-            <Plus className="h-4 w-4" />
             Tạo chương trình
           </Button>
         }
@@ -130,13 +131,14 @@ export default function DiscountListPage() {
 
       <PageWrapper className="flex-1 space-y-6">
         {/* Table Section */}
-        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm">
+        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
           
           {/* Filters */}
-          <div className="flex flex-col gap-4 border-b border-border p-4 sm:flex-row sm:items-center justify-between">
-            <div className="flex flex-1 flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <div className="relative w-36 shrink-0">
+          <div className="flex flex-col gap-4 border-b border-border p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Date Filter */}
+              <div className="flex items-center gap-2 lg:col-span-1">
+                <div className="relative flex-1">
                   <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
                   <input
                     type="text"
@@ -153,8 +155,8 @@ export default function DiscountListPage() {
                     className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
                   />
                 </div>
-                <span className="text-secondary-400 font-medium">-</span>
-                <div className="relative w-36 shrink-0">
+                <span className="text-secondary-400">-</span>
+                <div className="relative flex-1">
                   <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
                   <input
                     type="text"
@@ -172,8 +174,9 @@ export default function DiscountListPage() {
                   />
                 </div>
               </div>
-              
-              <div className="relative w-36 shrink-0">
+
+              {/* Type Select */}
+              <div className="relative">
                 <select 
                   value={type || ''}
                   onChange={(e) => {
@@ -192,7 +195,8 @@ export default function DiscountListPage() {
                 <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 pointer-events-none text-secondary-400" />
               </div>
 
-              <div className="relative w-40 shrink-0">
+              {/* Status Select */}
+              <div className="relative">
                 <select 
                   value={status || ''}
                   onChange={(e) => {
@@ -208,7 +212,8 @@ export default function DiscountListPage() {
                 <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 pointer-events-none text-secondary-400" />
               </div>
 
-              <div className="relative w-full max-w-sm">
+              {/* Search */}
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
                 <input
                   type="text"
@@ -219,19 +224,25 @@ export default function DiscountListPage() {
                 />
               </div>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-secondary-400">
+                Tìm thấy {totalElements} chương trình
+              </span>
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-surface-dim uppercase text-secondary-500 text-xs font-semibold tracking-wider border-b border-border">
                 <tr>
-                  <th scope="col" className="px-5 py-4">Chiến dịch</th>
-                  <th scope="col" className="px-5 py-4">Kiểu giảm</th>
-                  <th scope="col" className="px-5 py-4">Thời gian</th>
-                  <th scope="col" className="px-5 py-4">Phạm vi</th>
-                  <th scope="col" className="px-5 py-4">Áp dụng cho</th>
+                  <th scope="col" className="px-5 py-4">Tên chương trình</th>
                   <th scope="col" className="px-5 py-4 text-center">Trạng thái</th>
-                  <th scope="col" className="px-5 py-4 text-right">Actions</th>
+                  <th scope="col" className="px-5 py-4">Loại</th>
+                  <th scope="col" className="px-5 py-4">Giảm giá</th>
+                  <th scope="col" className="px-5 py-4">Phạm vi</th>
+                  <th scope="col" className="px-5 py-4">Thời gian</th>
+                  <th scope="col" className="px-5 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -240,13 +251,13 @@ export default function DiscountListPage() {
                     <td colSpan={7} className="px-5 py-10 text-center text-secondary-500">
                       <div className="flex flex-col items-center gap-2">
                         <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
-                        <span>Đang tải dữ liệu...</span>
+                        <span className="text-sm font-medium">Đang tải dữ liệu...</span>
                       </div>
                     </td>
                   </tr>
                 ) : discounts.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-10 text-center text-secondary-500">
+                    <td colSpan={7} className="px-5 py-10 text-center text-secondary-500 font-medium">
                       Chưa có chương trình giảm giá nào.
                     </td>
                   </tr>
@@ -256,44 +267,43 @@ export default function DiscountListPage() {
                       <td className="px-5 py-4">
                         <span className="font-medium text-foreground">{item.name}</span>
                       </td>
-                      <td className="px-5 py-4">
-                        <span className={cn('rounded px-2 py-0.5 text-xs font-semibold', typeStyles[item.type])}>
-                          {item.type}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="font-medium text-accent-600">
-                          {item.discountType === 'PERCENTAGE' 
-                            ? `Giảm ${item.discountValue}%` 
-                            : `Giảm ${formatCurrency(item.discountValue)}`}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="font-medium text-secondary-600">
-                          {item.targetRoomName || 'Toàn hệ thống'}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex flex-col text-sm text-secondary-600">
-                          <span className="text-secondary-400 text-xs">Từ: <span className="text-secondary-600 font-medium">{formatDate(item.startDate)}</span></span>
-                          <span className="text-secondary-400 text-xs">Đến: <span className="text-secondary-600 font-medium">{formatDate(item.endDate)}</span></span>
-                        </div>
-                      </td>
                       <td className="px-5 py-4 text-center">
                         <span
                           className={cn(
-                            'rounded-full px-2.5 py-1 text-xs font-semibold',
+                            'rounded-full px-2.5 py-0.5 text-xs font-semibold',
                             item.status === 'ACTIVE'
                               ? 'bg-success-100 text-success-700'
                               : 'bg-secondary-100 text-secondary-600'
                           )}
                         >
-                          {item.status}
+                          {item.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm dừng'}
                         </span>
                       </td>
                       <td className="px-5 py-4">
+                        <span className={cn('rounded px-2 py-0.5 text-[10px] font-semibold uppercase', typeStyles[item.type])}>
+                          {item.type}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="font-bold text-accent-600">
+                          {item.discountType === 'PERCENTAGE' 
+                            ? `${item.discountValue}%` 
+                            : formatCurrency(item.discountValue)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="text-sm text-secondary-600">
+                          {item.targetRoomName || 'Toàn hệ thống'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col text-xs text-secondary-600">
+                          <span>Từ: <span className="text-secondary-600 font-medium">{formatDate(item.startDate)}</span></span>
+                          <span>Đến: <span className="text-secondary-600 font-medium">{formatDate(item.endDate)}</span></span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          {/* Toggle Button */}
                           <button
                             onClick={() => handleToggleStatus(item)}
                             disabled={toggleStatus.isPending}
@@ -321,7 +331,6 @@ export default function DiscountListPage() {
                           <button
                             onClick={() => handleEdit(item)}
                             className="p-1.5 text-secondary-400 hover:text-accent-500 hover:bg-accent-50 rounded transition-colors"
-                            title="Sửa chương trình"
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
@@ -329,7 +338,6 @@ export default function DiscountListPage() {
                           <button
                             onClick={() => handleDeleteClick(item)}
                             className="p-1.5 text-secondary-400 hover:text-danger-500 hover:bg-danger-50 rounded transition-colors"
-                            title="Xóa chương trình"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -340,6 +348,85 @@ export default function DiscountListPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile View */}
+          <div className="md:hidden divide-y divide-border">
+            {isLoading ? (
+              <div className="flex h-40 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+              </div>
+            ) : discounts.length === 0 ? (
+              <div className="flex h-40 items-center justify-center text-secondary-500 text-sm">
+                Chưa có chương trình giảm giá nào.
+              </div>
+            ) : (
+              discounts.map((item) => (
+                <div key={item.id} className="flex flex-col p-4 gap-3 bg-surface hover:bg-secondary-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-50 text-accent-500">
+                        <Tag className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-foreground text-sm">{item.name}</p>
+                        <p className="text-[10px] text-secondary-400 font-medium">#{item.id.substring(0, 8)}</p>
+                      </div>
+                    </div>
+                    <span
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase',
+                        item.status === 'ACTIVE' ? 'bg-success-100 text-success-700' : 'bg-secondary-100 text-secondary-600'
+                      )}
+                    >
+                      {item.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm dừng'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg bg-secondary-50 p-2 border border-border">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-secondary-400">Loại & Giá trị</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className={cn('rounded px-1.5 py-0.5 text-[9px] font-bold uppercase', typeStyles[item.type])}>
+                          {item.type}
+                        </span>
+                        <span className="font-bold text-accent-600 text-sm">
+                          {item.discountType === 'PERCENTAGE' ? `${item.discountValue}%` : formatCurrency(item.discountValue)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-secondary-50 p-2 border border-border">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-secondary-400">Hiệu lực</p>
+                      <p className="mt-1 text-[10px] font-medium text-secondary-600">
+                        {formatDate(item.startDate)} - {formatDate(item.endDate)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-border pt-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleToggleStatus(item)}
+                        disabled={toggleStatus.isPending}
+                        className={cn(
+                          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200",
+                          item.status === 'ACTIVE' ? 'bg-success-500' : 'bg-secondary-300'
+                        )}
+                      >
+                        <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition duration-200", item.status === 'ACTIVE' ? 'translate-x-4' : 'translate-x-0')} />
+                      </button>
+                      <span className="text-xs font-medium text-secondary-500">
+                        {item.status === 'ACTIVE' ? 'Đang bật' : 'Đang tắt'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" icon={Pencil} onClick={() => handleEdit(item)} />
+                      <Button variant="ghost" size="sm" icon={Trash2} className="text-danger-500" onClick={() => handleDeleteClick(item)} />
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Pagination */}
@@ -377,7 +464,7 @@ export default function DiscountListPage() {
             <Button variant="secondary" onClick={() => setDeleteConfirmOpen(false)}>
               Hủy
             </Button>
-            <Button className="bg-danger-500 text-white hover:bg-danger-600" onClick={executeDelete}>
+            <Button className="bg-danger-500 text-white hover:bg-danger-600" onClick={executeDelete} loading={remove.isPending}>
               Xóa chương trình
             </Button>
           </>

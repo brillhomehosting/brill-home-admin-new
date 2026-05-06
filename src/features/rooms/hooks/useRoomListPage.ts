@@ -25,6 +25,8 @@ export function useRoomListPage() {
     () => ({
       page,
       limit,
+      sortBy: 'name',
+      sortDir: 'asc' as const,
       name: search || undefined,
       isActive:
         statusFilter === 'active'

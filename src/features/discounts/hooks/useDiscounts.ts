@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { discountService } from '@/shared/services/discount.service';
-import type { GetDiscountsParams, DiscountCampaign } from '@/shared/types';
 import { useToast } from '@/shared/components/feedback/Toast';
+import { discountService } from '@/shared/services/discount.service';
+import type { DiscountCampaign, GetDiscountsParams } from '@/shared/types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const discountKeys = {
   all: ['discounts'] as const,
