@@ -1,21 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Header, PageWrapper } from '@/shared/components/layout';
+import { Pagination, Select } from '@/shared/components/ui';
 import { Button } from '@/shared/components/ui/Button';
-import { Pagination } from '@/shared/components/ui';
 import { Modal } from '@/shared/components/ui/Modal';
 import { HolidayDialog } from '../components/HolidayDialog';
 import { ROUTES } from '@/shared/constants';
 import { cn, formatCurrency } from '@/shared/utils';
 import {
   Search,
-  ChevronDown,
   Plus,
   Pencil,
   Trash2,
-  AlertTriangle,
   CalendarRange,
   Loader2,
-  TrendingUp,
+  AlertTriangle,
 } from 'lucide-react';
 import { useHolidays, useHolidayMutations } from '../hooks/useHolidays';
 import type { Holiday, HolidayType } from '@/shared/types';
@@ -92,7 +90,7 @@ export default function HolidaySettingsPage() {
         title="Danh sách ngày lễ"
         breadcrumbs={[
           { label: 'Dashboard', path: ROUTES.HOME },
-          { label: 'Phụ thu ngày lễ' },
+          { label: 'Ngày lễ' },
         ]}
         actions={
           <Button
@@ -109,38 +107,40 @@ export default function HolidaySettingsPage() {
         {/* Table Section */}
         <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
           {/* Filters */}
-          <div className="flex flex-col gap-4 border-b border-border p-4 sm:flex-row sm:items-center justify-between">
-            <div className="flex flex-1 flex-wrap items-center gap-3">
-              <div className="relative w-full sm:w-48 shrink-0">
-                <select 
+          <div className="flex flex-col gap-3 border-b border-border p-3.5 bg-surface/50">
+            <div className="grid grid-cols-1 sm:flex sm:items-center gap-3">
+              <div className="grid grid-cols-2 sm:flex items-center gap-3 w-full">
+                <Select
                   value={holidayType || ''}
                   onChange={(e) => {
                     setHolidayType((e.target.value as HolidayType) || undefined);
                     setPage(0);
                   }}
-                  className="w-full appearance-none rounded-lg border border-border bg-transparent py-2 pl-3 pr-8 text-sm outline-none transition-colors focus:border-primary-500"
-                >
-                  <option value="">Phân loại: Tất cả</option>
-                  <option value="ANNUAL">Hằng năm</option>
-                  <option value="SPECIFIC_YEAR">Năm cụ thể</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 pointer-events-none text-secondary-400" />
-              </div>
-
-              <div className="relative w-full max-w-sm">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
-                <input
-                  type="text"
-                  placeholder="Tìm Tên ngày lễ..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
+                  options={[
+                    { value: '', label: 'Loại: Tất cả' },
+                    { value: 'ANNUAL', label: 'Hằng năm' },
+                    { value: 'SPECIFIC_YEAR', label: 'Cụ thể' },
+                  ]}
+                  className="h-10"
                 />
+
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm Tên..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+                  />
+                </div>
               </div>
             </div>
-            <span className="text-sm text-secondary-400">
-              Tìm thấy {totalElements} ngày lễ
-            </span>
+            <div className="flex items-center justify-between sm:justify-end gap-3 px-1 sm:px-0">
+               <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider">
+                 Tổng số: {totalElements}
+               </span>
+            </div>
           </div>
 
           {/* Desktop View */}
@@ -242,44 +242,53 @@ export default function HolidaySettingsPage() {
               holidays.map((item) => (
                 <div 
                   key={item.id} 
-                  className="flex flex-col p-4 gap-3 bg-surface hover:bg-secondary-50 transition-colors"
+                  className="flex flex-col p-3.5 gap-2.5 bg-surface hover:bg-secondary-50 transition-colors"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary-100 text-secondary-500">
-                        <CalendarRange className="h-4 w-4" />
-                      </div>
-                      <p className="font-bold text-foreground text-sm">{item.name}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <CalendarRange className="h-3.5 w-3.5 text-secondary-400 shrink-0" />
+                      <p className="font-bold text-foreground text-sm truncate">{item.name}</p>
                     </div>
                     <span
                       className={cn(
-                        'rounded-full px-2 py-0.5 text-[9px] font-bold uppercase',
-                        item.holidayType === 'ANNUAL' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+                        'rounded-full px-2 py-0.5 text-[8px] font-bold uppercase shrink-0',
+                        item.holidayType === 'ANNUAL' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                       )}
                     >
                       {item.holidayType === 'ANNUAL' ? 'Hằng năm' : 'Năm cụ thể'}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-lg bg-secondary-50 p-2 border border-border">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-secondary-400">Thời gian</p>
-                      <p className="mt-1 text-[10px] font-medium text-secondary-600">
-                        {item.startDay} - {item.endDay}
-                      </p>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-1.5">
+                       <span className="text-[10px] text-secondary-400 font-medium">Lịch:</span>
+                       <span className="text-[10px] font-bold text-secondary-600">
+                         {item.startDay} - {item.endDay}
+                       </span>
                     </div>
-                    <div className="rounded-lg bg-secondary-50 p-2 border border-border">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-secondary-400">Phụ thu</p>
-                      <div className="mt-1 flex items-center gap-1.5 text-accent-600 font-bold text-sm">
-                        <TrendingUp className="h-3 w-3" />
-                        {item.surchargeType === 'AMOUNT' ? formatCurrency(item.surchargeAmount) : `${item.surchargePercent}%`}
-                      </div>
+                    <div className="flex items-center gap-1.5">
+                       <span className="text-[10px] text-secondary-400 font-medium">Phụ thu:</span>
+                       <span className="text-xs font-black text-accent-600">
+                         {item.surchargeType === 'AMOUNT' ? formatCurrency(item.surchargeAmount) : `${item.surchargePercent}%`}
+                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
-                    <Button variant="ghost" size="sm" icon={Pencil} onClick={() => handleEdit(item)}>Sửa</Button>
-                    <Button variant="ghost" size="sm" icon={Trash2} className="text-danger-500" onClick={() => handleDeleteClick(item)}>Xóa</Button>
+                  <div className="flex items-center justify-end gap-1 pt-1">
+                    <button
+                      onClick={() => handleEdit(item)}
+                      className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-secondary-600 hover:bg-secondary-100 rounded-lg transition-colors"
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Sửa
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(item)}
+                      className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-danger-500 hover:bg-danger-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Xóa
+                    </button>
                   </div>
                 </div>
               ))

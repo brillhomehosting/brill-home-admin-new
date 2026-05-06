@@ -102,7 +102,7 @@ export function AmenityTable({
       </div>
 
       {/* Mobile View */}
-      <div className="md:hidden divide-y divide-border">
+      <div className="md:hidden divide-y divide-border w-full overflow-x-hidden">
         {loading ? (
           <div className="px-5 py-10 text-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary-500 mx-auto" />
@@ -115,10 +115,10 @@ export function AmenityTable({
           filtered.map((item) => (
             <div 
               key={item.id} 
-              className="flex items-center gap-3 px-4 py-4 hover:bg-secondary-50 active:bg-secondary-100 transition-colors cursor-pointer"
+              className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary-50 active:bg-secondary-100 transition-colors cursor-pointer group"
               onClick={() => onEdit(item)}
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-500">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600 border border-primary-100 shadow-sm">
                 <DynamicIcon
                   name={item.icon}
                   className="h-5 w-5"
@@ -126,19 +126,19 @@ export function AmenityTable({
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-foreground text-sm truncate">{item.name}</p>
-                <p className="text-xs text-secondary-500 truncate">{item.description || 'Không có mô tả'}</p>
+                <p className="font-bold text-foreground text-sm truncate leading-none mb-1">{item.name}</p>
+                <p className="text-[11px] text-secondary-400 truncate">{item.description || 'Không có mô tả'}</p>
               </div>
-              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => onEdit(item)}
-                  className="p-2 text-secondary-400"
+                  className="p-2 text-secondary-400 hover:text-primary-600 active:scale-90 transition-all"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => onDelete(item)}
-                  className="p-2 text-danger-400"
+                  className="p-2 text-secondary-400 hover:text-danger-500 active:scale-90 transition-all"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

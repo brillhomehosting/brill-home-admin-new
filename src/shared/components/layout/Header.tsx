@@ -57,7 +57,7 @@ export function Header({ title, subtitle, breadcrumbs, actions }: HeaderProps) {
 
 function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
   return (
-    <nav className="mb-1 flex items-center gap-1 text-xs text-secondary-400">
+    <nav className="mb-1 flex flex-wrap items-center gap-y-1 gap-x-1 text-[10px] sm:text-xs text-secondary-400">
       {items.map((item, idx) => {
         const isLast = idx === items.length - 1;
         return (

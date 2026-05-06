@@ -1,28 +1,27 @@
-import { useState, useEffect } from 'react';
 import { Header, PageWrapper } from '@/shared/components/layout';
+import { Pagination, Select } from '@/shared/components/ui';
 import { Button } from '@/shared/components/ui/Button';
-import { Pagination } from '@/shared/components/ui';
 import { Modal } from '@/shared/components/ui/Modal';
-import { DiscountDialog } from '../components/DiscountDialog';
 import { ROUTES } from '@/shared/constants';
-import { cn, formatDate, formatCurrency } from '@/shared/utils';
-import {
-  Search,
-  ChevronDown,
-  CalendarDays,
-  Plus,
-  Pencil,
-  Trash2,
-  AlertTriangle,
-  Loader2,
-  Tag,
-} from 'lucide-react';
-import { useDiscounts, useDiscountMutations } from '../hooks/useDiscounts';
-import type { 
-  DiscountCampaign, 
-  DiscountStatus, 
-  DiscountTargetType 
+import type {
+  DiscountCampaign,
+  DiscountStatus,
+  DiscountTargetType
 } from '@/shared/types';
+import { cn, formatCurrency, formatDate } from '@/shared/utils';
+import {
+  AlertTriangle,
+  CalendarDays,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Tag,
+  Trash2,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { DiscountDialog } from '../components/DiscountDialog';
+import { useDiscountMutations, useDiscounts } from '../hooks/useDiscounts';
 
 // --- Styles mapping ---
 
@@ -116,7 +115,7 @@ export default function DiscountListPage() {
         title="Chương trình giảm giá"
         breadcrumbs={[
           { label: 'Dashboard', path: ROUTES.HOME },
-          { label: 'Chương trình giảm giá' },
+          { label: 'Giảm giá' },
         ]}
         actions={
           <Button
@@ -134,15 +133,15 @@ export default function DiscountListPage() {
         <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
           
           {/* Filters */}
-          <div className="flex flex-col gap-4 border-b border-border p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex flex-col gap-3 border-b border-border p-3.5 bg-surface/50">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Date Filter */}
               <div className="flex items-center gap-2 lg:col-span-1">
                 <div className="relative flex-1">
-                  <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
+                  <CalendarDays className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
                   <input
                     type="text"
-                    placeholder="Từ ngày"
+                    placeholder="Từ"
                     value={startDate}
                     onFocus={(e) => (e.target.type = 'date')}
                     onBlur={(e) => {
@@ -152,15 +151,15 @@ export default function DiscountListPage() {
                       setStartDate(e.target.value);
                       setPage(0);
                     }}
-                    className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
+                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-8 pr-2 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
                   />
                 </div>
-                <span className="text-secondary-400">-</span>
+                <span className="text-secondary-400 font-bold">-</span>
                 <div className="relative flex-1">
-                  <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
+                  <CalendarDays className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
                   <input
                     type="text"
-                    placeholder="Đến ngày"
+                    placeholder="Đến"
                     value={endDate}
                     onFocus={(e) => (e.target.type = 'date')}
                     onBlur={(e) => {
@@ -170,46 +169,43 @@ export default function DiscountListPage() {
                       setEndDate(e.target.value);
                       setPage(0);
                     }}
-                    className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
+                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-8 pr-2 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
                   />
                 </div>
               </div>
 
-              {/* Type Select */}
-              <div className="relative">
-                <select 
+              {/* Group Type & Status in 2 columns on mobile */}
+              <div className="grid grid-cols-2 gap-3 sm:contents">
+                <Select
                   value={type || ''}
                   onChange={(e) => {
                     setType((e.target.value as DiscountTargetType) || undefined);
                     setPage(0);
                   }}
-                  className="w-full appearance-none rounded-lg border border-border bg-transparent py-2 pl-3 pr-8 text-sm outline-none transition-colors focus:border-primary-500"
-                >
-                  <option value="">Tất cả loại</option>
-                  <option value="ALL">ALL</option>
-                  <option value="WEEK_DAY">WEEK_DAY</option>
-                  <option value="SLOT_TYPE">SLOT_TYPE</option>
-                  <option value="ROOM_TYPE">ROOM_TYPE</option>
-                  <option value="ROOM">ROOM</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 pointer-events-none text-secondary-400" />
-              </div>
+                  options={[
+                    { value: '', label: 'Loại' },
+                    { value: 'ALL', label: 'Tất cả' },
+                    { value: 'WEEK_DAY', label: 'Ngày tuần' },
+                    { value: 'SLOT_TYPE', label: 'Khung giờ' },
+                    { value: 'ROOM_TYPE', label: 'Loại phòng' },
+                    { value: 'ROOM', label: 'Phòng' },
+                  ]}
+                  className="h-10"
+                />
 
-              {/* Status Select */}
-              <div className="relative">
-                <select 
+                <Select
                   value={status || ''}
                   onChange={(e) => {
                     setStatus((e.target.value as DiscountStatus) || undefined);
                     setPage(0);
                   }}
-                  className="w-full appearance-none rounded-lg border border-border bg-transparent py-2 pl-3 pr-8 text-sm outline-none transition-colors focus:border-primary-500"
-                >
-                  <option value="">Tất cả trạng thái</option>
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="INACTIVE">INACTIVE</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 pointer-events-none text-secondary-400" />
+                  options={[
+                    { value: '', label: 'Trạng thái' },
+                    { value: 'ACTIVE', label: 'Đang bật' },
+                    { value: 'INACTIVE', label: 'Đã tắt' },
+                  ]}
+                  className="h-10"
+                />
               </div>
 
               {/* Search */}
@@ -220,7 +216,7 @@ export default function DiscountListPage() {
                   placeholder="Tìm Tên chương trình..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary-500"
+                  className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
                 />
               </div>
             </div>

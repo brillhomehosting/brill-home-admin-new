@@ -15,10 +15,10 @@ export function MainLayout() {
     <SidebarContext.Provider
       value={{ open: sidebarOpen, toggle: () => setSidebarOpen((v) => !v), openSidebar }}
     >
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-screen bg-background w-full overflow-x-hidden">
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         {/* Content area — offset by sidebar width on desktop only */}
-        <main className="flex flex-1 flex-col lg:ml-60">
+        <main className="flex flex-1 flex-col lg:ml-60 min-w-0 w-full overflow-x-hidden">
           <Outlet />
         </main>
       </div>

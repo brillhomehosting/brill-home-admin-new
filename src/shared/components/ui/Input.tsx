@@ -26,9 +26,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={id}
           className={cn(
-            'flex h-9 w-full rounded-lg border bg-white px-3 text-sm text-foreground',
+            'flex h-10 w-full rounded-xl border bg-surface px-3.5 text-base sm:text-sm text-foreground shadow-sm',
             'placeholder:text-secondary-400',
-            'transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20',
+            'transition-all duration-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/10 hover:border-secondary-300',
             'disabled:cursor-not-allowed disabled:bg-secondary-50 disabled:opacity-60',
             error
               ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500/20'
