@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { Trash2, Pencil, Package, Loader2 } from 'lucide-react';
-import { Button, DynamicIcon } from '@/shared/components/ui';
-import { cn } from '@/shared/utils';
+import { DynamicIcon } from '@/shared/components/ui';
 import type { Amenity } from '@/shared/types';
 
 type AmenityTableProps = {

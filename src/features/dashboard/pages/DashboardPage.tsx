@@ -14,8 +14,6 @@ import {
   CreditCard,
   Banknote,
   Percent,
-  TrendingDown,
-  ChevronRight,
 } from 'lucide-react';
 import { cn, formatCurrency, formatDate } from '@/shared/utils';
 import { useDashboardStats, useRecentBookings, useUpcomingBookings, usePaymentStats } from '../hooks/useDashboard';
