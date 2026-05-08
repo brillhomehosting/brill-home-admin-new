@@ -80,7 +80,7 @@ export default function CacheManagerPage() {
             </Button>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => { setEditingEntry(null); setIsEntryModalOpen(true); }}>
+            <Button variant="secondary" onClick={() => { setEditingEntry(null); setIsEntryModalOpen(true); }}>
               <Plus className="mr-2 h-4 w-4" />
               Thêm Cache
             </Button>
@@ -107,7 +107,7 @@ export default function CacheManagerPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {cachesData.content.map((entry) => (
+                  {cachesData.content.map((entry: CacheEntry) => (
                     <tr key={entry.key} className="hover:bg-secondary-50">
                       <td className="px-4 py-3 font-medium text-foreground">{entry.key}</td>
                       <td className="px-4 py-3">{entry.type}</td>

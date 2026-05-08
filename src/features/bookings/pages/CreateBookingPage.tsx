@@ -5,7 +5,6 @@ import { Header, PageWrapper } from '@/shared/components/layout';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Select } from '@/shared/components/ui/Select';
-import { Textarea } from '@/shared/components/ui/Textarea';
 import { ROUTES } from '@/shared/constants';
 import { cn, formatCurrency } from '@/shared/utils';
 import { 
@@ -14,12 +13,6 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Loader2, 
-  User, 
-  Phone, 
-  Mail, 
-  FileText, 
-  CreditCard, 
-  Info,
   Clock,
   Camera,
   X
@@ -44,7 +37,7 @@ export default function CreateBookingPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [note, setNote] = useState('');
+  const [note] = useState('');
   const [nationalIdFrontFile, setNationalIdFrontFile] = useState<File | null>(null);
   const [nationalIdBackFile, setNationalIdBackFile] = useState<File | null>(null);
   const [frontPreview, setFrontPreview] = useState<string>('');
@@ -53,7 +46,7 @@ export default function CreateBookingPage() {
 
   const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
   const [transactionNo, setTransactionNo] = useState('');
-  const [paymentNote, setPaymentNote] = useState('');
+  const [paymentNote] = useState('');
   const [sendEmail, setSendEmail] = useState(true);
 
   // Queries

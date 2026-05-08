@@ -1,6 +1,5 @@
 import { cn } from '@/shared/utils';
 import {
-    CheckCircle,
     ChevronLeft,
     ChevronRight,
     Contact,

@@ -1,5 +1,5 @@
 import api from './api';
-import type { ApiResponse, PaginatedResponse } from '@/shared/types';
+import type { ApiResponse, Page } from '@/shared/types';
 
 export type CacheStats = {
   objectCount: number;
@@ -22,7 +22,7 @@ export async function getCacheStats() {
 }
 
 export async function getCaches(params?: any) {
-  const { data } = await api.get<ApiResponse<PaginatedResponse<CacheEntry>>>('/admin/cache', { params });
+  const { data } = await api.get<ApiResponse<Page<CacheEntry>>>('/admin/cache', { params });
   return data.data;
 }
 

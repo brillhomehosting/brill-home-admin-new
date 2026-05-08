@@ -6,7 +6,6 @@ import { cn, formatCurrency, formatDate } from '@/shared/utils';
 import {
   AlertCircle,
   BedDouble,
-  CalendarDays,
   CheckCircle,
   ClipboardList,
   Clock,
@@ -15,14 +14,12 @@ import {
   Lock,
   Mail,
   Pencil,
-  PlusCircle,
   ReceiptText,
   RefreshCw,
   RotateCcw,
   Send,
   User,
   XCircle,
-  Camera,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -30,7 +27,6 @@ import { IDCardViewer } from '../components/IDCardViewer';
 import { CancelBookingDialog } from '../components/CancelBookingDialog';
 import { EditBookingDialog } from '../components/EditBookingDialog';
 import { ResendEmailDialog } from '../components/ResendEmailDialog';
-import { SurchargeDialog } from '../components/SurchargeDialog';
 import { useBookingDetail } from '../hooks/useBookingDetail';
 import { useBookingMutation } from '../hooks/useBookingMutation';
 import { useSystemConfig } from '../hooks/useSystemConfig';
