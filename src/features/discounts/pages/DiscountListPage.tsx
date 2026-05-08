@@ -130,101 +130,103 @@ export default function DiscountListPage() {
 
       <PageWrapper className="flex-1 space-y-6">
         {/* Table Section */}
-        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-          
-          {/* Filters */}
-          <div className="flex flex-col gap-3 border-b border-border p-3.5 bg-surface/50">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* --- Filters Section --- */}
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Date Filter */}
-              <div className="flex items-center gap-2 lg:col-span-1">
-                <div className="relative flex-1">
-                  <CalendarDays className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
+              <div className="flex flex-col gap-1.5 lg:col-span-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Từ ngày</label>
+                <div className="relative">
+                  <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
                   <input
-                    type="text"
-                    placeholder="Từ"
+                    type="date"
                     value={startDate}
-                    onFocus={(e) => (e.target.type = 'date')}
-                    onBlur={(e) => {
-                      if (!e.target.value) e.target.type = 'text';
-                    }}
                     onChange={(e) => {
                       setStartDate(e.target.value);
                       setPage(0);
                     }}
-                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-8 pr-2 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+                    className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
                   />
                 </div>
-                <span className="text-secondary-400 font-bold">-</span>
-                <div className="relative flex-1">
-                  <CalendarDays className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
+              </div>
+
+              <div className="flex flex-col gap-1.5 lg:col-span-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Đến ngày</label>
+                <div className="relative">
+                  <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
                   <input
-                    type="text"
-                    placeholder="Đến"
+                    type="date"
                     value={endDate}
-                    onFocus={(e) => (e.target.type = 'date')}
-                    onBlur={(e) => {
-                      if (!e.target.value) e.target.type = 'text';
-                    }}
                     onChange={(e) => {
                       setEndDate(e.target.value);
                       setPage(0);
                     }}
-                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-8 pr-2 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+                    className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
                   />
                 </div>
               </div>
 
-              {/* Group Type & Status in 2 columns on mobile */}
-              <div className="grid grid-cols-2 gap-3 sm:contents">
-                <Select
-                  value={type || ''}
-                  onChange={(e) => {
-                    setType((e.target.value as DiscountTargetType) || undefined);
-                    setPage(0);
-                  }}
-                  options={[
-                    { value: '', label: 'Loại' },
-                    { value: 'ALL', label: 'Tất cả' },
-                    { value: 'WEEK_DAY', label: 'Ngày tuần' },
-                    { value: 'SLOT_TYPE', label: 'Khung giờ' },
-                    { value: 'ROOM_TYPE', label: 'Loại phòng' },
-                    { value: 'ROOM', label: 'Phòng' },
-                  ]}
-                  className="h-10"
-                />
-
-                <Select
-                  value={status || ''}
-                  onChange={(e) => {
-                    setStatus((e.target.value as DiscountStatus) || undefined);
-                    setPage(0);
-                  }}
-                  options={[
-                    { value: '', label: 'Trạng thái' },
-                    { value: 'ACTIVE', label: 'Đang bật' },
-                    { value: 'INACTIVE', label: 'Đã tắt' },
-                  ]}
-                  className="h-10"
-                />
+              {/* Group Type & Status */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Loại & Trạng thái</label>
+                <div className="flex gap-2">
+                  <Select
+                    value={type || ''}
+                    onChange={(e) => {
+                      setType((e.target.value as DiscountTargetType) || undefined);
+                      setPage(0);
+                    }}
+                    options={[
+                      { value: '', label: 'Tất cả loại' },
+                      { value: 'ALL', label: 'Tất cả' },
+                      { value: 'WEEK_DAY', label: 'Ngày tuần' },
+                      { value: 'SLOT_TYPE', label: 'Khung giờ' },
+                      { value: 'ROOM_TYPE', label: 'Loại phòng' },
+                      { value: 'ROOM', label: 'Phòng' },
+                    ]}
+                    className="h-10 flex-1 !text-secondary-950"
+                  />
+                  <Select
+                    value={status || ''}
+                    onChange={(e) => {
+                      setStatus((e.target.value as DiscountStatus) || undefined);
+                      setPage(0);
+                    }}
+                    options={[
+                      { value: '', label: 'Tất cả trạng thái' },
+                      { value: 'ACTIVE', label: 'Đang bật' },
+                      { value: 'INACTIVE', label: 'Đã tắt' },
+                    ]}
+                    className="h-10 flex-1 !text-secondary-950"
+                  />
+                </div>
               </div>
 
               {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
-                <input
-                  type="text"
-                  placeholder="Tìm Tên chương trình..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
-                />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Tìm kiếm</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm Tên chương trình..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
+                  />
+                </div>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-secondary-400">
-                Tìm thấy {totalElements} chương trình
-              </span>
-            </div>
+          </div>
+        </div>
+
+        {/* --- Table Section --- */}
+        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 bg-surface/50">
+            <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider">
+              Tổng cộng: {totalElements} chương trình
+            </span>
           </div>
 
           {/* Desktop View */}

@@ -85,24 +85,29 @@ export default function AmenityListPage() {
       />
 
       <PageWrapper className="flex-1 space-y-6 min-w-0">
-        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden max-w-full">
-          {/* Filters inside card */}
-          <div className="flex flex-col gap-4 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between bg-surface/50">
-            <div className="relative w-full sm:max-w-xs">
+        {/* --- Filters Section --- */}
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+          <div className="flex flex-col gap-1.5 w-full sm:max-w-xs">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Tìm kiếm</label>
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
               <input
                 type="text"
                 placeholder="Tìm tiện nghi..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+                className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
               />
             </div>
-            <div className="flex items-center justify-between sm:justify-end gap-3 px-1 sm:px-0">
-               <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider">
-                 Tổng số: {amenities.length}
-               </span>
-            </div>
+          </div>
+        </div>
+
+        {/* --- Table Section --- */}
+        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden max-w-full">
+          <div className="flex items-center justify-between sm:justify-end gap-3 px-1 sm:px-0 py-2 bg-surface/50">
+             <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider px-3">
+               Tổng số: {amenities.length}
+             </span>
           </div>
 
           <AmenityTable

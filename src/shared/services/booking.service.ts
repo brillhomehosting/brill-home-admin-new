@@ -45,6 +45,21 @@ export async function getBookingAvailability(
 }
 
 /**
+ * GET /bookings/availability?startDate=&endDate=
+ * Returns availability groups for ALL rooms.
+ */
+export async function getRoomsAvailability(
+  startDate?: string,
+  endDate?: string,
+): Promise<BookingAvailabilityResponse[]> {
+  const { data } = await api.get<ApiResponse<BookingAvailabilityResponse[]>>(
+    API.BOOKINGS.GET_AVAILABILITY,
+    { params: { startDate, endDate } }
+  );
+  return data.data || [];
+}
+
+/**
  * GET /rooms/:roomId/time-slots/availability?startDate=&endDate=
  * Returns flattened TimeSlotAvailabilityItem[] for a single date.
  */
@@ -131,6 +146,12 @@ export async function adminCreateBooking(data: AdminCreateBookingData) {
   return response.data;
 }
 
+/** PATCH /admin/bookings/:id */
+export async function updateBooking(bookingId: string, data: Partial<AdminCreateBookingData>) {
+  const response = await api.patch(API.BOOKINGS.UPDATE(bookingId), data);
+  return response.data;
+}
+
 /** PATCH /admin/bookings/:id/tuya-sync-status */
 export async function syncTuyaStatus(bookingId: string, tuyaSyncStatus: string): Promise<TuyaSyncResponse> {
   const { data } = await api.patch<ApiResponse<TuyaSyncResponse>>(
@@ -165,6 +186,7 @@ export async function calculatePrice(payload: {
 
 export const bookingService = {
   getBookingAvailability,
+  getRoomsAvailability,
   getTimeSlotAvailability,
   createBooking,
   deleteBooking,
@@ -176,6 +198,7 @@ export const bookingService = {
   resendCancellation,
   confirmPayment,
   adminCreateBooking,
+  updateBooking,
   syncTuyaStatus,
   retryTuya,
   calculatePrice,

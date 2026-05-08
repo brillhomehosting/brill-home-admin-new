@@ -24,16 +24,7 @@ import { Button } from '@/shared/components/ui/Button';
 // --- Types ---
 
 const statusMapping: Record<BookingStatus, { label: string; classes: string }> = {
-  PENDING: {
-    label: 'Đang giữ chỗ',
-    classes: 'bg-warning-100 text-warning-700',
-  },
-  SUCCESS: {
-    label: 'Đã thanh toán',
-    classes: 'bg-success-100 text-success-700',
-  },
   CANCELLED: { label: 'Đã hủy', classes: 'bg-danger-100 text-danger-700' },
-  COMPLETED: { label: 'Hoàn thành', classes: 'bg-info-100 text-info-700' },
   CONFIRMED: {
     label: 'Đã xác nhận',
     classes: 'bg-primary-100 text-primary-700',
@@ -237,50 +228,46 @@ export default function BookingListPage() {
           </nav>
         </div>
 
-        {/* --- Table Section --- */}
-        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-          {/* Filters */}
-          <div className="flex flex-col gap-3 border-b border-border p-3.5 bg-surface/50">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* --- Filters Section --- */}
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Date Filter */}
-              <div className="flex items-center gap-2 lg:col-span-1">
-                <div className="relative flex-1">
-                  <CalendarDays className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
+              <div className="flex flex-col gap-1.5 lg:col-span-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Từ ngày</label>
+                <div className="relative">
+                  <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
                   <input
-                    type="text"
-                    placeholder="Từ"
-                    onFocus={(e) => (e.target.type = 'date')}
-                    onBlur={(e) => {
-                      if (!e.target.value) e.target.type = 'text';
-                    }}
+                    type="date"
+                    value={startDate}
                     onChange={(e) => {
                       setStartDate(e.target.value);
                       setPage(0);
                     }}
-                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-8 pr-2 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
-                  />
-                </div>
-                <span className="text-secondary-400 font-bold">-</span>
-                <div className="relative flex-1">
-                  <CalendarDays className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
-                  <input
-                    type="text"
-                    placeholder="Đến"
-                    onFocus={(e) => (e.target.type = 'date')}
-                    onBlur={(e) => {
-                      if (!e.target.value) e.target.type = 'text';
-                    }}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      setPage(0);
-                    }}
-                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-8 pr-2 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+                    className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
                   />
                 </div>
               </div>
 
-              {/* Nhóm Status và Search trên di động */}
-              <div className="grid grid-cols-2 gap-3 sm:contents">
+              <div className="flex flex-col gap-1.5 lg:col-span-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Đến ngày</label>
+                <div className="relative">
+                  <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setPage(0);
+                    }}
+                    className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
+                  />
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Trạng thái</label>
                 <Select
                   value={status || ''}
                   onChange={(e) => {
@@ -288,33 +275,38 @@ export default function BookingListPage() {
                     setPage(0);
                   }}
                   options={[
-                    { value: '', label: 'Trạng thái' },
-                    { value: 'PENDING', label: 'Đang giữ' },
-                    { value: 'CONFIRMED', label: 'Xác nhận' },
-                    { value: 'SUCCESS', label: 'Thành công' },
-                    { value: 'COMPLETED', label: 'Xong' },
-                    { value: 'CANCELLED', label: 'Hủy' },
+                    { value: '', label: 'Tất cả trạng thái' },
+                    { value: 'CONFIRMED', label: 'Đã xác nhận' },
+                    { value: 'CANCELLED', label: 'Đã hủy' },
                   ]}
-                  className="h-10"
+                  className="h-10 !text-secondary-950"
                 />
+              </div>
 
-                <div className="relative sm:col-span-2 lg:col-span-2">
+              {/* Search */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Tìm kiếm</label>
+                <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
                   <input
                     type="text"
                     placeholder="Mã, Tên, SĐT..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
                   />
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between sm:justify-end gap-3 px-1 sm:px-0">
-               <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider">
-                 Tổng số: {totalElements}
-               </span>
-            </div>
+          </div>
+        </div>
+
+        {/* --- Table Section --- */}
+        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between sm:justify-end gap-3 px-1 sm:px-0 py-2">
+             <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider px-3">
+               Tổng số: {totalElements}
+             </span>
           </div>
 
           {/* Desktop Table */}
@@ -370,7 +362,7 @@ export default function BookingListPage() {
                           {formatDate(booking.checkInAt, { hour: '2-digit', minute: '2-digit' })} -{' '}
                           {formatDate(booking.checkOutAt, { hour: '2-digit', minute: '2-digit' })}
                         </p>
-                        <p className="text-[10px] text-secondary-400 font-bold uppercase tracking-tighter">{formatDate(booking.date)}</p>
+                        <p className="text-[10px] text-secondary-400 font-bold uppercase tracking-tighter">{formatDate(booking.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
                       </td>
                       <td className="px-5 py-4 text-right font-extrabold text-foreground">{formatCurrency(booking.finalAmount)}</td>
                     </tr>

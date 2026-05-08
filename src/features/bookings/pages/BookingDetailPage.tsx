@@ -6,7 +6,6 @@ import { cn, formatCurrency, formatDate } from '@/shared/utils';
 import {
   AlertCircle,
   BedDouble,
-  CalendarDays,
   CheckCircle,
   ClipboardList,
   Clock,
@@ -15,7 +14,6 @@ import {
   Lock,
   Mail,
   Pencil,
-  PlusCircle,
   ReceiptText,
   RefreshCw,
   RotateCcw,
@@ -25,12 +23,13 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { IDCardViewer } from '../components/IDCardViewer';
 import { CancelBookingDialog } from '../components/CancelBookingDialog';
 import { EditBookingDialog } from '../components/EditBookingDialog';
 import { ResendEmailDialog } from '../components/ResendEmailDialog';
-import { SurchargeDialog } from '../components/SurchargeDialog';
 import { useBookingDetail } from '../hooks/useBookingDetail';
 import { useBookingMutation } from '../hooks/useBookingMutation';
+import { useSystemConfig } from '../hooks/useSystemConfig';
 
 export default function BookingDetailPage() {
   const { bookingId } = useParams();
@@ -38,7 +37,8 @@ export default function BookingDetailPage() {
   const [isCancelOpen, setCancelOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [isEmailOpen, setEmailOpen] = useState(false);
-  const [isSurchargeOpen, setSurchargeOpen] = useState(false);
+  const [isIdViewerOpen, setIdViewerOpen] = useState(false);
+  const [idViewerIndex, setIdViewerIndex] = useState<0 | 1>(0);
   const { toast } = useToast();
 
   const { data: booking, isLoading, error } = useBookingDetail(bookingId);
@@ -47,14 +47,17 @@ export default function BookingDetailPage() {
     syncTuyaStatus
   } = useBookingMutation();
 
+  const { data: bufferConfig } = useSystemConfig('GATE_PASSWORD_BUFFER_MINUTES');
+  const bufferMinutes = parseInt(bufferConfig?.data?.configValue || '15', 10) || 15;
+
   // Auto-sync Tuya based on booking's tuyaSyncStatus
   useEffect(() => {
     if (!bookingId || !booking) return;
 
     const status = booking.tuyaSyncStatus;
 
-    // PENDING → auto call sync
-    if (status === 'PENDING') {
+    // CONFIRMED → auto call sync
+    if (status === 'CONFIRMED') {
       syncTuyaStatus.mutate({ bookingId, tuyaSyncStatus: 'PENDING' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,10 +101,7 @@ export default function BookingDetailPage() {
   const displayedCode = `#BK-${booking.bookingCode}`;
 
   const statusMapping = {
-    PENDING: { label: 'Đang giữ chỗ', classes: 'bg-warning-100 text-warning-700' },
-    SUCCESS: { label: 'Đã thanh toán', classes: 'bg-success-100 text-success-700' },
     CANCELLED: { label: 'Đã hủy', classes: 'bg-danger-100 text-danger-700' },
-    COMPLETED: { label: 'Hoàn thành', classes: 'bg-info-100 text-info-700' },
     CONFIRMED: { label: 'Đã xác nhận', classes: 'bg-primary-100 text-primary-700' },
   };
 
@@ -225,6 +225,46 @@ export default function BookingDetailPage() {
                   <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Ghi chú</p>
                   <p className="mt-0.5 text-sm italic text-secondary-500">{booking.note || 'Không có ghi chú.'}</p>
                 </div>
+
+                {(booking.nationalIdFrontUrl || booking.nationalIdBackUrl) && (
+                  <div className="sm:col-span-2 pt-4 border-t border-border">
+                    <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Giấy tờ tùy thân (CCCD)</p>
+                    <div className="flex flex-wrap gap-4">
+                      {booking.nationalIdFrontUrl && (
+                        <button 
+                          onClick={() => {
+                            setIdViewerIndex(0);
+                            setIdViewerOpen(true);
+                          }}
+                          className="group relative h-24 w-36 overflow-hidden rounded-lg border border-border bg-secondary-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <img
+                            src={booking.nationalIdFrontUrl}
+                            alt="CCCD Front"
+                            className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
+                          />
+                          <div className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white font-bold">Mặt trước</div>
+                        </button>
+                      )}
+                      {booking.nationalIdBackUrl && (
+                        <button 
+                          onClick={() => {
+                            setIdViewerIndex(1);
+                            setIdViewerOpen(true);
+                          }}
+                          className="group relative h-24 w-36 overflow-hidden rounded-lg border border-border bg-secondary-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <img
+                            src={booking.nationalIdBackUrl}
+                            alt="CCCD Back"
+                            className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
+                          />
+                          <div className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white font-bold">Mặt sau</div>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -244,16 +284,15 @@ export default function BookingDetailPage() {
                   <div className="rounded-xl bg-primary-50/50 px-4 py-4 border border-primary-100">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-semibold text-primary-700">Check-in</span>
-                      <span className="font-bold text-foreground text-base">{formatDate(booking.checkInAt, { hour: '2-digit', minute: '2-digit', hour12: false, month: undefined, day: undefined, year: undefined })}</span>
+                      <span className="font-bold text-foreground text-base">
+                        {formatDate(booking.checkInAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })}
+                      </span>
                     </div>
                     <div className="my-3 border-t border-primary-200 border-dashed" />
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-semibold text-primary-700">Check-out</span>
                       <span className="font-bold text-foreground text-base">
-                        {formatDate(booking.checkOutAt, { hour: '2-digit', minute: '2-digit', hour12: false, month: undefined, day: undefined, year: undefined })}
-                        {new Date(booking.checkOutAt).getDate() !== new Date(booking.checkInAt).getDate() && (
-                          <span className="font-normal text-secondary-400 text-xs ml-1">(+1 ngày)</span>
-                        )}
+                        {formatDate(booking.checkOutAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false })}
                       </span>
                     </div>
                   </div>
@@ -286,10 +325,10 @@ export default function BookingDetailPage() {
                               </button>
                             )}
                           </div>
-                          {booking.passwordEffectiveAt && (
+                          {booking.gatePassword && (
                             <p className="mt-2 text-[10px] text-secondary-400 leading-tight flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Hiệu lực: {formatDate(booking.passwordEffectiveAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                              <Clock className="h-3 w-3 shrink-0" />
+                              Hiệu lực: {formatDate(new Date(new Date(booking.checkInAt).getTime() - bufferMinutes * 60000).toISOString(), { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', hour12: false })} - {formatDate(new Date(new Date(booking.checkOutAt).getTime() - bufferMinutes * 60000).toISOString(), { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', hour12: false })}
                             </p>
                           )}
                         </div>
@@ -388,16 +427,6 @@ export default function BookingDetailPage() {
                   Gửi lại xác nhận
                 </button>
                 <div className="mx-4 border-t border-border" />
-                <button onClick={() => setSurchargeOpen(true)} className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold text-secondary-700 transition-colors hover:bg-secondary-50">
-                  <PlusCircle className="h-4 w-4 text-secondary-400" />
-                  Tạo phụ phí (Surcharge)
-                </button>
-                <div className="mx-4 border-t border-border" />
-                <button className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold text-secondary-700 transition-colors hover:bg-secondary-50">
-                  <CalendarDays className="h-4 w-4 text-secondary-400" />
-                  Đổi lịch / Gia hạn
-                </button>
-                <div className="mx-4 border-t border-border" />
                 <button 
                   onClick={() => setCancelOpen(true)} 
                   disabled={booking.status === 'CANCELLED'}
@@ -451,7 +480,7 @@ export default function BookingDetailPage() {
       <EditBookingDialog
         open={isEditOpen}
         onClose={() => setEditOpen(false)}
-        bookingCode={displayedCode}
+        booking={booking}
       />
 
       <ResendEmailDialog
@@ -465,10 +494,15 @@ export default function BookingDetailPage() {
         customerEmail={booking.guestEmail}
       />
 
-      <SurchargeDialog
-        open={isSurchargeOpen}
-        onClose={() => setSurchargeOpen(false)}
-        bookingCode={displayedCode}
+
+      <IDCardViewer
+        open={isIdViewerOpen}
+        onClose={() => setIdViewerOpen(false)}
+        customerName={booking.guestName}
+        updatedAt={formatDate(booking.createdAt)}
+        frontImage={booking.nationalIdFrontUrl}
+        backImage={booking.nationalIdBackUrl}
+        initialIndex={idViewerIndex}
       />
     </div>
   );

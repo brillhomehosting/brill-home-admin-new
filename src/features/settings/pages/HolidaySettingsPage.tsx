@@ -105,11 +105,12 @@ export default function HolidaySettingsPage() {
 
       <PageWrapper className="flex-1 space-y-6">
         {/* Table Section */}
-        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-          {/* Filters */}
-          <div className="flex flex-col gap-3 border-b border-border p-3.5 bg-surface/50">
-            <div className="grid grid-cols-1 sm:flex sm:items-center gap-3">
-              <div className="grid grid-cols-2 sm:flex items-center gap-3 w-full">
+        {/* --- Filters Section --- */}
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+              <div className="flex flex-col gap-1.5 w-full sm:w-72">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Loại ngày lễ</label>
                 <Select
                   value={holidayType || ''}
                   onChange={(e) => {
@@ -117,30 +118,37 @@ export default function HolidaySettingsPage() {
                     setPage(0);
                   }}
                   options={[
-                    { value: '', label: 'Loại: Tất cả' },
+                    { value: '', label: 'Tất cả loại' },
                     { value: 'ANNUAL', label: 'Hằng năm' },
                     { value: 'SPECIFIC_YEAR', label: 'Cụ thể' },
                   ]}
-                  className="h-10"
+                  className="h-10 !text-secondary-950"
                 />
+              </div>
 
-                <div className="relative flex-1">
+              <div className="flex flex-col gap-1.5 flex-1 w-full">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Tìm kiếm</label>
+                <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
                   <input
                     type="text"
-                    placeholder="Tìm Tên..."
+                    placeholder="Tìm Tên ngày lễ..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
                   />
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between sm:justify-end gap-3 px-1 sm:px-0">
-               <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider">
-                 Tổng số: {totalElements}
-               </span>
-            </div>
+          </div>
+        </div>
+
+        {/* --- Table Section --- */}
+        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between sm:justify-end gap-3 px-1 sm:px-0 py-2">
+             <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider px-3">
+               Tổng số: {totalElements}
+             </span>
           </div>
 
           {/* Desktop View */}

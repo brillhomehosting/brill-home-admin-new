@@ -5,11 +5,8 @@ import type { BaseDTO } from './api';
 // ================================================================
 
 export type BookingStatus =
-  | 'PENDING'
   | 'CONFIRMED'
-  | 'CANCELLED'
-  | 'SUCCESS'
-  | 'COMPLETED';
+  | 'CANCELLED';
 
 export type PaymentMethod = 'VNPAY' | 'MOMO' | 'CASH' | 'BANK_TRANSFER' | 'OTHER';
 

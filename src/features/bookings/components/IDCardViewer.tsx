@@ -1,6 +1,5 @@
 import { cn } from '@/shared/utils';
 import {
-    CheckCircle,
     ChevronLeft,
     ChevronRight,
     Contact,
@@ -197,14 +196,9 @@ export function IDCardViewer({
 
           <div className="mx-2 h-4 w-px bg-white/10" />
 
-          {/* Actions */}
           <button className="flex items-center gap-1.5 rounded-full border border-white/20 bg-transparent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/10">
             <Download className="h-3.5 w-3.5" />
-            Tải về
-          </button>
-          <button className="flex items-center gap-1.5 rounded-full bg-accent-500 px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-600 shadow-lg shadow-accent-500/20">
-            <CheckCircle className="h-3.5 w-3.5" />
-            Xác thực
+            <a href={currentImage.src} download={currentImage.label} target="_blank" rel="noreferrer">Tải về</a>
           </button>
         </div>
 

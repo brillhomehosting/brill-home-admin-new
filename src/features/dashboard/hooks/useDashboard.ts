@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { dashboardService } from '@/shared/services/dashboard.service';
 import { paymentService } from '@/shared/services/payment.service';
+import { bookingService } from '@/shared/services/booking.service';
 import type { PaymentStatsParams } from '@/shared/types';
 
 export function useDashboardStats() {
@@ -28,5 +29,21 @@ export function usePaymentStats(params: PaymentStatsParams = {}) {
   return useQuery({
     queryKey: ['dashboard', 'payment-stats', params],
     queryFn: () => paymentService.getPaymentStats(params),
+  });
+}
+
+export function useRoomTrackers() {
+  return useQuery({
+    queryKey: ['dashboard', 'room-trackers'],
+    queryFn: dashboardService.getRoomTrackers,
+    refetchInterval: 10 * 60 * 1000, // auto-refresh every 10 mins
+  });
+}
+
+export function useAllRoomsAvailability(date: string) {
+  return useQuery({
+    queryKey: ['dashboard', 'availability', date],
+    queryFn: () => bookingService.getRoomsAvailability(date, date),
+    refetchInterval: 5 * 60 * 1000,
   });
 }

@@ -1,251 +1,517 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   ArrowDown,
-  Calendar,
   Pencil,
   TriangleAlert,
   Check,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Clock,
+  Camera,
+  X,
 } from 'lucide-react';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Select } from '@/shared/components/ui/Select';
 import { Button } from '@/shared/components/ui/Button';
-import { cn } from '@/shared/utils';
+import { Input } from '@/shared/components/ui/Input';
+import { Textarea } from '@/shared/components/ui/Textarea';
+import { cn, formatCurrency } from '@/shared/utils';
+import { useRooms } from '@/features/rooms/hooks/useRooms';
+import { useMultiDayAvailability } from '@/features/rooms/hooks/useTimeSlotBooking';
+import { useCalculatePrice } from '@/features/bookings/hooks/useBookings';
+import { roomService } from '@/shared/services/room.service';
+import { useBookingMutation } from '@/features/bookings/hooks/useBookingMutation';
+import { useToast } from '@/shared/components/feedback/Toast';
 
 type EditBookingDialogProps = {
   open: boolean;
   onClose: () => void;
-  bookingCode: string;
+  booking: any;
 };
 
 export function EditBookingDialog({
   open,
   onClose,
-  bookingCode,
+  booking,
 }: EditBookingDialogProps) {
-  const [selectedRoom, setSelectedRoom] = useState('Phòng Vintage');
-  const [selectedDate, setSelectedDate] = useState('2026-03-03');
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState('14:00 - 18:00');
+  const { toast } = useToast();
+  const { data: roomsResponse, isLoading: isLoadingRooms } = useRooms({ limit: 100 });
+  const rooms = roomsResponse?.data?.content || [];
+  const { updateBooking } = useBookingMutation();
+
+  // Basic Info
+  const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedSlots, setSelectedSlots] = useState<Record<string, string[]>>({});
+  
+  // Customer Info
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [note, setNote] = useState('');
+  
+  // CCCD Files
+  const [nationalIdFrontFile, setNationalIdFrontFile] = useState<File | null>(null);
+  const [nationalIdBackFile, setNationalIdBackFile] = useState<File | null>(null);
+  const [frontPreview, setFrontPreview] = useState<string>('');
+  const [backPreview, setBackPreview] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Payment Info
+  const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
+  const [transactionNo, setTransactionNo] = useState('');
   const [sendEmail, setSendEmail] = useState(true);
 
-  // Mock data for time slots 
-  const timeSlots = [
-    { time: '08:00 - 12:00', label: 'Đã đặt', disabled: true },
-    { time: '12:00 - 14:00', label: 'Trống', disabled: false },
-    { time: '14:00 - 18:00', label: 'Trống', disabled: false },
-    { time: '18:00 - 22:00', label: 'Trống', disabled: false },
-  ];
+  // Initialize with current booking data
+  useEffect(() => {
+    if (open && booking) {
+      setSelectedRoomId(booking.roomId || '');
+      const checkIn = new Date(booking.checkInAt);
+      setViewDate(checkIn.toISOString().split('T')[0]);
+      
+      setCustomerName(booking.guestName || '');
+      setCustomerPhone(booking.guestPhone || '');
+      setCustomerEmail(booking.guestEmail || '');
+      setNote(booking.note || '');
+      
+      setPaymentMethod(booking.paymentMethod || 'CASH');
+      setTransactionNo(booking.payment?.transactionNo || '');
+      
+      setFrontPreview(booking.nationalIdFrontUrl || '');
+      setBackPreview(booking.nationalIdBackUrl || '');
+
+      // Pre-select current slots
+      const initialSlots: Record<string, string[]> = {};
+      if (booking.slots) {
+        booking.slots.forEach((s: any) => {
+          const d = s.date;
+          if (!initialSlots[d]) initialSlots[d] = [];
+          initialSlots[d].push(s.timeSlotId);
+        });
+      }
+      setSelectedSlots(initialSlots);
+    }
+  }, [open, booking]);
+
+  const dayQueries = useMultiDayAvailability(selectedRoomId, viewDate, 7);
+  const isLoadingSlots = dayQueries.some(q => q.isLoading);
+
+  const roomOptions = useMemo(() => [
+    { value: '', label: 'Chọn phòng...' },
+    ...rooms.map((r: any) => ({ value: r.id, label: r.name }))
+  ], [rooms]);
+
+  const toggleSlot = (date: string, slotId: string) => {
+    setSelectedSlots(prev => {
+      const current = prev[date] || [];
+      if (current.includes(slotId)) {
+        const next = current.filter(id => id !== slotId);
+        if (next.length === 0) {
+          const { [date]: _, ...rest } = prev;
+          return rest;
+        }
+        return { ...prev, [date]: next };
+      }
+      return { ...prev, [date]: [...current, slotId] };
+    });
+  };
+
+  const bookingSlotsPayload = useMemo(() => 
+    Object.entries(selectedSlots)
+      .filter(([_, ids]) => ids.length > 0)
+      .map(([date, timeSlotIds]) => ({ date, timeSlotIds })),
+  [selectedSlots]);
+
+  const { data: priceData, isLoading: isCalculating } = useCalculatePrice({
+    roomId: selectedRoomId,
+    bookingSlots: bookingSlotsPayload
+  });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'front' | 'back') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const previewUrl = URL.createObjectURL(file);
+    if (type === 'front') {
+      setNationalIdFrontFile(file);
+      setFrontPreview(previewUrl);
+    } else {
+      setNationalIdBackFile(file);
+      setBackPreview(previewUrl);
+    }
+    if (e.target) e.target.value = '';
+  };
+
+  const removeFile = (type: 'front' | 'back') => {
+    if (type === 'front') {
+      setNationalIdFrontFile(null);
+      setFrontPreview('');
+    } else {
+      setNationalIdBackFile(null);
+      setBackPreview('');
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedRoomId || bookingSlotsPayload.length === 0) {
+      toast('Vui lòng chọn phòng và lịch trình', 'warning');
+      return;
+    }
+    try {
+      setIsUploading(true);
+      
+      let frontUrl = frontPreview;
+      let backUrl = backPreview;
+
+      if (nationalIdFrontFile) {
+        const res = await roomService.uploadCredentials(nationalIdFrontFile);
+        frontUrl = res.url;
+      }
+      if (nationalIdBackFile) {
+        const res = await roomService.uploadCredentials(nationalIdBackFile);
+        backUrl = res.url;
+      }
+
+      setIsUploading(false);
+
+      await updateBooking.mutateAsync({
+        bookingId: booking.bookingId,
+        data: {
+          roomId: selectedRoomId,
+          slots: bookingSlotsPayload,
+          guestName: customerName,
+          guestEmail: customerEmail,
+          guestPhone: customerPhone,
+          nationalIdFrontUrl: frontUrl || undefined,
+          nationalIdBackUrl: backUrl || undefined,
+          note: note,
+          paymentMethod: paymentMethod as any,
+          transactionNo: transactionNo || undefined,
+          sendConfirmationEmail: sendEmail,
+        }
+      });
+      onClose();
+    } catch (err) {
+      setIsUploading(false);
+    }
+  };
+
+  const handleNextDays = () => {
+    const d = new Date(viewDate);
+    d.setDate(d.getDate() + 7);
+    setViewDate(d.toISOString().split('T')[0]);
+  };
+
+  const handlePrevDays = () => {
+    const d = new Date(viewDate);
+    d.setDate(d.getDate() - 7);
+    setViewDate(d.toISOString().split('T')[0]);
+  };
+
+  const totalPrice = priceData?.totalPrice || 0;
+  const priceDiff = totalPrice - (booking?.finalAmount || 0);
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      size="lg" // lg matches the wider look in the screenshot
+      size="xl"
       title={
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-50 text-accent-500">
             <Pencil className="h-4 w-4" />
           </div>
-          Sửa booking {bookingCode}
+          Sửa booking {booking?.bookingCode}
         </div>
       }
       footer={
-        <>
-          <Button variant="secondary" onClick={onClose} className="border-border">
-            Đóng
-          </Button>
-          <Button
-            className="bg-accent-400 text-white hover:bg-accent-500"
-            onClick={onClose}
-          >
-            Xác nhận thay đổi
-          </Button>
-        </>
+        <div className="flex w-full items-center justify-between">
+          <div className="flex items-center gap-2">
+             <input
+                type="checkbox"
+                id="send-email-edit"
+                checked={sendEmail}
+                onChange={(e) => setSendEmail(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-accent-500"
+              />
+              <label htmlFor="send-email-edit" className="text-xs font-medium text-secondary-600 cursor-pointer">
+                Gửi email xác nhận mới
+              </label>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={onClose} className="border-secondary-200">
+              Hủy
+            </Button>
+            <Button
+              className="bg-accent-500 text-white hover:bg-accent-600"
+              onClick={handleUpdate}
+              loading={updateBooking.isPending || isUploading}
+              disabled={bookingSlotsPayload.length === 0}
+            >
+              Xác nhận thay đổi
+            </Button>
+          </div>
+        </div>
       }
     >
-      <div className="flex flex-col gap-6">
-        {/* Warning Alert */}
-        <div className="flex items-start gap-3 rounded-xl bg-warning-50 px-4 py-3 text-sm text-warning-800 border border-warning-100">
-          <div className="mt-0.5 shrink-0 flex items-center justify-center text-warning-500">
-            <TriangleAlert className="h-5 w-5" />
-          </div>
+      <div className="flex flex-col gap-5 max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin">
+        <div className="flex items-start gap-3 rounded-xl bg-warning-50 px-4 py-3 text-[13px] text-warning-800 border border-warning-100">
+          <TriangleAlert className="h-5 w-5 mt-0.5 shrink-0 text-warning-500" />
           <div>
-            <p className="font-semibold mb-0.5">Cảnh báo thay đổi</p>
-            <p className="text-warning-700">
-              Lưu ý: Booking cũ và mật khẩu Tuya hiện tại sẽ bị xóa và thay thế bằng thông tin mới ngay sau khi xác nhận.
+            <p className="font-bold mb-0.5 uppercase tracking-wide text-xs">Cảnh báo thay đổi</p>
+            <p className="text-warning-700 leading-relaxed text-xs">
+              Lưu ý: Thông tin cũ sẽ bị thay thế hoàn toàn ngay sau khi xác nhận.
             </p>
           </div>
         </div>
 
-        {/* Current Booking Header */}
-        <div className="relative">
-          <div className="rounded-xl border border-border bg-secondary-50 p-4 pb-6">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold tracking-wider text-secondary-500 uppercase">
-                BOOKING HIỆN TẠI
-              </span>
-              <span className="rounded bg-danger-50 px-2 py-0.5 text-[10px] font-semibold text-danger-500">
-                Sẽ bị xóa
-              </span>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <img
-                src="https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&q=80&w=150&h=150"
-                alt="Room"
-                className="h-14 w-14 rounded-lg object-cover shadow-sm bg-secondary-200"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-foreground text-sm">Phòng Cinema</p>
-                <div className="mt-1 flex items-center gap-4 text-xs font-medium text-secondary-500">
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5" />
-                    01/03/2026
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-1 w-1 rounded-full bg-secondary-300" />
-                    18:00 - 08:00
-                  </div>
+        {/* STEP 1: ROOM & SCHEDULE */}
+        <div className="space-y-4">
+           <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-lg bg-primary-500 text-white flex items-center justify-center text-[10px] font-bold">1</div>
+              <h3 className="text-[11px] font-bold text-foreground uppercase tracking-widest">Phòng & Lịch trình</h3>
+           </div>
+           
+           <div className="rounded-xl border border-border bg-surface p-4 shadow-sm space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Chọn phòng</label>
+                  <Select
+                    className="h-9 text-sm font-medium rounded-lg !text-secondary-950"
+                    value={selectedRoomId}
+                    onChange={(e) => {
+                        setSelectedRoomId(e.target.value);
+                        setSelectedSlots({});
+                    }}
+                    options={roomOptions}
+                    loading={isLoadingRooms}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Ngày bắt đầu</label>
+                  <input
+                    type="date"
+                    value={viewDate}
+                    onChange={(e) => setViewDate(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-secondary-200 bg-surface px-3 text-sm font-medium outline-none focus:border-accent-500 !text-secondary-950"
+                  />
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-bold text-secondary-400 line-through decoration-danger-400">546.250đ</p>
-              </div>
-            </div>
-          </div>
 
-          {/* Down Arrow Separator */}
-          <div className="absolute -bottom-3 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border border-accent-200 bg-white text-accent-500 shadow-sm z-10">
-            <ArrowDown className="h-3.5 w-3.5" />
-          </div>
+              <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Lịch trình 7 ngày</h4>
+                <div className="flex items-center gap-1 bg-secondary-50 p-1 rounded-lg border border-secondary-100">
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={handlePrevDays}><ChevronLeft className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={handleNextDays}><ChevronRight className="h-4 w-4" /></Button>
+                </div>
+              </div>
+
+              <div className="relative overflow-hidden rounded-xl border border-secondary-100 bg-secondary-50/30">
+                <div className="flex overflow-x-auto pb-4 scrollbar-hide snap-x">
+                  {!selectedRoomId ? (
+                    <div className="flex h-[100px] w-full items-center justify-center flex-col gap-2">
+                       <Clock className="h-6 w-6 text-secondary-200" />
+                       <p className="text-[10px] font-bold text-secondary-400 uppercase">Vui lòng chọn phòng</p>
+                    </div>
+                  ) : isLoadingSlots ? (
+                    <div className="flex h-[150px] w-full items-center justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-accent-400" />
+                    </div>
+                  ) : (
+                    dayQueries.map((q, idx) => {
+                      const d = new Date(viewDate);
+                      d.setDate(d.getDate() + idx);
+                      const dateStr = d.toISOString().split('T')[0];
+                      const daySlots = q.data || [];
+                      
+                      return (
+                        <div key={dateStr} className="min-w-[130px] flex-1 border-r border-secondary-100 last:border-0 p-2.5 snap-start">
+                          <div className="mb-2 p-1.5 rounded-lg bg-white border border-secondary-100 text-center shadow-sm">
+                            <p className="text-[8px] font-bold uppercase text-secondary-400">{d.toLocaleDateString('vi-VN', { weekday: 'short' })}</p>
+                            <p className="text-xs font-bold text-foreground">{d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</p>
+                          </div>
+                          <div className="space-y-1.5">
+                            {daySlots.map((slot: any) => {
+                              const isSelected = selectedSlots[dateStr]?.includes(slot.timeSlot.id);
+                              const isAvailable = slot.status === 'AVAILABLE' || slot.status === 'VACANT';
+                              return (
+                                <button
+                                  key={slot.timeSlot.id}
+                                  type="button"
+                                  disabled={!isAvailable && !isSelected}
+                                  onClick={() => toggleSlot(dateStr, slot.timeSlot.id)}
+                                  className={cn(
+                                    "w-full p-2 rounded-lg border text-left transition-all relative group",
+                                    isSelected 
+                                      ? "bg-accent-50 border-accent-300 shadow-sm ring-1 ring-accent-300" 
+                                      : isAvailable 
+                                        ? "bg-white border-secondary-100 hover:border-accent-200" 
+                                        : "bg-secondary-50 border-transparent opacity-50 cursor-not-allowed"
+                                  )}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className={cn("text-[10px] font-bold", isSelected ? "text-accent-700" : "text-secondary-600")}>
+                                      {slot.timeSlot.startTime.split(':').slice(0,2).join(':')}
+                                    </span>
+                                    {isSelected && <Check className="h-2.5 w-2.5 text-accent-600" />}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+           </div>
         </div>
 
-        {/* New Booking Section */}
-        <div className="rounded-xl border-2 border-accent-100 bg-surface p-5 pt-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-accent-400" />
-            <h3 className="font-bold text-foreground">Booking mới</h3>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-secondary-500">
-                Chọn phòng mới
-              </label>
-              <Select
-                value={selectedRoom}
-                onChange={(e) => setSelectedRoom(e.target.value)}
-                options={[
-                  { value: 'Phòng Cinema', label: 'Phòng Cinema' },
-                  { value: 'Phòng Vintage', label: 'Phòng Vintage' },
-                ]}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-secondary-500">
-                Chọn ngày mới
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium outline-none transition-colors focus:border-primary-500"
+        {/* STEP 2: CUSTOMER */}
+        <div className="space-y-4">
+           <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-lg bg-primary-500 text-white flex items-center justify-center text-[10px] font-bold">2</div>
+              <h3 className="text-[11px] font-bold text-foreground uppercase tracking-widest">Khách hàng</h3>
+           </div>
+           
+           <div className="rounded-xl border border-border bg-surface p-4 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Tên khách</label>
+                <Input 
+                  placeholder="Nguyễn Văn A" 
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="h-9 text-sm font-medium rounded-lg !text-secondary-950"
                 />
               </div>
-            </div>
-          </div>
-
-          <div className="mt-5">
-            <label className="mb-2 block text-xs font-semibold text-secondary-500">
-              Chọn khung giờ mới
-            </label>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {timeSlots.map((slot) => {
-                const isSelected = selectedTimeSlot === slot.time;
-                return (
-                  <button
-                    key={slot.time}
-                    disabled={slot.disabled}
-                    onClick={() => setSelectedTimeSlot(slot.time)}
-                    className={cn(
-                      'relative flex flex-col items-center justify-center rounded-lg border p-3 text-sm transition-all',
-                      slot.disabled
-                        ? 'border-border bg-secondary-50 opacity-60 cursor-not-allowed'
-                        : isSelected
-                          ? 'border-accent-400 bg-accent-50/50 shadow-[0_0_0_1px_var(--color-accent-400)]'
-                          : 'border-border bg-surface hover:border-secondary-300'
-                    )}
-                  >
-                    {isSelected && (
-                      <div className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent-500 text-white">
-                        <Check className="h-2.5 w-2.5" />
-                      </div>
-                    )}
-                    <span
-                      className={cn(
-                        'font-bold',
-                        slot.disabled ? 'text-secondary-400' : isSelected ? 'text-accent-600' : 'text-foreground'
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">SĐT</label>
+                <Input 
+                  placeholder="0987..." 
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="h-9 text-sm font-medium rounded-lg !text-secondary-950"
+                />
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Email</label>
+                <Input 
+                  placeholder="example@mail.com" 
+                  value={customerEmail}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
+                  className="h-9 text-sm font-medium rounded-lg !text-secondary-950"
+                />
+              </div>
+              <div className="sm:col-span-2 grid grid-cols-2 gap-3 pt-2">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold uppercase text-secondary-400 flex items-center gap-1.5">
+                       <Camera className="h-3.5 w-3.5" /> CCCD Trước
+                    </label>
+                    <div className="relative border-2 border-dashed border-secondary-200 rounded-xl p-3 flex flex-col items-center justify-center min-h-[80px] bg-secondary-50/30">
+                      {frontPreview ? (
+                         <div className="relative group w-full h-full flex items-center justify-center">
+                           <img src={frontPreview} alt="F" className="max-h-[60px] w-auto object-contain rounded shadow-sm" />
+                           <button type="button" onClick={() => removeFile('front')} className="absolute -top-2 -right-2 bg-danger-500 text-white rounded-lg p-1 shadow-md"><X className="w-3 h-3" /></button>
+                         </div>
+                      ) : (
+                        <div className="text-center">
+                          <input type="file" accept="image/*" onChange={(e) => handleFileSelect(e, 'front')} className="absolute inset-0 opacity-0 cursor-pointer" />
+                          <Camera className="h-4 w-4 text-secondary-300 mx-auto" />
+                          <span className="text-[9px] font-bold text-secondary-400 uppercase">Chọn ảnh</span>
+                        </div>
                       )}
-                    >
-                      {slot.time}
-                    </span>
-                    <span
-                      className={cn(
-                        'mt-1 text-[10px] uppercase font-semibold',
-                        slot.disabled ? 'text-danger-400' : isSelected ? 'text-accent-500' : 'text-secondary-400'
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold uppercase text-secondary-400 flex items-center gap-1.5">
+                       <Camera className="h-3.5 w-3.5" /> CCCD Sau
+                    </label>
+                    <div className="relative border-2 border-dashed border-secondary-200 rounded-xl p-3 flex flex-col items-center justify-center min-h-[80px] bg-secondary-50/30">
+                      {backPreview ? (
+                         <div className="relative group w-full h-full flex items-center justify-center">
+                           <img src={backPreview} alt="B" className="max-h-[60px] w-auto object-contain rounded shadow-sm" />
+                           <button type="button" onClick={() => removeFile('back')} className="absolute -top-2 -right-2 bg-danger-500 text-white rounded-lg p-1 shadow-md"><X className="w-3 h-3" /></button>
+                         </div>
+                      ) : (
+                        <div className="text-center">
+                          <input type="file" accept="image/*" onChange={(e) => handleFileSelect(e, 'back')} className="absolute inset-0 opacity-0 cursor-pointer" />
+                          <Camera className="h-4 w-4 text-secondary-300 mx-auto" />
+                          <span className="text-[9px] font-bold text-secondary-400 uppercase">Chọn ảnh</span>
+                        </div>
                       )}
-                    >
-                      {slot.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    </div>
+                  </div>
+              </div>
+           </div>
         </div>
 
-        {/* Pricing Summary */}
-        <div className="rounded-xl bg-[#F0F7FF] px-5 py-4 border border-[#D6E8FF]">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-secondary-500">Giá cũ</span>
-              <span className="font-bold text-secondary-400">546.250đ</span>
-            </div>
-            
-            <div className="flex h-5 w-5 items-center justify-center text-secondary-300">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14"></path>
-                    <path d="m12 5 7 7-7 7"></path>
-                </svg>
-            </div>
-
-            <div className="flex flex-col gap-1 text-center">
-              <span className="text-xs font-semibold text-secondary-500">Giá mới</span>
-              <span className="text-base font-bold text-foreground">200.000đ</span>
-            </div>
-            
-            <div className="h-10 w-px bg-border/80 mx-2" />
-
-            <div className="flex flex-col gap-1 text-right">
-              <span className="text-xs font-semibold text-secondary-500">Chênh lệch</span>
-              <span className="font-bold text-success-600">-346.250đ</span>
-            </div>
-          </div>
+        {/* STEP 3: PAYMENT & NOTE */}
+        <div className="space-y-4">
+           <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-lg bg-primary-500 text-white flex items-center justify-center text-[10px] font-bold">3</div>
+              <h3 className="text-[11px] font-bold text-foreground uppercase tracking-widest">Thanh toán & Ghi chú</h3>
+           </div>
+           
+           <div className="rounded-xl border border-border bg-surface p-4 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Phương thức</label>
+                <Select
+                  className="h-9 text-xs font-medium rounded-lg !text-secondary-950"
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  options={[
+                    { value: 'CASH', label: 'Tiền mặt' },
+                    { value: 'BANK_TRANSFER', label: 'Chuyển khoản' },
+                  ]}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Mã GD</label>
+                <Input 
+                  placeholder="Mã..." 
+                  value={transactionNo}
+                  onChange={(e) => setTransactionNo(e.target.value)}
+                  className="h-9 text-sm font-medium rounded-lg !text-secondary-950"
+                />
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                 <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Ghi chú</label>
+                 <Textarea 
+                    placeholder="Ghi chú cho admin..." 
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    className="min-h-[60px] text-xs font-medium rounded-lg !text-secondary-950"
+                 />
+              </div>
+           </div>
         </div>
 
-        {/* Note check */}
-        <label className="flex items-center gap-2 mt-1">
-          <input
-            type="checkbox"
-            checked={sendEmail}
-            onChange={(e) => setSendEmail(e.target.checked)}
-            className="h-4 w-4 rounded border-border text-accent-500 focus:ring-accent-500 accent-accent-500"
-          />
-          <span className="text-sm font-medium text-secondary-700">
-            Gửi email xác nhận booking mới cho khách hàng (kèm mật khẩu cửa mới).
-          </span>
-        </label>
-
+        {/* SUMMARY */}
+        <div className="rounded-xl bg-primary-50 px-5 py-4 border border-primary-100">
+           <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                 <p className="text-[9px] font-bold text-secondary-400 uppercase tracking-widest">Giá cũ</p>
+                 <p className="text-xs font-bold text-secondary-500">{formatCurrency(booking?.finalAmount || 0)}</p>
+              </div>
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-100 text-primary-600">
+                 <ArrowDown className="h-3.5 w-3.5 rotate-[270deg]" />
+              </div>
+              <div className="space-y-0.5 text-center">
+                 <p className="text-[9px] font-bold text-secondary-400 uppercase tracking-widest">Giá mới</p>
+                 <p className="text-sm font-bold text-foreground">
+                    {isCalculating ? <Loader2 className="h-3.5 w-3.5 animate-spin inline" /> : formatCurrency(totalPrice)}
+                 </p>
+              </div>
+              <div className="h-6 w-px bg-primary-200 mx-2" />
+              <div className="space-y-0.5 text-right">
+                 <p className="text-[9px] font-bold text-secondary-400 uppercase tracking-widest">Chênh lệch</p>
+                 <p className={cn("text-xs font-bold", priceDiff > 0 ? "text-danger-500" : priceDiff < 0 ? "text-success-600" : "text-secondary-400")}>
+                    {priceDiff > 0 ? '+' : ''}{formatCurrency(priceDiff)}
+                 </p>
+              </div>
+           </div>
+        </div>
       </div>
     </Modal>
   );

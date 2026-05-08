@@ -12,6 +12,10 @@ import RoomDetailPage from '@/features/rooms/pages/RoomDetailPage';
 import RoomEditPage from '@/features/rooms/pages/RoomEditPage';
 import RoomListPage from '@/features/rooms/pages/RoomListPage';
 import DashboardPage from '@/features/dashboard/pages/DashboardPage';
+import CacheManagerPage from '@/features/settings/pages/CacheManagerPage';
+import SystemConfigPage from '@/features/settings/pages/SystemConfigPage';
+import ComboConfigPage from '@/features/settings/pages/ComboConfigPage';
+import ProfilePage from '@/features/profile/pages/ProfilePage';
 import { ProtectedRoute } from '@/shared/components/auth';
 import { Header, MainLayout, SidebarContext } from '@/shared/components/layout';
 import { ROUTES } from '@/shared/constants';
@@ -136,11 +140,28 @@ export const router = createBrowserRouter([
       // Settings
       {
         path: 'settings',
-        element: <PlaceholderPage title="Cài đặt" />,
+        element: <Navigate to="/settings/system-configs" replace />,
       },
       {
         path: 'settings/holidays',
         element: <HolidaySettingsPage />,
+      },
+      {
+        path: 'settings/system-configs',
+        element: <SystemConfigPage />,
+      },
+      {
+        path: 'settings/combo-configs',
+        element: <ComboConfigPage />,
+      },
+      {
+        path: 'settings/caches',
+        element: <CacheManagerPage />,
+      },
+      // Profile
+      {
+        path: 'profile',
+        element: <ProfilePage />,
       },
     ],
   },

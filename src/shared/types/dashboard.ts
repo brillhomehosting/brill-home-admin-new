@@ -21,3 +21,21 @@ export type DashboardBooking = {
   finalAmount: number;
   createdAt: string;
 };
+export type RoomTrackerBooking = {
+  bookingId: string;
+  bookingCode: string;
+  guestName: string;
+  guestPhone?: string;
+  checkInAt: string;
+  checkOutAt: string;
+  minutesUntilCheckout?: number;
+};
+
+export type RoomTracker = {
+  roomId: string;
+  roomName: string;
+  roomType: string;
+  status: string;
+  currentBooking: RoomTrackerBooking | null;
+  nextBooking: RoomTrackerBooking | null;
+};

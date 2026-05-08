@@ -130,12 +130,26 @@ export function useBookingMutation() {
     },
   });
 
+  const updateBookingMutation = useMutation({
+    mutationFn: ({ bookingId, data }: { bookingId: string; data: any }) =>
+      bookingService.updateBooking(bookingId, data),
+    onSuccess: (_, { bookingId }) => {
+      toast('Cập nhật booking thành công', 'success');
+      queryClient.invalidateQueries({ queryKey: bookingKeys.detail(bookingId) });
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật booking';
+      toast(message, 'error');
+    },
+  });
+
   return {
     cancelBooking: cancelMutation,
     resendConfirmation: resendMutation,
     resendCancellation: resendCancellationMutation,
     confirmPayment: confirmPaymentMutation,
     adminCreateBooking: adminCreateMutation,
+    updateBooking: updateBookingMutation,
     retryTuya: syncTuyaMutation,
     syncTuyaStatus: syncStatusMutation,
   };
