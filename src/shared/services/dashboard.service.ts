@@ -1,6 +1,6 @@
 import api from './api';
 import { API } from '@/shared/constants';
-import type { ApiResponse, DashboardStats, DashboardBooking } from '@/shared/types';
+import type { ApiResponse, DashboardStats, DashboardBooking, RoomTracker } from '@/shared/types';
 
 /** GET /admin/dashboard/stats */
 export async function getDashboardStats() {
@@ -26,8 +26,15 @@ export async function getUpcomingBookings() {
   return data.data;
 }
 
+/** GET /admin/rooms/tracker */
+export async function getRoomTrackers() {
+  const { data } = await api.get<ApiResponse<RoomTracker[]>>('/admin/rooms/tracker');
+  return data.data;
+}
+
 export const dashboardService = {
   getDashboardStats,
   getRecentBookings,
   getUpcomingBookings,
+  getRoomTrackers,
 };

@@ -52,6 +52,7 @@ export const API = {
   BOOKINGS: {
     LIST: '/admin/bookings',
     ADMIN_DETAIL: (bookingId: string) => `/admin/bookings/${bookingId}` as const,
+    UPDATE: (bookingId: string) => `/admin/bookings/${bookingId}` as const,
     CANCEL: (bookingId: string) => `/admin/bookings/${bookingId}/cancel` as const,
     RESEND_CONFIRMATION: (bookingId: string) => `/admin/bookings/${bookingId}/resend-confirmation` as const,
     RESEND_CANCELLATION: (bookingId: string) => `/admin/bookings/${bookingId}/resend-cancellation` as const,

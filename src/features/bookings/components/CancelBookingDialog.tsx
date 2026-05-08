@@ -27,8 +27,6 @@ export function CancelBookingDialog({
   checkInDate,
   totalAmountStr,
 }: CancelBookingDialogProps) {
-  const [refundEnabled, setRefundEnabled] = useState(true);
-  const [refundAmount, setRefundAmount] = useState('546.250');
   const [reason, setReason] = useState('Khách yêu cầu hủy');
   const [note, setNote] = useState('');
   const [sendEmail, setSendEmail] = useState(true);
@@ -103,44 +101,6 @@ export function CancelBookingDialog({
           </div>
         </div>
 
-        {/* Refund Block */}
-        <div className="rounded-xl border border-border p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Hoàn tiền cho khách</p>
-              <p className="text-xs text-secondary-400">Xử lý hoàn tiền về ví gốc trong 3-7 ngày</p>
-            </div>
-            {/* Toggle Switch */}
-            <label className="relative inline-flex cursor-pointer items-center">
-              <input
-                type="checkbox"
-                className="peer sr-only"
-                checked={refundEnabled}
-                onChange={(e) => setRefundEnabled(e.target.checked)}
-              />
-              <div className="h-6 w-11 rounded-full bg-secondary-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-border after:bg-white after:transition-all after:content-[''] peer-checked:bg-accent-400 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500" />
-            </label>
-          </div>
-
-          {refundEnabled && (
-            <div className="mt-4">
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
-                SỐ TIỀN HOÀN (VNĐ)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={refundAmount}
-                  onChange={(e) => setRefundAmount(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-surface py-2 pl-3 pr-8 text-sm outline-none transition-colors focus:border-primary-500"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-secondary-400">
-                  đ
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* Reason Select */}
         <div>

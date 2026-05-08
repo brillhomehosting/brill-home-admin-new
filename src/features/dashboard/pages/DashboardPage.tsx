@@ -1,29 +1,34 @@
 import { Header, PageWrapper } from '@/shared/components/layout';
-import { 
-  TrendingUp, 
-  CalendarCheck, 
-  Clock, 
-  ArrowRight,
-  Loader2,
-  CalendarDays,
-  CheckCircle,
-  AlertCircle,
-  RotateCcw,
-  Home,
-  Wallet,
-  CreditCard,
-  Banknote,
-  Percent,
-} from 'lucide-react';
+import type { BookingAvailabilitySlot, RoomTracker } from '@/shared/types';
 import { cn, formatCurrency, formatDate } from '@/shared/utils';
-import { useDashboardStats, useRecentBookings, useUpcomingBookings, usePaymentStats } from '../hooks/useDashboard';
+import {
+    AlertCircle,
+    ArrowRight,
+    Banknote,
+    CalendarCheck,
+    CalendarDays,
+    CheckCircle,
+    Clock,
+    CreditCard,
+    Home,
+    Loader2,
+    Percent,
+    RotateCcw,
+    TrendingUp
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAllRoomsAvailability, useDashboardStats, usePaymentStats, useRecentBookings, useRoomTrackers, useUpcomingBookings } from '../hooks/useDashboard';
 
 export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: recent, isLoading: recentLoading } = useRecentBookings();
   const { data: upcoming, isLoading: upcomingLoading } = useUpcomingBookings();
   const { data: paymentStats, isLoading: paymentLoading } = usePaymentStats();
+
+  const { data: trackers, isLoading: trackersLoading, isRefetching: isRefetchingTrackers, refetch: refetchTrackers } = useRoomTrackers();
+
+  const today = new Date().toISOString().split('T')[0];
+  const { data: allAvailability } = useAllRoomsAvailability(today);
 
   const isLoading = statsLoading || recentLoading || upcomingLoading || paymentLoading;
 
@@ -94,14 +99,46 @@ export default function DashboardPage() {
           />
         </div>
 
+        {/* --- Room Tracker Section --- */}
+        <div className="flex flex-col rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border bg-surface-dim px-6 py-4">
+            <div className="flex items-center gap-2">
+              <Home className="h-4 w-4 text-primary-500" />
+              <h3 className="font-bold text-foreground text-sm uppercase tracking-wider">Tình trạng phòng hiện tại</h3>
+            </div>
+            <button 
+              onClick={() => refetchTrackers()} 
+              disabled={trackersLoading || isRefetchingTrackers}
+              className="text-xs font-bold text-secondary-500 hover:text-primary-600 flex items-center gap-1 transition-colors"
+            >
+              <RotateCcw className={cn("h-3 w-3", (trackersLoading || isRefetchingTrackers) && "animate-spin")} />
+              Cập nhật
+            </button>
+          </div>
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-surface-dim/30">
+            {trackersLoading ? (
+              <div className="col-span-full flex justify-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+              </div>
+            ) : trackers?.length ? (
+              trackers.map((tracker) => {
+                const roomAvailability = allAvailability?.find(a => a.roomId === tracker.roomId);
+                const slots = roomAvailability?.timeslots[0]?.timeSlots || [];
+                return <RoomTrackerItem key={tracker.roomId} tracker={tracker} slots={slots} />;
+              })
+            ) : (
+              <div className="col-span-full">
+                <EmptyState message="Không có dữ liệu phòng" />
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* --- Financial & Distribution Section --- */}
           <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Financial Overview */}
             <div className="flex flex-col rounded-2xl border border-border bg-surface p-6 shadow-sm relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform">
-                 <Wallet className="h-32 w-32" />
-              </div>
               <h3 className="text-sm font-bold text-secondary-500 uppercase tracking-wider mb-6 flex items-center gap-2">
                 <Banknote className="h-4 w-4 text-primary-500" />
                 Tổng quan tài chính
@@ -109,35 +146,20 @@ export default function DashboardPage() {
               
               <div className="space-y-6">
                 <div>
-                  <p className="text-xs text-secondary-400 mb-1">Lợi nhuận ròng (Net Revenue)</p>
+                  <p className="text-xs text-secondary-400 mb-1">Doanh thu ròng</p>
                   <p className="text-3xl font-extrabold text-foreground tracking-tight">
                     {formatCurrency(paymentStats?.netRevenue ?? 0)}
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 mt-auto">
                   <div className="p-3 rounded-xl bg-success-50/50 border border-success-100">
                     <p className="text-[10px] font-bold text-success-600 uppercase mb-1">Đã thu</p>
                     <p className="text-sm font-bold text-foreground">{formatCurrency(paymentStats?.totalPaidAmount ?? 0)}</p>
                   </div>
-                  <div className="p-3 rounded-xl bg-danger-50/50 border border-danger-100">
-                    <p className="text-[10px] font-bold text-danger-600 uppercase mb-1">Đã hoàn</p>
-                    <p className="text-sm font-bold text-foreground">{formatCurrency(paymentStats?.totalRefundedAmount ?? 0)}</p>
-                  </div>
                 </div>
 
-                <div className="pt-4 border-t border-border border-dotted">
-                   <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs text-secondary-500">Tỷ lệ hoàn tiền</span>
-                      <span className="text-xs font-bold text-danger-500">{(paymentStats?.refundRate ?? 0).toFixed(1)}%</span>
-                   </div>
-                   <div className="h-1.5 w-full bg-secondary-100 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-danger-400 rounded-full" 
-                        style={{ width: `${Math.min(paymentStats?.refundRate ?? 0, 100)}%` }}
-                      />
-                   </div>
-                </div>
+
               </div>
             </div>
 
@@ -150,10 +172,24 @@ export default function DashboardPage() {
               
               <div className="space-y-5">
                 {(paymentStats?.byMethod || []).length > 0 ? (
-                  paymentStats?.byMethod.map((item, idx) => (
+                  paymentStats?.byMethod.map((item, idx) => {
+                    const methodMap: Record<string, string> = {
+                      CASH: 'Tiền mặt',
+                      BANK_TRANSFER: 'Chuyển khoản',
+                      CREDIT_CARD: 'Thẻ tín dụng',
+                      MOMO: 'Ví MoMo',
+                      VNPAY: 'VNPay',
+                      ZALOPAY: 'ZaloPay',
+                      'KhÃ¡ch hÃ ng cÅ©': 'Khách hàng cũ',
+                      'KhÃ¡ch hÃ ng má»›i': 'Khách hàng mới',
+                      'Khách hàng cũ': 'Khách hàng cũ',
+                      'Khách hàng mới': 'Khách hàng mới',
+                    };
+                    const methodLabel = methodMap[item.key] || item.key;
+                    return (
                     <div key={idx} className="space-y-1.5">
                       <div className="flex justify-between items-center text-xs">
-                        <span className="font-bold text-secondary-700">{item.key}</span>
+                        <span className="font-bold text-secondary-700">{methodLabel}</span>
                         <span className="text-secondary-400 font-medium">
                           {item.count} GD · <span className="text-foreground font-bold">{formatCurrency(item.amount)}</span>
                         </span>
@@ -168,14 +204,15 @@ export default function DashboardPage() {
                         />
                       </div>
                     </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="flex h-full items-center justify-center py-10 opacity-40">
                      <p className="text-xs italic">Chưa có dữ liệu phân bổ</p>
                   </div>
                 )}
                 
-                <div className="mt-6 p-4 rounded-xl bg-surface-dim/50 border border-border border-dashed">
+                <div className="mt-auto p-4 rounded-xl bg-surface-dim/50 border border-border border-dashed">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-white shadow-sm">
                        <Percent className="h-4 w-4 text-primary-500" />
@@ -326,8 +363,6 @@ function StatCard({
 
 function BookingListItem({ booking }: { booking: any }) {
   const statusMapping: Record<string, { label: string; classes: string }> = {
-    PENDING: { label: 'Chờ TT', classes: 'bg-warning-100 text-warning-700' },
-    SUCCESS: { label: 'Đã TT', classes: 'bg-success-100 text-success-700' },
     CONFIRMED: { label: 'Đã xác nhận', classes: 'bg-primary-100 text-primary-700' },
     CANCELLED: { label: 'Đã hủy', classes: 'bg-danger-100 text-danger-700' },
   };
@@ -369,6 +404,108 @@ function EmptyState({ message }: { message: string }) {
     <div className="flex flex-col items-center justify-center py-10 text-center">
       <AlertCircle className="mb-2 h-8 w-8 text-secondary-200" />
       <p className="text-xs text-secondary-400 font-medium">{message}</p>
+    </div>
+  );
+}
+
+function RoomTrackerItem({ tracker, slots }: { tracker: RoomTracker; slots: BookingAvailabilitySlot[] }) {
+  const isAvailable = tracker.status === 'AVAILABLE' || tracker.status === 'VACANT';
+  
+  const statusColor = 
+    isAvailable ? 'bg-success-100 text-success-700 border-success-200' :
+    tracker.status === 'OCCUPIED' ? 'bg-danger-100 text-danger-700 border-danger-200' :
+    tracker.status === 'RESERVED' ? 'bg-warning-100 text-warning-700 border-warning-200' :
+    'bg-secondary-100 text-secondary-700 border-secondary-200';
+
+  const statusLabel = 
+    isAvailable ? 'Trống' :
+    tracker.status === 'OCCUPIED' ? 'Đang có khách' :
+    tracker.status === 'RESERVED' ? 'Đã đặt' :
+    tracker.status;
+
+  return (
+    <div className="flex flex-col rounded-xl border border-border bg-white shadow-sm overflow-hidden transition-all hover:shadow-md">
+      <div className="p-3 border-b border-border flex justify-between items-center bg-surface-dim/30">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: isAvailable ? '#10b981' : tracker.status === 'OCCUPIED' ? '#ef4444' : tracker.status === 'RESERVED' ? '#f59e0b' : '#9ca3af' }} />
+          <h4 className="font-bold text-foreground text-sm">{tracker.roomName}</h4>
+        </div>
+        <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full border", statusColor)}>
+          {statusLabel}
+        </span>
+      </div>
+      
+      <div className="p-3 flex-1 flex flex-col gap-3 text-xs h-[230px]">
+        {tracker.currentBooking ? (
+          <div className="space-y-1 bg-primary-50/50 p-2 rounded-lg border border-primary-100 h-[70px] relative overflow-hidden">
+            <div className="flex justify-between items-center text-secondary-500 text-[10px] font-bold uppercase tracking-wider mb-1">
+              <span>Hiện tại</span>
+              <Link to={`/apps/bookings/${tracker.currentBooking.bookingId}`} className="text-primary-600 hover:underline">#{tracker.currentBooking.bookingCode}</Link>
+            </div>
+            <p className="font-semibold text-foreground truncate text-[11px]" title={tracker.currentBooking.guestName}>
+              {tracker.currentBooking.guestName.includes('Ã') ? 'Khách hàng cũ' : tracker.currentBooking.guestName}
+            </p>
+            <p className="text-secondary-500">
+              Out: <span className="font-medium text-foreground">{formatDate(tracker.currentBooking.checkOutAt, { hour: '2-digit', minute: '2-digit' })}</span>
+            </p>
+            {tracker.currentBooking.minutesUntilCheckout !== undefined && tracker.currentBooking.minutesUntilCheckout <= 120 && tracker.currentBooking.minutesUntilCheckout >= 0 && (
+              <p className="text-[9px] text-danger-600 font-bold bg-danger-50 px-1 py-0.5 rounded mt-0.5 inline-block border border-danger-100">
+                Còn {tracker.currentBooking.minutesUntilCheckout} phút
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="bg-secondary-50 p-2 rounded-lg border border-border border-dashed flex items-center justify-center h-[70px]">
+            <p className="text-secondary-400 italic text-[11px]">Trống</p>
+          </div>
+        )}
+
+        {tracker.nextBooking ? (
+          <div className="space-y-0.5 border-t border-border pt-2 mt-1 h-[55px]">
+            <div className="flex justify-between items-center text-secondary-500 text-[9px] font-bold uppercase tracking-wider mb-0.5">
+              <span>Tiếp theo</span>
+              <Link to={`/apps/bookings/${tracker.nextBooking.bookingId}`} className="text-primary-600 hover:underline">#{tracker.nextBooking.bookingCode}</Link>
+            </div>
+            <p className="font-medium text-foreground truncate text-[11px]" title={tracker.nextBooking.guestName}>
+               {tracker.nextBooking.guestName.includes('Ã') ? 'Khách hàng cũ' : tracker.nextBooking.guestName}
+            </p>
+            <p className="text-secondary-400 text-[10px]">
+              In: <span className="font-medium text-foreground">{formatDate(tracker.nextBooking.checkInAt, { hour: '2-digit', minute: '2-digit' })}</span>
+            </p>
+          </div>
+        ) : (
+          <div className="border-t border-border pt-2 mt-1 flex items-center h-[55px]">
+            <p className="text-secondary-400 italic text-[9px]">Chưa có khách tiếp theo</p>
+          </div>
+        )}
+
+        {/* --- Time Slots Visualization --- */}
+        {slots.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-border">
+            <p className="text-[10px] font-bold text-secondary-500 uppercase tracking-wider mb-2">Lịch trình hôm nay</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {slots.map((slot) => {
+                const isBooked = slot.status === 'BOOKED' || slot.status === 'PENDING';
+                const timeRange = `${slot.timeSlot.startTime.split(':').slice(0,2).join(':')} - ${slot.timeSlot.endTime.split(':').slice(0,2).join(':')}`;
+                return (
+                  <div 
+                    key={slot.timeSlot.id} 
+                    className={cn(
+                      "py-1 px-2 rounded-lg flex flex-col items-center justify-center border transition-all",
+                      isBooked 
+                        ? "bg-danger-50 border-danger-100 text-danger-700 opacity-80" 
+                        : "bg-success-50 border-success-100 text-success-700 hover:bg-success-100"
+                    )}
+                    title={slot.status}
+                  >
+                    <span className="text-[9px] font-bold tracking-tight">{timeRange}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

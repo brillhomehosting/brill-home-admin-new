@@ -114,9 +114,9 @@ function BookingDetailPanel({ bookingCode, onClose }: { bookingCode: string; onC
                     <span className="text-secondary-500">Trạng thái</span>
                     <span className={cn(
                       "rounded-full px-2 py-0.5 font-semibold text-[10px]",
-                      booking.status === 'SUCCESS' ? 'bg-success-100 text-success-700' : 'bg-warning-100 text-warning-700'
+                      booking.status === 'CONFIRMED' ? 'bg-primary-100 text-primary-700' : 'bg-danger-100 text-danger-700'
                     )}>
-                      {booking.status}
+                      {booking.status === 'CONFIRMED' ? 'Đã xác nhận' : 'Đã hủy'}
                     </span>
                   </div>
                 </div>

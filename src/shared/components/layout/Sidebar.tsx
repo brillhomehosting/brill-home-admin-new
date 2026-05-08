@@ -9,6 +9,10 @@ import {
   Package,
   Tag,
   CalendarRange,
+  X,
+  PackageOpen,
+  Database,
+  User,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/shared/utils';
@@ -39,10 +43,14 @@ const navigation: NavGroup[] = [
       { label: 'Ngày lễ', path: ROUTES.HOLIDAYS, icon: CalendarRange },
     ],
   },
-];
-
-const bottomNav: NavItem[] = [
-  { label: 'Cài đặt', path: ROUTES.SETTINGS, icon: Settings, exact: true },
+  {
+    title: 'Settings',
+    items: [
+      { label: 'System Configs', path: ROUTES.SETTINGS, icon: Settings },
+      { label: 'Combo Configs', path: '/settings/combo-configs', icon: PackageOpen },
+      { label: 'Cache Data', path: '/settings/caches', icon: Database },
+    ],
+  },
 ];
 
 // ── Sidebar component ──
@@ -118,17 +126,15 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
       {/* Bottom section */}
       <div className="border-t border-white/10 px-3 py-2">
-        {bottomNav.map((item) => (
-          <SidebarLink
-            key={item.path}
-            item={item}
-            currentPath={location.pathname}
-            onClick={handleNavClick}
-          />
-        ))}
+        <SidebarLink
+          item={{ label: 'Hồ sơ cá nhân', path: '/profile', icon: User }}
+          currentPath={location.pathname}
+          onClick={handleNavClick}
+        />
+        <div className="mt-2" />
 
         {/* User info */}
-        <div className="mt-2 flex items-center gap-3 rounded-lg px-3 py-2.5">
+        <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 mb-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-success-500 text-xs font-semibold text-white">
             {initials}
           </div>

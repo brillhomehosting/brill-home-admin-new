@@ -8,45 +8,61 @@ import { Select } from '@/shared/components/ui/Select';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { ROUTES } from '@/shared/constants';
 import { cn, formatCurrency } from '@/shared/utils';
-import { Calendar, Check, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { 
+  Calendar, 
+  Check, 
+  ChevronLeft, 
+  ChevronRight, 
+  Loader2, 
+  User, 
+  Phone, 
+  Mail, 
+  FileText, 
+  CreditCard, 
+  Info,
+  Clock,
+  Camera,
+  X
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBookingMutation } from '../hooks/useBookingMutation';
 import { useCalculatePrice } from '../hooks/useBookings';
+import { roomService } from '@/shared/services/room.service';
 
 export default function CreateBookingPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Section 1 State
+  // State
   const [selectedRoomId, setSelectedRoomId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]); // Current view window start
-  const [selectedSlots, setSelectedSlots] = useState<Record<string, string[]>>({}); // date -> slotIds[]
+  const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedSlots, setSelectedSlots] = useState<Record<string, string[]>>({});
 
-  // Section 2 State
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [note, setNote] = useState('');
+  const [nationalIdFrontFile, setNationalIdFrontFile] = useState<File | null>(null);
+  const [nationalIdBackFile, setNationalIdBackFile] = useState<File | null>(null);
+  const [frontPreview, setFrontPreview] = useState<string>('');
+  const [backPreview, setBackPreview] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Section 3 State
   const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
   const [transactionNo, setTransactionNo] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
   const [sendEmail, setSendEmail] = useState(true);
 
-  // Queries & Mutations
+  // Queries
   const { data: roomsResponse, isLoading: isLoadingRooms } = useRooms({ limit: 100 });
   const rooms = roomsResponse?.data?.content || [];
-
-  const dayQueries = useMultiDayAvailability(selectedRoomId, viewDate, 3);
+  const dayQueries = useMultiDayAvailability(selectedRoomId, viewDate, 7);
   const isLoadingSlots = dayQueries.some(q => q.isLoading);
-
   const { adminCreateBooking } = useBookingMutation();
 
-  // Flatten all available slots with their date across all loaded days
   const allAvailableSlots = useMemo(() => {
     return dayQueries.flatMap((q, idx) => {
       const d = new Date(viewDate);
@@ -56,7 +72,6 @@ export default function CreateBookingPage() {
     });
   }, [dayQueries, viewDate]);
 
-  // Pricing Hook
   const bookingSlotsPayload = useMemo(() => {
     return Object.entries(selectedSlots)
       .filter(([_, ids]) => ids.length > 0)
@@ -70,11 +85,8 @@ export default function CreateBookingPage() {
 
   const handleSlotToggle = (date: string, slotId: string, isAvailable: boolean) => {
     if (!isAvailable) return;
-
     const currentDaySlots = selectedSlots[date] || [];
     const isSelected = currentDaySlots.includes(slotId);
-
-    // Get all currently selected slots across all days, sorted by time
     const flatSelection = Object.entries(selectedSlots)
       .flatMap(([d, ids]) => ids.map(id => ({ date: d, slotId: id })))
       .map(sel => {
@@ -88,15 +100,12 @@ export default function CreateBookingPage() {
       });
 
     if (isSelected) {
-      // Deselecting: only allowed if it's the first or last in the sequence
       if (flatSelection.length <= 1) {
         setSelectedSlots(prev => ({ ...prev, [date]: [] }));
         return;
       }
-      
       const first = flatSelection[0];
       const last = flatSelection[flatSelection.length - 1];
-      
       if ((date === first.date && slotId === first.slotId) || (date === last.date && slotId === last.slotId)) {
         setSelectedSlots(prev => ({
           ...prev,
@@ -104,69 +113,92 @@ export default function CreateBookingPage() {
         }));
         return;
       }
-      
-      toast('Chỉ có thể bỏ chọn từ hai đầu của khoảng thời gian đã chọn', 'warning');
+      toast('Chỉ có thể bỏ chọn từ hai đầu', 'warning');
     } else {
-      // Selecting: only allowed if adjacent to current selection
       if (flatSelection.length === 0) {
         setSelectedSlots(prev => ({ ...prev, [date]: [slotId] }));
         return;
       }
-
-      // Find the index of the clicked slot in the full list of slots (all days)
       const allSlotsSorted = [...allAvailableSlots].sort((a, b) => {
         if (a.date !== b.date) return a.date.localeCompare(b.date);
         return a.timeSlot.startTime.localeCompare(b.timeSlot.startTime);
       });
-      
       const clickedIdx = allSlotsSorted.findIndex(s => s.date === date && s.timeSlot.id === slotId);
-      
-      // Check if adjacent to first or last
       const first = flatSelection[0];
       const last = flatSelection[flatSelection.length - 1];
-      
       const firstIdx = allSlotsSorted.findIndex(s => s.date === first.date && s.timeSlot.id === first.slotId);
       const lastIdx = allSlotsSorted.findIndex(s => s.date === last.date && s.timeSlot.id === last.slotId);
-      
       if (clickedIdx === firstIdx - 1 || clickedIdx === lastIdx + 1) {
-        setSelectedSlots(prev => ({
-          ...prev,
-          [date]: [...(prev[date] || []), slotId]
-        }));
+        setSelectedSlots(prev => ({ ...prev, [date]: [...(prev[date] || []), slotId] }));
         return;
       }
-
-      toast('Vui lòng chọn khung giờ liền kề với các khung giờ đã chọn', 'warning');
+      toast('Vui lòng chọn khung giờ liền kề', 'warning');
     }
   };
 
   const handleNextDays = () => {
     const d = new Date(viewDate);
-    d.setDate(d.getDate() + 3);
+    d.setDate(d.getDate() + 7);
     setViewDate(d.toISOString().split('T')[0]);
   };
 
   const handlePrevDays = () => {
     const d = new Date(viewDate);
-    d.setDate(d.getDate() - 3);
+    d.setDate(d.getDate() - 7);
     setViewDate(d.toISOString().split('T')[0]);
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'front' | 'back') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const previewUrl = URL.createObjectURL(file);
+    if (type === 'front') {
+      setNationalIdFrontFile(file);
+      setFrontPreview(previewUrl);
+    } else {
+      setNationalIdBackFile(file);
+      setBackPreview(previewUrl);
+    }
+    if (e.target) e.target.value = '';
+  };
 
+  const removeFile = (type: 'front' | 'back') => {
+    if (type === 'front') {
+      setNationalIdFrontFile(null);
+      setFrontPreview('');
+    } else {
+      setNationalIdBackFile(null);
+      setBackPreview('');
+    }
+  };
 
   const handleCreateBooking = async () => {
     if (!selectedRoomId || bookingSlotsPayload.length === 0) {
-      toast('Vui lòng chọn đầy đủ phòng và khung giờ', 'warning');
+      toast('Vui lòng chọn phòng và giờ', 'warning');
       return;
     }
-
     if (!customerEmail || !customerName || !customerPhone) {
-      toast('Vui lòng nhập đầy đủ thông tin khách hàng', 'warning');
+      toast('Vui lòng nhập đủ thông tin khách', 'warning');
       return;
     }
-
     try {
       setIsCreating(true);
+      setIsUploading(true);
+
+      let frontUrl = '';
+      let backUrl = '';
+
+      if (nationalIdFrontFile) {
+        const res = await roomService.uploadCredentials(nationalIdFrontFile);
+        frontUrl = res.url;
+      }
+      if (nationalIdBackFile) {
+        const res = await roomService.uploadCredentials(nationalIdBackFile);
+        backUrl = res.url;
+      }
+
+      setIsUploading(false);
 
       adminCreateBooking.mutate({
         roomId: selectedRoomId,
@@ -174,22 +206,19 @@ export default function CreateBookingPage() {
         guestName: customerName,
         guestEmail: customerEmail,
         guestPhone: customerPhone,
-        note: note || 'Booking được tạo bởi Admin',
-        paymentMethod: paymentMethod as any, // Cast as any if union types mismatch string state
+        nationalIdFrontUrl: frontUrl || undefined,
+        nationalIdBackUrl: backUrl || undefined,
+        note: note || 'Admin Created',
+        paymentMethod: paymentMethod as any,
         transactionNo: transactionNo || undefined,
         paymentNote: paymentNote || undefined,
         sendConfirmationEmail: sendEmail,
       }, {
         onSuccess: (res) => {
-          if (res?.data?.bookingId) {
-            navigate(ROUTES.BOOKINGS.DETAIL(res.data.bookingId));
-          } else {
-            navigate(ROUTES.BOOKINGS.LIST);
-          }
+          if (res?.data?.bookingId) navigate(ROUTES.BOOKINGS.DETAIL(res.data.bookingId));
+          else navigate(ROUTES.BOOKINGS.LIST);
         },
-        onSettled: () => {
-          setIsCreating(false);
-        }
+        onSettled: () => setIsCreating(false)
       });
     } catch (error) {
       setIsCreating(false);
@@ -206,9 +235,9 @@ export default function CreateBookingPage() {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-secondary-50/20">
       <Header
-        title="Tạo booking thủ công"
+        title="Tạo Booking"
         breadcrumbs={[
           { label: 'Booking', path: ROUTES.BOOKINGS.LIST },
           { label: 'Tạo mới' },
@@ -216,24 +245,20 @@ export default function CreateBookingPage() {
       />
 
       <PageWrapper className="flex-1 pb-10">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {/* Cột trái: Chọn phòng & thời gian */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Phần 1: Chọn phòng & Ngày bắt đầu */}
-            <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-50 text-accent-600 font-bold border border-accent-100">
-                  1
-                </div>
-                <h2 className="text-lg font-bold text-foreground">Chọn phòng & Ngày bắt đầu</h2>
-              </div>
-
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
-                    Chọn phòng
+        <div className="max-w-[1200px] mx-auto grid grid-cols-1 gap-4 lg:grid-cols-12">
+          
+          {/* CỘT TRÁI */}
+          <div className="lg:col-span-8 space-y-4">
+            
+            {/* STEP 1: PHÒNG & NGÀY */}
+            <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400 flex items-center gap-1.5">
+                    <Clock className="h-3 w-3" /> Chọn phòng
                   </label>
                   <Select
+                    className="h-10 text-sm font-semibold rounded-lg border-secondary-200"
                     value={selectedRoomId}
                     onChange={(e) => {
                       setSelectedRoomId(e.target.value);
@@ -246,13 +271,12 @@ export default function CreateBookingPage() {
                     loading={isLoadingRooms}
                   />
                 </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
-                    Ngày bắt đầu xem
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400 flex items-center gap-1.5">
+                    <Calendar className="h-3 w-3" /> Ngày bắt đầu
                   </label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
+                    <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-300" />
                     <input
                       type="date"
                       value={selectedDate}
@@ -261,320 +285,284 @@ export default function CreateBookingPage() {
                         setViewDate(e.target.value);
                         setSelectedSlots({});
                       }}
-                      className="w-full rounded-lg border border-border bg-surface py-2 pl-10 pr-3 text-sm font-medium outline-none transition-all focus:border-accent-400 focus:ring-2 focus:ring-accent-400/10"
+                      className="h-10 w-full rounded-lg border border-secondary-200 bg-surface pl-9 pr-3 text-sm font-semibold outline-none focus:border-primary-500"
                     />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Phần 2: Chọn khung giờ (Multi-day) */}
-            <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
-              <div className="mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-50 text-accent-600 font-bold border border-accent-100">
-                    2
-                  </div>
-                  <h2 className="text-lg font-bold text-foreground">Chọn khung giờ liền kề</h2>
-                </div>
+            {/* STEP 2: 7 NGÀY */}
+            <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Button 
-                    variant="secondary" 
-                    size="sm" 
-                    className="h-8 w-8 p-0"
-                    onClick={handlePrevDays}
-                  >
+                   <div className="h-6 w-6 rounded-lg bg-accent-500 text-white flex items-center justify-center">
+                      <Clock className="h-3.5 w-3.5" />
+                   </div>
+                   <h2 className="text-sm font-semibold text-foreground">Lịch trình 7 ngày</h2>
+                </div>
+                <div className="flex items-center gap-1 bg-secondary-50 p-1 rounded-lg border border-secondary-100">
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-md" onClick={handlePrevDays}>
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <div className="text-xs font-medium text-secondary-500 bg-secondary-50 px-3 py-1 rounded-full">
-                     Đang xem {new Date(viewDate).toLocaleDateString('vi-VN')}
-                  </div>
-                  <Button 
-                    variant="secondary" 
-                    size="sm" 
-                    className="h-8 w-8 p-0"
-                    onClick={handleNextDays}
-                  >
+                  <span className="px-2 text-[9px] font-bold text-secondary-500 uppercase">{new Date(viewDate).toLocaleDateString('vi-VN')}</span>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-md" onClick={handleNextDays}>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
 
               {!selectedRoomId ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center text-secondary-400 border-2 border-dashed border-border rounded-xl bg-secondary-50/30">
-                  <div className="mb-3 rounded-full bg-white p-3 shadow-sm">
-                     <Calendar className="h-6 w-6 text-secondary-300" />
-                  </div>
-                  <p className="text-sm font-medium">Vui lòng chọn phòng để xem khung giờ trống</p>
+                <div className="py-10 text-center border-2 border-dashed border-secondary-100 rounded-xl bg-secondary-50/20">
+                  <p className="text-xs font-bold text-secondary-400">Vui lòng chọn phòng ở bước trên</p>
                 </div>
               ) : isLoadingSlots ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-accent-400" />
+                <div className="py-12 flex flex-col items-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+                  <p className="text-[10px] font-bold text-secondary-400 mt-2">Đang tải...</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {dayQueries.map((query, idx) => {
-                    const d = new Date(viewDate);
-                    d.setDate(d.getDate() + idx);
-                    const dateStr = d.toISOString().split('T')[0];
-                    const daySlots = query.data || [];
-                    const selectedForDay = selectedSlots[dateStr] || [];
+                <div className="flex flex-col">
+                  <div className="flex overflow-x-auto pb-4 gap-3 scrollbar-hide snap-x">
+                    {dayQueries.map((query, idx) => {
+                      const d = new Date(viewDate);
+                      d.setDate(d.getDate() + idx);
+                      const isToday = d.toISOString().split('T')[0] === new Date().toISOString().split('T')[0];
+                      const dateStr = d.toISOString().split('T')[0];
+                      const daySlots = query.data || [];
+                      const selectedForDay = selectedSlots[dateStr] || [];
 
-                    return (
-                      <div key={dateStr} className="space-y-4">
-                        <div className="pb-2 border-b border-border">
-                           <p className="text-sm font-bold text-foreground">
-                              {d.toLocaleDateString('vi-VN', { weekday: 'long' })}
-                           </p>
-                           <p className="text-xs text-secondary-400">{d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</p>
-                        </div>
+                      return (
+                        <div key={dateStr} className="flex-none w-[130px] snap-start">
+                          <div className={cn(
+                            "mb-3 p-2 rounded-lg border-2 text-center",
+                            isToday ? "bg-primary-50 border-primary-100" : "bg-white border-transparent"
+                          )}>
+                            <p className="text-[9px] font-semibold uppercase tracking-wider text-secondary-400">
+                              {d.toLocaleDateString('vi-VN', { weekday: 'short' })}
+                            </p>
+                            <p className="text-sm font-bold text-foreground">
+                              {d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                            </p>
+                          </div>
 
-                        <div className="flex flex-col gap-3">
-                          {daySlots.length === 0 ? (
-                            <p className="py-8 text-center text-xs text-secondary-400 italic">Không có khung giờ</p>
-                          ) : (
-                            daySlots.map((slot) => {
-                              const isSelected = selectedForDay.includes(slot.timeSlot.id);
-                              const isAvailable = slot.status === 'AVAILABLE';
+                          <div className="flex flex-col gap-1.5">
+                            {daySlots.length === 0 ? (
+                              <div className="py-6 text-center rounded-lg bg-secondary-50/50 border border-secondary-100">
+                                 <p className="text-[9px] font-bold text-secondary-300">N/A</p>
+                              </div>
+                            ) : (
+                              daySlots.map((slot) => {
+                                const isSelected = selectedForDay.includes(slot.timeSlot.id);
+                                const isAvailable = slot.status === 'AVAILABLE';
 
-                              return (
-                                <button
-                                  key={slot.timeSlot.id}
-                                  type="button"
-                                  disabled={!isAvailable}
-                                  onClick={() => handleSlotToggle(dateStr, slot.timeSlot.id, isAvailable)}
-                                  className={cn(
-                                    'group relative flex flex-col items-center justify-center rounded-xl border p-3 transition-all',
-                                    !isAvailable
-                                      ? 'cursor-not-allowed border-border bg-secondary-50/50 opacity-50'
-                                      : isSelected
-                                      ? 'border-accent-400 bg-accent-50/50 shadow-[0_0_0_1px_var(--color-accent-400)]'
-                                      : 'border-border bg-surface hover:border-secondary-300 hover:bg-secondary-50/30'
-                                  )}
-                                >
-                                  <div className="flex items-center gap-2">
+                                return (
+                                  <button
+                                    key={slot.timeSlot.id}
+                                    type="button"
+                                    disabled={!isAvailable}
+                                    onClick={() => handleSlotToggle(dateStr, slot.timeSlot.id, isAvailable)}
+                                    className={cn(
+                                      'group relative flex flex-col items-center justify-center rounded-lg border-2 py-2 px-1 transition-all',
+                                      !isAvailable
+                                        ? 'cursor-not-allowed border-secondary-50 bg-secondary-50/30'
+                                        : isSelected
+                                        ? 'border-primary-500 bg-primary-50'
+                                        : 'border-secondary-100 bg-white hover:border-primary-200'
+                                    )}
+                                  >
                                     <span className={cn(
-                                      'text-sm font-bold',
-                                      isSelected ? 'text-accent-700' : 'text-foreground'
+                                      'text-[11px] font-semibold',
+                                      isSelected ? 'text-primary-700' : isAvailable ? 'text-secondary-700' : 'text-secondary-300'
                                     )}>
-                                      {slot.timeSlot.startTime} - {slot.timeSlot.endTime}
+                                      {slot.timeSlot.startTime.split(':').slice(0,2).join(':')} - {slot.timeSlot.endTime.split(':').slice(0,2).join(':')}
                                     </span>
-                                  </div>
-                                  <span className={cn(
-                                    'mt-1 text-[10px] font-bold uppercase tracking-wider',
-                                    !isAvailable ? 'text-danger-500' : isSelected ? 'text-accent-500' : 'text-success-500'
-                                  )}>
-                                    {isAvailable ? 'Sẵn sàng' : slot.status === 'BOOKED' ? 'Hết chỗ' : 'Đã giữ chỗ'}
-                                  </span>
-                                  {isSelected && (
-                                    <div className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent-500 text-white shadow-sm ring-2 ring-white">
-                                      <Check className="h-3 w-3" />
-                                    </div>
-                                  )}
-                                </button>
-                              );
-                            })
-                          )}
+                                    {isSelected && (
+                                      <div className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-md bg-primary-500 text-white shadow-md ring-2 ring-white">
+                                        <Check className="h-2.5 w-2.5 stroke-[4]" />
+                                      </div>
+                                    )}
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Phần 3: Thông tin khách hàng */}
-            <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-50 text-accent-600 font-bold border border-accent-100">
-                  3
-                </div>
-                <h2 className="text-lg font-bold text-foreground">Thông tin khách hàng</h2>
-              </div>
-
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
-                    Họ và tên
-                  </label>
+            {/* STEP 3: KHÁCH HÀNG */}
+            <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Tên khách</label>
                   <Input 
                     placeholder="VD: Nguyễn Văn A" 
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
+                    className="h-9 text-sm font-semibold rounded-lg border-secondary-200"
                   />
                 </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
-                    Số điện thoại
-                  </label>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">SĐT</label>
                   <Input 
-                    placeholder="VD: 0987654321" 
+                    placeholder="0987..." 
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="h-9 text-sm font-semibold rounded-lg border-secondary-200"
                   />
                 </div>
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
-                    Email
-                  </label>
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Email</label>
                   <Input 
-                    placeholder="VD: example@mail.com" 
+                    placeholder="example@mail.com" 
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
+                    className="h-9 text-sm font-semibold rounded-lg border-secondary-200"
                   />
                 </div>
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
-                    Ghi chú của khách
-                  </label>
-                  <Textarea 
-                    placeholder="Khách có yêu cầu gì đặc biệt không?..." 
-                    rows={2}
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                  />
+                
+                <div className="sm:col-span-2 grid grid-cols-2 gap-3 pt-4 border-t border-secondary-100">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold uppercase text-secondary-400 flex items-center gap-1.5">
+                       <Camera className="h-3.5 w-3.5" /> CCCD Mặt trước
+                    </label>
+                    <div className="relative border-2 border-dashed border-secondary-200 rounded-xl p-3 flex flex-col items-center justify-center min-h-[100px] bg-secondary-50/30 hover:bg-white hover:border-primary-400 transition-all">
+                      {frontPreview ? (
+                         <div className="relative group w-full h-full flex items-center justify-center">
+                           <img src={frontPreview} alt="F" className="max-h-[80px] w-auto object-contain rounded shadow-sm" />
+                           <button onClick={() => removeFile('front')} className="absolute -top-2 -right-2 bg-danger-500 text-white rounded-lg p-1.5 shadow-md hover:bg-danger-600 transition-colors">
+                             <X className="w-3.5 h-3.5 stroke-[3]" />
+                           </button>
+                         </div>
+                      ) : (
+                        <div className="text-center">
+                          <input type="file" accept="image/*" onChange={(e) => handleFileSelect(e, 'front')} className="absolute inset-0 opacity-0 cursor-pointer" />
+                          <Camera className="h-5 w-5 text-secondary-300 mx-auto mb-1" />
+                          <span className="text-[10px] font-bold text-secondary-400 uppercase">Chọn mặt trước</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold uppercase text-secondary-400 flex items-center gap-1.5">
+                       <Camera className="h-3.5 w-3.5" /> CCCD Mặt sau
+                    </label>
+                    <div className="relative border-2 border-dashed border-secondary-200 rounded-xl p-3 flex flex-col items-center justify-center min-h-[100px] bg-secondary-50/30 hover:bg-white hover:border-primary-400 transition-all">
+                      {backPreview ? (
+                         <div className="relative group w-full h-full flex items-center justify-center">
+                           <img src={backPreview} alt="B" className="max-h-[80px] w-auto object-contain rounded shadow-sm" />
+                           <button onClick={() => removeFile('back')} className="absolute -top-2 -right-2 bg-danger-500 text-white rounded-lg p-1.5 shadow-md hover:bg-danger-600 transition-colors">
+                             <X className="w-3.5 h-3.5 stroke-[3]" />
+                           </button>
+                         </div>
+                      ) : (
+                        <div className="text-center">
+                          <input type="file" accept="image/*" onChange={(e) => handleFileSelect(e, 'back')} className="absolute inset-0 opacity-0 cursor-pointer" />
+                          <Camera className="h-5 w-5 text-secondary-300 mx-auto mb-1" />
+                          <span className="text-[10px] font-bold text-secondary-400 uppercase">Chọn mặt sau</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Phần 4: Thanh toán */}
-            <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-50 text-accent-600 font-bold border border-accent-100">
-                  4
-                </div>
-                <h2 className="text-lg font-bold text-foreground">Thanh toán (Admin)</h2>
-              </div>
-
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
-                    Phương thức thanh toán
-                  </label>
+            {/* STEP 4: THANH TOÁN */}
+            <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Phương thức</label>
                   <Select
+                    className="h-9 text-xs font-semibold rounded-lg border-secondary-200"
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     options={[
                       { value: 'CASH', label: 'Tiền mặt' },
                       { value: 'BANK_TRANSFER', label: 'Chuyển khoản' },
-                      { value: 'MOMO', label: 'Ví MoMo' },
                     ]}
                   />
                 </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
-                    Mã giao dịch (nếu có)
-                  </label>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Mã GD</label>
                   <Input 
-                    placeholder="VD: FT12345678" 
+                    placeholder="Mã..." 
                     value={transactionNo}
                     onChange={(e) => setTransactionNo(e.target.value)}
+                    className="h-9 text-sm font-semibold rounded-lg border-secondary-200"
                   />
                 </div>
-
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-secondary-500">
-                    Ghi chú thanh toán
-                  </label>
-                  <Input 
-                    placeholder="Ghi chú về thanh toán..." 
-                    value={paymentNote}
-                    onChange={(e) => setPaymentNote(e.target.value)}
-                  />
-                </div>
-
-
-
-                <div className="sm:col-span-2 pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <input 
-                      type="checkbox" 
-                      checked={sendEmail}
-                      onChange={(e) => setSendEmail(e.target.checked)}
-                      className="h-4 w-4 rounded border-border text-accent-500 focus:ring-accent-500"
-                    />
-                    <span className="text-sm font-medium text-secondary-700 group-hover:text-foreground transition-colors">
-                      Gửi email xác nhận cho khách sau khi tạo
-                    </span>
-                  </label>
+                <div className="sm:col-span-2 pt-1">
+                   <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} className="h-3.5 w-3.5 rounded border-secondary-300 text-primary-500" />
+                      <span className="text-[11px] font-bold text-secondary-500">Gửi Email xác nhận cho khách</span>
+                   </label>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Phần 5: Xác nhận giá */}
-          <div className="space-y-6">
-            <div className="sticky top-6 rounded-xl border border-border bg-surface p-6 shadow-sm">
-              <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-50 text-accent-600 font-bold border border-accent-100">
-                  5
-                </div>
-                <h2 className="text-lg font-bold text-foreground">Xác nhận giá</h2>
-              </div>
-
-              <div className="flex flex-col gap-3 text-sm">
-                <div className="flex justify-between items-center text-secondary-600">
-                  <span>Tiền thuê phòng</span>
-                  <span className="font-semibold text-foreground">{formatCurrency(pricing.totalBasePrice)}</span>
+          {/* CỘT PHẢI: SUMMARY */}
+          <div className="lg:col-span-4">
+            <div className="sticky top-4 rounded-xl border border-border bg-surface p-5 shadow-sm">
+              <h2 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4 pb-2 border-b border-secondary-100">Xác nhận</h2>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-xs text-secondary-500">
+                  <span>Tiền thuê</span>
+                  <span className="font-bold text-foreground">{formatCurrency(pricing.totalBasePrice)}</span>
                 </div>
                 
                 {pricing.totalHolidaySurcharge > 0 && (
-                  <div className="flex justify-between items-center text-secondary-600">
-                    <span>Phụ phí ngày lễ</span>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-secondary-500">Ngày lễ</span>
                     <span className="font-bold text-danger-500">+{formatCurrency(pricing.totalHolidaySurcharge)}</span>
                   </div>
                 )}
 
-                {pricing.totalDiscountAmount > 0 && (
-                  <div className="flex justify-between items-center text-secondary-600">
-                    <span>Giảm giá chiến dịch</span>
-                    <span className="font-bold text-success-600">-{formatCurrency(pricing.totalDiscountAmount)}</span>
-                  </div>
-                )}
-
-                {pricing.totalComboDiscount > 0 && (
-                  <div className="flex justify-between items-center text-secondary-600">
-                    <span>Giảm giá Combo</span>
-                    <span className="font-bold text-success-600">-{formatCurrency(pricing.totalComboDiscount)}</span>
-                  </div>
-                )}
-
-                {pricing.breakdown && pricing.breakdown.length > 0 && (
-                   <div className="mt-1 pt-1 border-t border-border/50 border-dotted space-y-1">
-                      {pricing.breakdown.map((item: any, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center text-[11px] text-secondary-400 italic">
-                           <span>{item.label}</span>
-                           <span>{item.amount > 0 ? '+' : ''}{formatCurrency(item.amount)}</span>
-                        </div>
-                      ))}
-                   </div>
-                )}
-
-                <div className="my-2 border-t border-border border-dashed" />
-                <div className="flex justify-between items-center">
-                  <span className="text-base font-bold text-foreground">Tổng cộng</span>
-                  <span className="text-xl font-bold text-accent-500">
-                    {isCalculating ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      formatCurrency(pricing.totalPrice)
+                {(pricing.totalDiscountAmount > 0 || pricing.totalComboDiscount > 0) && (
+                  <div className="space-y-1 p-2 rounded-lg bg-success-50 border border-success-100">
+                    {pricing.totalDiscountAmount > 0 && (
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="text-success-700">Giảm ưu đãi</span>
+                        <span className="font-bold text-success-700">-{formatCurrency(pricing.totalDiscountAmount)}</span>
+                      </div>
                     )}
-                  </span>
+                    {pricing.totalComboDiscount > 0 && (
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="text-success-700">Giảm Combo</span>
+                        <span className="font-bold text-success-700">-{formatCurrency(pricing.totalComboDiscount)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="pt-3 border-t border-secondary-100 border-dashed">
+                  <div className="flex justify-between items-end">
+                    <span className="text-[10px] font-bold text-secondary-400 uppercase">Tổng cộng</span>
+                    <span className="text-2xl font-bold text-primary-600">
+                      {isCalculating ? <Loader2 className="h-5 w-5 animate-spin" /> : formatCurrency(pricing.totalPrice)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               <div className="mt-6">
                 <Button 
-                  className="w-full py-2.5 shadow-sm"
+                  className="w-full h-11 text-sm font-bold uppercase tracking-widest rounded-xl shadow-lg shadow-primary-500/10"
                   onClick={handleCreateBooking}
-                  loading={isCreating || adminCreateBooking.isPending}
+                  loading={isCreating || adminCreateBooking.isPending || isUploading}
                   disabled={bookingSlotsPayload.length === 0}
                 >
-                  Tạo booking
-                  <ChevronRight className="ml-2 h-4 w-4" />
+                  Tạo Booking
                 </Button>
-                <p className="mt-3 text-center text-xs text-secondary-500">
-                  Trạng thái mặc định: <strong className="text-warning-600">PENDING</strong>
+                <p className="mt-3 text-center text-[9px] text-secondary-400 font-bold italic leading-tight">
+                   Booking sẽ được ghi nhận với trạng thái ĐÃ XÁC NHẬN.
                 </p>
               </div>
             </div>
