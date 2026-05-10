@@ -17,3 +17,5 @@ export * from './payment';
 export * from './schedule-type';
 export * from './upload';
 export * from './enums';
+export * from './system-config';
+export * from './combo-config';
