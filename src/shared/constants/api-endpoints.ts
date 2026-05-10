@@ -122,8 +122,19 @@ export const API = {
     CHECK_DATE: '/admin/holiday-surcharges/check-date',
   },
 
+  // ── System Configs ──
+  SYSTEM_CONFIGS: {
+    LIST: '/admin/system-configs',
+    CREATE: '/admin/system-configs',
+    UPDATE: (id: string) => `/admin/system-configs/${id}` as const,
+    DELETE: (id: string) => `/admin/system-configs/${id}` as const,
+  },
+
   // ── Combos ──
   COMBOS: {
-    LIST: '/combo-configs',
+    LIST_PUBLIC: '/combo-configs',
+    LIST_ADMIN: '/admin/combo-configs',
+    UPDATE: (id: string) => `/admin/combo-configs/${id}` as const,
+    TOGGLE: (id: string) => `/admin/combo-configs/${id}/toggle` as const,
   },
 } as const;
