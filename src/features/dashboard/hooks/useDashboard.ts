@@ -47,3 +47,11 @@ export function useAllRoomsAvailability(date: string) {
     refetchInterval: 5 * 60 * 1000,
   });
 }
+
+export function useRevenueTrend(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: ['dashboard', 'revenue-trend', startDate, endDate],
+    queryFn: () => dashboardService.getRevenueTrend(startDate, endDate),
+    enabled: !!startDate && !!endDate,
+  });
+}

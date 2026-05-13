@@ -1,10 +1,15 @@
 export type DashboardStats = {
-  date: string;
-  totalBookingsToday: number;
   confirmedBookingsToday: number;
-  pendingBookingsToday: number;
   revenueToday: number;
-  pendingCccdCount: number;
+  occupiedRooms: number;
+  vacantRooms: number;
+  revenueLastMonth: number;
+};
+
+export type RevenueTrendItem = {
+  date: string;
+  revenue: number;
+  bookingCount: number;
 };
 
 export type DashboardBooking = {

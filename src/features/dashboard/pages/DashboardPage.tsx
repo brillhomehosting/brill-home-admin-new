@@ -14,10 +14,48 @@ import {
     Loader2,
     Percent,
     RotateCcw,
+    TrendingDown,
     TrendingUp
 } from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAllRoomsAvailability, useDashboardStats, usePaymentStats, useRecentBookings, useRoomTrackers, useUpcomingBookings } from '../hooks/useDashboard';
+import {
+    CartesianGrid,
+    Line,
+    LineChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from 'recharts';
+import { useAllRoomsAvailability, useDashboardStats, usePaymentStats, useRecentBookings, useRevenueTrend, useRoomTrackers, useUpcomingBookings } from '../hooks/useDashboard';
+
+function getDefaultRange() {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 29);
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0],
+  };
+}
+
+function fillMissingDates(
+  data: { date: string; revenue: number; bookingCount: number }[],
+  startDate: string,
+  endDate: string
+) {
+  const byDate = new Map(data.map((d) => [d.date, d]));
+  const result = [];
+  const cursor = new Date(startDate);
+  const end = new Date(endDate);
+  while (cursor <= end) {
+    const key = cursor.toISOString().split('T')[0];
+    result.push(byDate.get(key) ?? { date: key, revenue: 0, bookingCount: 0 });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return result;
+}
 
 export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
@@ -30,7 +68,16 @@ export default function DashboardPage() {
   const today = new Date().toISOString().split('T')[0];
   const { data: allAvailability } = useAllRoomsAvailability(today);
 
+  const defaultRange = getDefaultRange();
+  const [trendStart, setTrendStart] = useState(defaultRange.start);
+  const [trendEnd, setTrendEnd] = useState(defaultRange.end);
+  const { data: trendData, isLoading: trendLoading } = useRevenueTrend(trendStart, trendEnd);
+
   const isLoading = statsLoading || recentLoading || upcomingLoading || paymentLoading;
+
+  const growthPct = stats?.revenueLastMonth
+    ? (((paymentStats?.revenueThisMonth ?? 0) - stats.revenueLastMonth) / stats.revenueLastMonth * 100)
+    : null;
 
   if (isLoading) {
     return (
@@ -42,8 +89,8 @@ export default function DashboardPage() {
 
   return (
     <div className="flex h-full flex-col bg-surface-dim/30">
-      <Header 
-        title="Dashboard" 
+      <Header
+        title="Dashboard"
         actions={
           <div className="flex items-center gap-2 text-sm text-secondary-500">
             <CalendarDays className="h-4 w-4" />
@@ -55,48 +102,117 @@ export default function DashboardPage() {
       <PageWrapper className="flex-1 space-y-6 pt-4 pb-10 px-4 sm:pt-6 sm:px-6">
         {/* --- Stats Row --- */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard 
-            title="Đặt phòng hôm nay" 
-            value={stats?.totalBookingsToday ?? 0}
+          <StatCard
+            title="Booking đã xác nhận"
+            value={stats?.confirmedBookingsToday ?? 0}
             icon={CalendarCheck}
             color="primary"
+            footer={<p className="text-xs text-secondary-400 italic">Check-in hôm nay</p>}
+          />
+
+          <StatCard
+            title="Phòng đang có khách"
+            value={stats?.occupiedRooms ?? 0}
+            icon={Home}
+            color="warning"
             footer={
-              <span className="text-xs font-medium text-success-600 flex items-center gap-1">
-                <span className="font-semibold text-primary-600">{stats?.confirmedBookingsToday ?? 0}</span> đã xác nhận
+              <span className="text-xs font-medium text-secondary-500 flex items-center gap-1">
+                <span className="font-semibold text-success-600">{stats?.vacantRooms ?? 0}</span> phòng trống
               </span>
             }
           />
-          
-          <StatCard 
-            title="Chờ thanh toán" 
-            value={stats?.pendingBookingsToday ?? 0}
-            icon={Clock}
-            color="warning"
-            footer={
-              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-warning-100">
-                <div 
-                  className="h-full bg-warning-400 rounded-full transition-all duration-500" 
-                  style={{ width: stats?.totalBookingsToday ? `${(stats.pendingBookingsToday / stats.totalBookingsToday) * 100}%` : '0%' }}
-                />
-              </div>
-            }
-          />
 
-          <StatCard 
-            title="Doanh thu hôm nay" 
+          <StatCard
+            title="Doanh thu hôm nay"
             value={formatCurrency(stats?.revenueToday ?? 0)}
             icon={TrendingUp}
             color="success"
             footer={<p className="text-xs text-secondary-400 italic">Cập nhật trực tiếp</p>}
           />
 
-          <StatCard 
-            title="Doanh thu tháng này" 
+          <StatCard
+            title="Doanh thu tháng này"
             value={formatCurrency(paymentStats?.revenueThisMonth ?? 0)}
             icon={CheckCircle}
             color="accent"
             footer={<p className="text-xs text-secondary-400 italic">Tăng trưởng ổn định</p>}
           />
+        </div>
+
+        {/* --- Revenue Trend Chart --- */}
+        <div className="flex flex-col rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border bg-surface-dim px-6 py-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary-500" />
+              <h3 className="font-bold text-foreground text-sm uppercase tracking-wider">Xu hướng doanh thu</h3>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <input
+                type="date"
+                value={trendStart}
+                max={trendEnd}
+                onChange={(e) => setTrendStart(e.target.value)}
+                className="rounded-lg border border-border bg-white px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary-400"
+              />
+              <span className="text-secondary-400">→</span>
+              <input
+                type="date"
+                value={trendEnd}
+                min={trendStart}
+                max={today}
+                onChange={(e) => setTrendEnd(e.target.value)}
+                className="rounded-lg border border-border bg-white px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary-400"
+              />
+            </div>
+          </div>
+          <div className="p-4 sm:p-6 h-64">
+            {trendLoading ? (
+              <div className="flex h-full items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+              </div>
+            ) : trendData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={fillMissingDates(trendData, trendStart, trendEnd)} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: '#94a3b8' }}
+                    tickFormatter={(v) => v.slice(5)}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: '#94a3b8' }}
+                    tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                    tickLine={false}
+                    axisLine={false}
+                    width={40}
+                  />
+                  <Tooltip
+                    formatter={(value: number, name: string) =>
+                      name === 'revenue'
+                        ? [formatCurrency(value), 'Doanh thu']
+                        : [value, 'Booking']
+                    }
+                    labelFormatter={(label) => `Ngày ${label}`}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#6366f1"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <EmptyState message="Không có dữ liệu trong khoảng thời gian này" />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* --- Room Tracker Section --- */}
@@ -106,8 +222,8 @@ export default function DashboardPage() {
               <Home className="h-4 w-4 text-primary-500" />
               <h3 className="font-bold text-foreground text-sm uppercase tracking-wider">Tình trạng phòng hiện tại</h3>
             </div>
-            <button 
-              onClick={() => refetchTrackers()} 
+            <button
+              onClick={() => refetchTrackers()}
               disabled={trackersLoading || isRefetchingTrackers}
               className="text-xs font-bold text-secondary-500 hover:text-primary-600 flex items-center gap-1 transition-colors"
             >
@@ -143,7 +259,7 @@ export default function DashboardPage() {
                 <Banknote className="h-4 w-4 text-primary-500" />
                 Tổng quan tài chính
               </h3>
-              
+
               <div className="space-y-6">
                 <div>
                   <p className="text-xs text-secondary-400 mb-1">Doanh thu ròng</p>
@@ -158,8 +274,6 @@ export default function DashboardPage() {
                     <p className="text-sm font-bold text-foreground">{formatCurrency(paymentStats?.totalPaidAmount ?? 0)}</p>
                   </div>
                 </div>
-
-
               </div>
             </div>
 
@@ -169,7 +283,7 @@ export default function DashboardPage() {
                 <CreditCard className="h-4 w-4 text-accent-500" />
                 Phân bổ phương thức
               </h3>
-              
+
               <div className="space-y-5">
                 {(paymentStats?.byMethod || []).length > 0 ? (
                   paymentStats?.byMethod.map((item, idx) => {
@@ -195,7 +309,7 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       <div className="h-2 w-full bg-secondary-50 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className={cn(
                             "h-full rounded-full transition-all duration-1000",
                             idx === 0 ? "bg-primary-400" : idx === 1 ? "bg-accent-400" : "bg-secondary-400"
@@ -211,7 +325,7 @@ export default function DashboardPage() {
                      <p className="text-xs italic">Chưa có dữ liệu phân bổ</p>
                   </div>
                 )}
-                
+
                 <div className="mt-auto p-4 rounded-xl bg-surface-dim/50 border border-border border-dashed">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-white shadow-sm">
@@ -230,15 +344,29 @@ export default function DashboardPage() {
           {/* Growth & Actions Card */}
           <div className="flex flex-col rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300">
             <div className="absolute top-0 right-0 w-20 h-20 sm:w-24 sm:h-24 bg-primary-50 rounded-bl-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500" />
-            
+
             <div className="relative z-10 flex flex-col h-full">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <div className="p-1.5 sm:p-2 rounded-xl bg-primary-100 text-primary-600">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+                  {growthPct !== null && growthPct < 0
+                    ? <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />
+                    : <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+                  }
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-bold text-success-600 bg-success-50 px-2 py-0.5 rounded-full border border-success-100">
-                  +12.5%
-                </span>
+                {growthPct !== null ? (
+                  <span className={cn(
+                    "text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full border",
+                    growthPct >= 0
+                      ? "text-success-600 bg-success-50 border-success-100"
+                      : "text-danger-600 bg-danger-50 border-danger-100"
+                  )}>
+                    {growthPct >= 0 ? '+' : ''}{growthPct.toFixed(1)}%
+                  </span>
+                ) : (
+                  <span className="text-[9px] sm:text-[10px] font-bold text-secondary-400 bg-secondary-50 px-2 py-0.5 rounded-full border border-secondary-100">
+                    N/A
+                  </span>
+                )}
               </div>
 
               <div className="mb-4 sm:mb-6">
@@ -246,17 +374,22 @@ export default function DashboardPage() {
                 <h3 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
                   {formatCurrency(paymentStats?.revenueThisMonth ?? 0)}
                 </h3>
+                {stats?.revenueLastMonth ? (
+                  <p className="text-[10px] text-secondary-400 mt-1">
+                    Tháng trước: <span className="font-semibold text-secondary-600">{formatCurrency(stats.revenueLastMonth)}</span>
+                  </p>
+                ) : null}
               </div>
-              
+
               <div className="mt-auto flex flex-col gap-2">
-                <Link 
-                  to="/apps/bookings/create" 
+                <Link
+                  to="/apps/bookings/create"
                   className="flex items-center justify-center gap-2 w-full py-2 sm:py-2.5 rounded-xl bg-primary-600 text-white font-bold text-[10px] sm:text-xs hover:bg-primary-700 transition-all shadow-sm"
                 >
                   TẠO BOOKING MỚI
                 </Link>
-                <Link 
-                  to="/apps/invoices" 
+                <Link
+                  to="/apps/invoices"
                   className="flex items-center justify-center gap-2 w-full py-2 sm:py-2.5 rounded-xl bg-secondary-50 text-secondary-600 font-bold text-[10px] sm:text-xs hover:bg-secondary-100 transition-all border border-secondary-100"
                 >
                   Chi tiết doanh thu
@@ -320,17 +453,17 @@ export default function DashboardPage() {
 
 // ── Components ──
 
-function StatCard({ 
-  title, 
-  value, 
-  icon: Icon, 
-  color, 
-  footer 
-}: { 
-  title: string; 
-  value: string | number; 
-  icon: any; 
-  color: 'primary' | 'warning' | 'success' | 'accent' | 'danger'; 
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  color,
+  footer
+}: {
+  title: string;
+  value: string | number;
+  icon: any;
+  color: 'primary' | 'warning' | 'success' | 'accent' | 'danger';
   footer: React.ReactNode;
 }) {
   const colorMapping = {
@@ -370,7 +503,7 @@ function BookingListItem({ booking }: { booking: any }) {
   const status = statusMapping[booking.status] || { label: booking.status, classes: 'bg-secondary-100 text-secondary-700' };
 
   return (
-    <Link 
+    <Link
       to={`/apps/bookings/${booking.bookingId}`}
       className="group flex items-center justify-between px-5 py-3 hover:bg-secondary-50 transition-colors"
     >
@@ -410,14 +543,14 @@ function EmptyState({ message }: { message: string }) {
 
 function RoomTrackerItem({ tracker, slots }: { tracker: RoomTracker; slots: BookingAvailabilitySlot[] }) {
   const isAvailable = tracker.status === 'AVAILABLE' || tracker.status === 'VACANT';
-  
-  const statusColor = 
+
+  const statusColor =
     isAvailable ? 'bg-success-100 text-success-700 border-success-200' :
     tracker.status === 'OCCUPIED' ? 'bg-danger-100 text-danger-700 border-danger-200' :
     tracker.status === 'RESERVED' ? 'bg-warning-100 text-warning-700 border-warning-200' :
     'bg-secondary-100 text-secondary-700 border-secondary-200';
 
-  const statusLabel = 
+  const statusLabel =
     isAvailable ? 'Trống' :
     tracker.status === 'OCCUPIED' ? 'Đang có khách' :
     tracker.status === 'RESERVED' ? 'Đã đặt' :
@@ -434,7 +567,7 @@ function RoomTrackerItem({ tracker, slots }: { tracker: RoomTracker; slots: Book
           {statusLabel}
         </span>
       </div>
-      
+
       <div className="p-3 flex-1 flex flex-col gap-3 text-xs h-[230px]">
         {tracker.currentBooking ? (
           <div className="space-y-1 bg-primary-50/50 p-2 rounded-lg border border-primary-100 h-[70px] relative overflow-hidden">
@@ -488,12 +621,12 @@ function RoomTrackerItem({ tracker, slots }: { tracker: RoomTracker; slots: Book
                 const isBooked = slot.status === 'BOOKED' || slot.status === 'PENDING';
                 const timeRange = `${slot.timeSlot.startTime.split(':').slice(0,2).join(':')} - ${slot.timeSlot.endTime.split(':').slice(0,2).join(':')}`;
                 return (
-                  <div 
-                    key={slot.timeSlot.id} 
+                  <div
+                    key={slot.timeSlot.id}
                     className={cn(
                       "py-1 px-2 rounded-lg flex flex-col items-center justify-center border transition-all",
-                      isBooked 
-                        ? "bg-danger-50 border-danger-100 text-danger-700 opacity-80" 
+                      isBooked
+                        ? "bg-danger-50 border-danger-100 text-danger-700 opacity-80"
                         : "bg-success-50 border-success-100 text-success-700 hover:bg-success-100"
                     )}
                     title={slot.status}
