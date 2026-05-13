@@ -1,10 +1,12 @@
-export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | string;
+import type { PaymentMethod } from './booking';
+
+export type PaymentStatus = 'PAID' | 'REFUNDED';
 
 export type Payment = {
   paymentCode: string;
   bookingCode: string;
   paymentStatus: PaymentStatus;
-  paymentMethod: string;
+  paymentMethod: PaymentMethod;
   amount: number;
   gatewayOrderId: string;
   transactionNo: string;
@@ -18,6 +20,7 @@ export type GetPaymentsParams = {
   size?: number;
   search?: string;
   status?: PaymentStatus;
+  paymentMethod?: PaymentMethod;
   startDate?: string;
   endDate?: string;
 };

@@ -193,8 +193,6 @@ export function ManualPaymentDialog({
                     options={[
                       { value: 'BANK_TRANSFER', label: 'Chuyển khoản ngân hàng' },
                       { value: 'CASH', label: 'Tiền mặt' },
-                      { value: 'VNPAY', label: 'VNPay' },
-                      { value: 'MOMO', label: 'MoMo' },
                       { value: 'OTHER', label: 'Khác' },
                     ]}
                   />

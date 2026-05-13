@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { useBookingMutation } from '../hooks/useBookingMutation';
 import { useCalculatePrice } from '../hooks/useBookings';
 import { roomService } from '@/shared/services/room.service';
+import type { PaymentMethod } from '@/shared/types';
 
 export default function CreateBookingPage() {
   const navigate = useNavigate();
@@ -44,10 +45,10 @@ export default function CreateBookingPage() {
   const [backPreview, setBackPreview] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
 
-  const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [transactionNo, setTransactionNo] = useState('');
   const [paymentNote] = useState('');
-  const [sendEmail, setSendEmail] = useState(true);
+  const [sendEmail, setSendEmail] = useState(false);
 
   // Queries
   const { data: roomsResponse, isLoading: isLoadingRooms } = useRooms({ limit: 100 });
@@ -171,10 +172,6 @@ export default function CreateBookingPage() {
       toast('Vui lòng chọn phòng và giờ', 'warning');
       return;
     }
-    if (!customerEmail || !customerName || !customerPhone) {
-      toast('Vui lòng nhập đủ thông tin khách', 'warning');
-      return;
-    }
     try {
       setIsCreating(true);
       setIsUploading(true);
@@ -196,16 +193,16 @@ export default function CreateBookingPage() {
       adminCreateBooking.mutate({
         roomId: selectedRoomId,
         slots: bookingSlotsPayload,
-        guestName: customerName,
-        guestEmail: customerEmail,
-        guestPhone: customerPhone,
+        guestName: customerName.trim() || undefined,
+        guestEmail: customerEmail.trim() || undefined,
+        guestPhone: customerPhone.trim() || undefined,
         nationalIdFrontUrl: frontUrl || undefined,
         nationalIdBackUrl: backUrl || undefined,
         note: note || 'Admin Created',
-        paymentMethod: paymentMethod as any,
+        paymentMethod,
         transactionNo: transactionNo || undefined,
         paymentNote: paymentNote || undefined,
-        sendConfirmationEmail: sendEmail,
+        sendConfirmationEmail: sendEmail && Boolean(customerEmail.trim()),
       }, {
         onSuccess: (res) => {
           if (res?.data?.bookingId) navigate(ROUTES.BOOKINGS.DETAIL(res.data.bookingId));
@@ -392,7 +389,7 @@ export default function CreateBookingPage() {
             <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Tên khách</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Tên khách (tuỳ chọn)</label>
                   <Input 
                     placeholder="VD: Nguyễn Văn A" 
                     value={customerName}
@@ -401,7 +398,7 @@ export default function CreateBookingPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">SĐT</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">SĐT (tuỳ chọn)</label>
                   <Input 
                     placeholder="0987..." 
                     value={customerPhone}
@@ -410,7 +407,7 @@ export default function CreateBookingPage() {
                   />
                 </div>
                 <div className="sm:col-span-2 space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Email</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Email (tuỳ chọn)</label>
                   <Input 
                     placeholder="example@mail.com" 
                     value={customerEmail}
@@ -474,10 +471,11 @@ export default function CreateBookingPage() {
                   <Select
                     className="h-9 text-xs font-semibold rounded-lg border-secondary-200"
                     value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
                     options={[
                       { value: 'CASH', label: 'Tiền mặt' },
                       { value: 'BANK_TRANSFER', label: 'Chuyển khoản' },
+                      { value: 'OTHER', label: 'Khác' },
                     ]}
                   />
                 </div>

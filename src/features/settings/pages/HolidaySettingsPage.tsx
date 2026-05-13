@@ -248,54 +248,44 @@ export default function HolidaySettingsPage() {
               </div>
             ) : (
               holidays.map((item) => (
-                <div 
-                  key={item.id} 
-                  className="flex flex-col p-3.5 gap-2.5 bg-surface hover:bg-secondary-50 transition-colors"
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 px-4 py-3 bg-surface hover:bg-secondary-50 transition-colors"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <CalendarRange className="h-3.5 w-3.5 text-secondary-400 shrink-0" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+                    <CalendarRange className="h-4 w-4" />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                       <p className="font-bold text-foreground text-sm truncate">{item.name}</p>
+                      <span className={cn(
+                        'rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase shrink-0',
+                        item.holidayType === 'ANNUAL' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
+                      )}>
+                        {item.holidayType === 'ANNUAL' ? 'Hằng năm' : 'Năm cụ thể'}
+                      </span>
                     </div>
-                    <span
-                      className={cn(
-                        'rounded-full px-2 py-0.5 text-[8px] font-bold uppercase shrink-0',
-                        item.holidayType === 'ANNUAL' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                      )}
-                    >
-                      {item.holidayType === 'ANNUAL' ? 'Hằng năm' : 'Năm cụ thể'}
-                    </span>
+                    <p className="text-[11px] text-secondary-500">
+                      {item.startDay} – {item.endDay}
+                    </p>
+                    <p className="text-[11px] font-bold text-accent-600 mt-0.5">
+                      Phụ thu: {item.surchargeType === 'AMOUNT' ? formatCurrency(item.surchargeAmount) : `${item.surchargePercent}%`}
+                    </p>
                   </div>
 
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-1.5">
-                       <span className="text-[10px] text-secondary-400 font-medium">Lịch:</span>
-                       <span className="text-[10px] font-bold text-secondary-600">
-                         {item.startDay} - {item.endDay}
-                       </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                       <span className="text-[10px] text-secondary-400 font-medium">Phụ thu:</span>
-                       <span className="text-xs font-black text-accent-600">
-                         {item.surchargeType === 'AMOUNT' ? formatCurrency(item.surchargeAmount) : `${item.surchargePercent}%`}
-                       </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-1 pt-1">
+                  <div className="flex items-center gap-0.5 shrink-0">
                     <button
                       onClick={() => handleEdit(item)}
-                      className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-secondary-600 hover:bg-secondary-100 rounded-lg transition-colors"
+                      className="p-2 text-secondary-400 hover:text-accent-500 active:scale-90 transition-all"
                     >
-                      <Pencil className="h-3 w-3" />
-                      Sửa
+                      <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteClick(item)}
-                      className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-danger-500 hover:bg-danger-50 rounded-lg transition-colors"
+                      className="p-2 text-secondary-400 hover:text-danger-500 active:scale-90 transition-all"
                     >
-                      <Trash2 className="h-3 w-3" />
-                      Xóa
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>

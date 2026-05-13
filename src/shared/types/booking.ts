@@ -8,14 +8,14 @@ export type BookingStatus =
   | 'CONFIRMED'
   | 'CANCELLED';
 
-export type PaymentMethod = 'VNPAY' | 'MOMO' | 'CASH' | 'BANK_TRANSFER' | 'OTHER';
+export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'OTHER';
 
 export type AdminBooking = {
   bookingId: string;
   bookingCode: string;
-  guestName: string;
-  guestEmail: string;
-  guestPhone: string;
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
   roomName: string;
   date: string;
   checkInAt: string;
@@ -124,9 +124,9 @@ export type AdminCreateBookingData = {
     date: string;
     timeSlotIds: string[];
   }>;
-  guestName: string;
-  guestEmail: string;
-  guestPhone: string;
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
   nationalIdFrontUrl?: string;
   nationalIdBackUrl?: string;
   note?: string;

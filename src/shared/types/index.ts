@@ -11,6 +11,7 @@ export * from './amenity';
 export * from './time-slot';
 export * from './booking';
 export * from './dashboard';
+export * from './tuya';
 export * from './discount';
 export * from './holiday';
 export * from './payment';

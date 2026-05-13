@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom';
 import { ROUTES } from '@/shared/constants';
 import { usePayments } from '../hooks/usePayments';
 import { useBookingByCode } from '@/features/bookings/hooks/useBookings';
-import type { Payment, PaymentStatus } from '@/shared/types';
+import type { Payment, PaymentMethod, PaymentStatus } from '@/shared/types';
 
 // --- Slide-over Detail Panel (overlays on the RIGHT) ---
 
@@ -143,9 +143,14 @@ function BookingDetailPanel({ bookingCode, onClose }: { bookingCode: string; onC
 // --- Main Page ---
 
 const statusMapping: Record<string, { label: string; classes: string }> = {
-  SUCCESS: { label: 'Thành công', classes: 'bg-success-100 text-success-700' },
-  PENDING: { label: 'Chờ duyệt', classes: 'bg-warning-100 text-warning-700' },
-  FAILED: { label: 'Thất bại', classes: 'bg-danger-100 text-danger-700' },
+  PAID: { label: 'Đã thanh toán', classes: 'bg-success-100 text-success-700' },
+  REFUNDED: { label: 'Đã hoàn tiền', classes: 'bg-warning-100 text-warning-700' },
+};
+
+const methodMapping: Record<PaymentMethod, string> = {
+  CASH: 'Tiền mặt',
+  BANK_TRANSFER: 'Chuyển khoản',
+  OTHER: 'Khác',
 };
 
 export default function PaymentListPage() {
@@ -154,6 +159,7 @@ export default function PaymentListPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState<PaymentStatus | undefined>(undefined);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | undefined>(undefined);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
   useEffect(() => {
@@ -169,6 +175,7 @@ export default function PaymentListPage() {
     size,
     search: debouncedSearch,
     status,
+    paymentMethod,
   });
 
   const payments = response?.content || [];
@@ -189,7 +196,7 @@ export default function PaymentListPage() {
         <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
           {/* Filters */}
           <div className="flex flex-col gap-3 border-b border-border p-3.5 bg-surface/50">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <Select
                 value={status || ''}
                 onChange={(e) => {
@@ -198,9 +205,22 @@ export default function PaymentListPage() {
                 }}
                 options={[
                   { value: '', label: 'Trạng thái' },
-                  { value: 'SUCCESS', label: 'Thành công' },
-                  { value: 'PENDING', label: 'Chờ duyệt' },
-                  { value: 'FAILED', label: 'Thất bại' },
+                  { value: 'PAID', label: 'Đã thanh toán' },
+                  { value: 'REFUNDED', label: 'Đã hoàn tiền' },
+                ]}
+                className="h-10"
+              />
+              <Select
+                value={paymentMethod || ''}
+                onChange={(e) => {
+                  setPaymentMethod((e.target.value as PaymentMethod) || undefined);
+                  setPage(0);
+                }}
+                options={[
+                  { value: '', label: 'Phương thức' },
+                  { value: 'CASH', label: 'Tiền mặt' },
+                  { value: 'BANK_TRANSFER', label: 'Chuyển khoản' },
+                  { value: 'OTHER', label: 'Khác' },
                 ]}
                 className="h-10"
               />
@@ -278,7 +298,7 @@ export default function PaymentListPage() {
                         <td className="px-5 py-4">
                           <span className="inline-flex items-center gap-1.5 text-sm text-secondary-700">
                             <Banknote className="h-3.5 w-3.5 text-secondary-400" />
-                            {pm.paymentMethod}
+                            {methodMapping[pm.paymentMethod] || pm.paymentMethod}
                           </span>
                         </td>
                         <td className="px-5 py-4 text-right font-bold text-foreground">
@@ -316,48 +336,44 @@ export default function PaymentListPage() {
                 const pmStatus = statusMapping[pm.paymentStatus] || { label: pm.paymentStatus, classes: 'bg-secondary-100 text-secondary-700' };
 
                 return (
-                  <div 
-                    key={pm.paymentCode} 
+                  <div
+                    key={pm.paymentCode}
                     className={cn(
-                      "flex flex-col p-4 gap-3 bg-surface hover:bg-secondary-50 transition-colors cursor-pointer",
-                      isSelected ? "bg-accent-50/50 ring-1 ring-inset ring-accent-100" : ""
+                      "flex items-center gap-3 px-4 py-3 bg-surface hover:bg-secondary-50 transition-colors cursor-pointer relative",
+                      isSelected && "bg-accent-50/50"
                     )}
                     onClick={() => setSelectedPayment(isSelected ? null : pm)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-50 text-primary-500">
-                          <Receipt className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-foreground text-sm">#{pm.bookingCode}</p>
-                          <p className="text-[10px] text-secondary-400 font-medium truncate max-w-[150px]">
-                            GD: {pm.transactionNo || pm.paymentCode}
-                          </p>
-                        </div>
-                      </div>
-                      <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-bold uppercase', pmStatus.classes)}>
-                        {pmStatus.label}
-                      </span>
+                    {/* status bar */}
+                    <div className={cn(
+                      'absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full',
+                      pm.paymentStatus === 'PAID' ? 'bg-success-400' : 'bg-warning-400'
+                    )} />
+
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600 border border-primary-100">
+                      <Receipt className="h-4 w-4" />
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-0.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Số tiền & PTTT</p>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-foreground text-sm">{formatCurrency(pm.amount)}</span>
-                          <span className="text-[10px] text-secondary-500">({pm.paymentMethod})</span>
-                        </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="font-bold text-foreground text-sm">#{pm.bookingCode}</span>
+                        <span className={cn('rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase', pmStatus.classes)}>
+                          {pmStatus.label}
+                        </span>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Thời gian</p>
-                        <p className="text-[10px] font-medium text-secondary-600">
-                          {formatDate(pm.createdAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
-                        </p>
-                      </div>
+                      <p className="text-[11px] text-secondary-500 truncate">
+                        {methodMapping[pm.paymentMethod] || pm.paymentMethod} · <span className="text-secondary-400">{pm.transactionNo || pm.paymentCode}</span>
+                      </p>
+                      <p className="text-[10px] text-secondary-400 mt-0.5">
+                        {formatDate(pm.createdAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <p className="font-extrabold text-sm text-foreground">{formatCurrency(pm.amount)}</p>
                     </div>
                   </div>
-                )
+                );
               })
             )}
           </div>

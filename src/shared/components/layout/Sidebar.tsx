@@ -12,6 +12,7 @@ import {
   PackageOpen,
   Database,
   User,
+  KeyRound,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/shared/utils';
@@ -37,6 +38,7 @@ const navigation: NavGroup[] = [
       { label: 'Phòng', path: ROUTES.ROOMS, icon: BedDouble },
       { label: 'Tiện nghi', path: ROUTES.AMENITIES_LIST, icon: Package },
       { label: 'Đặt phòng', path: ROUTES.BOOKINGS.LIST, icon: CalendarCheck },
+      { label: 'Tuya Passwords', path: '/apps/tuya-passwords', icon: KeyRound },
       { label: 'Hóa đơn', path: ROUTES.INVOICES, icon: Receipt },
       { label: 'Giảm giá', path: ROUTES.DISCOUNTS, icon: Tag },
       { label: 'Ngày lễ', path: ROUTES.HOLIDAYS, icon: CalendarRange },
@@ -45,7 +47,7 @@ const navigation: NavGroup[] = [
   {
     title: 'Settings',
     items: [
-      { label: 'System Configs', path: ROUTES.SETTINGS, icon: Settings },
+      { label: 'System Configs', path: '/settings/system-configs', icon: Settings },
       { label: 'Combo Configs', path: '/settings/combo-configs', icon: PackageOpen },
       { label: 'Cache Data', path: '/settings/caches', icon: Database },
     ],
@@ -168,11 +170,7 @@ function SidebarLink({
   currentPath: string;
   onClick?: () => void;
 }) {
-  const isActive = item.exact
-    ? currentPath === item.path
-    : item.path === '/'
-    ? currentPath === '/'
-    : currentPath.startsWith(item.path);
+  const isActive = isPathActive(currentPath, item.path, item.exact);
 
   const Icon = item.icon;
 
@@ -196,4 +194,12 @@ function SidebarLink({
       {item.label}
     </NavLink>
   );
+}
+
+function isPathActive(currentPath: string, itemPath: string, exact = false) {
+  if (exact || itemPath === '/') {
+    return currentPath === itemPath;
+  }
+
+  return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
 }

@@ -16,6 +16,7 @@ import CacheManagerPage from '@/features/settings/pages/CacheManagerPage';
 import SystemConfigPage from '@/features/settings/pages/SystemConfigPage';
 import ComboConfigPage from '@/features/settings/pages/ComboConfigPage';
 import ProfilePage from '@/features/profile/pages/ProfilePage';
+import TuyaPasswordManagementPage from '@/features/tuya-passwords/pages/TuyaPasswordManagementPage';
 import { ProtectedRoute } from '@/shared/components/auth';
 import { Header, MainLayout, SidebarContext } from '@/shared/components/layout';
 import { ROUTES } from '@/shared/constants';
@@ -107,6 +108,10 @@ export const router = createBrowserRouter([
       {
         path: 'apps/bookings/:bookingId',
         element: <BookingDetailPage />,
+      },
+      {
+        path: 'apps/tuya-passwords',
+        element: <TuyaPasswordManagementPage />,
       },
       // Schedules
       {
