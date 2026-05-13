@@ -2,7 +2,7 @@ import { useToast } from '@/shared/components/feedback/Toast';
 import { Header, PageWrapper } from '@/shared/components/layout';
 import { Button } from '@/shared/components/ui/Button';
 import { ROUTES } from '@/shared/constants';
-import { cn, formatCurrency, formatDate } from '@/shared/utils';
+import { cn, formatCurrency, formatDate, getCredentialImageUrl } from '@/shared/utils';
 import {
   AlertCircle,
   BedDouble,
@@ -206,20 +206,22 @@ export default function BookingDetailPage() {
               <div className="grid grid-cols-1 gap-4 sm:gap-6 p-4 sm:p-5 sm:grid-cols-2">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Họ và tên</p>
-                  <p className="mt-0.5 text-base font-semibold text-foreground">{booking.guestName}</p>
+                  <p className="mt-0.5 text-base font-semibold text-foreground">{booking.guestName || 'Chưa có thông tin'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Số điện thoại</p>
                   <div className="mt-0.5 flex items-center gap-2">
-                    <p className="text-base font-semibold text-foreground">{booking.guestPhone}</p>
-                    <button onClick={() => navigator.clipboard.writeText(booking.guestPhone)} className="text-secondary-300 hover:text-primary-500 transition-colors">
-                      <Copy className="h-3.5 w-3.5" />
-                    </button>
+                    <p className="text-base font-semibold text-foreground">{booking.guestPhone || 'Chưa có thông tin'}</p>
+                    {booking.guestPhone && (
+                      <button onClick={() => navigator.clipboard.writeText(booking.guestPhone || '')} className="text-secondary-300 hover:text-primary-500 transition-colors">
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Email</p>
-                  <p className="mt-0.5 text-sm font-medium text-foreground">{booking.guestEmail}</p>
+                  <p className="mt-0.5 text-sm font-medium text-foreground">{booking.guestEmail || 'Chưa có thông tin'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Ghi chú</p>
@@ -231,7 +233,7 @@ export default function BookingDetailPage() {
                     <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Giấy tờ tùy thân (CCCD)</p>
                     <div className="flex flex-wrap gap-4">
                       {booking.nationalIdFrontUrl && (
-                        <button 
+                        <button
                           onClick={() => {
                             setIdViewerIndex(0);
                             setIdViewerOpen(true);
@@ -239,7 +241,7 @@ export default function BookingDetailPage() {
                           className="group relative h-24 w-36 overflow-hidden rounded-lg border border-border bg-secondary-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                         >
                           <img
-                            src={booking.nationalIdFrontUrl}
+                            src={getCredentialImageUrl(booking.nationalIdFrontUrl)}
                             alt="CCCD Front"
                             className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
                           />
@@ -247,7 +249,7 @@ export default function BookingDetailPage() {
                         </button>
                       )}
                       {booking.nationalIdBackUrl && (
-                        <button 
+                        <button
                           onClick={() => {
                             setIdViewerIndex(1);
                             setIdViewerOpen(true);
@@ -255,7 +257,7 @@ export default function BookingDetailPage() {
                           className="group relative h-24 w-36 overflow-hidden rounded-lg border border-border bg-secondary-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                         >
                           <img
-                            src={booking.nationalIdBackUrl}
+                            src={getCredentialImageUrl(booking.nationalIdBackUrl)}
                             alt="CCCD Back"
                             className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
                           />
@@ -346,20 +348,20 @@ export default function BookingDetailPage() {
                   <Lock className="h-5 w-5 text-accent-500" />
                   Tuya Smart Lock
                 </div>
-                <span className={cn('flex h-2.5 w-2.5 rounded-full relative', booking.tuyaSyncStatus === 'SUCCESS' ? 'bg-success-500' : 'bg-warning-500')}>
-                  {booking.tuyaSyncStatus !== 'SUCCESS' && (
+                <span className={cn('flex h-2.5 w-2.5 rounded-full relative', booking.tuyaSyncStatus === 'SYNCED' ? 'bg-success-500' : 'bg-warning-500')}>
+                  {booking.tuyaSyncStatus !== 'SYNCED' && (
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning-400 opacity-75" />
                   )}
                 </span>
               </div>
               <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
-                  <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-full', booking.tuyaSyncStatus === 'SUCCESS' ? 'bg-success-50 text-success-500' : 'bg-warning-50 text-warning-500')}>
-                    {booking.tuyaSyncStatus === 'SUCCESS' ? <CheckCircle className="h-6 w-6" /> : <RotateCcw className="h-6 w-6" />}
+                  <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-full', booking.tuyaSyncStatus === 'SYNCED' ? 'bg-success-50 text-success-500' : 'bg-warning-50 text-warning-500')}>
+                    {booking.tuyaSyncStatus === 'SYNCED' ? <CheckCircle className="h-6 w-6" /> : <RotateCcw className="h-6 w-6" />}
                   </div>
                   <div>
                     <p className="font-bold text-foreground text-sm sm:text-base">
-                      {booking.tuyaSyncStatus === 'SUCCESS' ? 'Đã đồng bộ thành công' : 'Đang xử lý đồng bộ'}
+                      {booking.tuyaSyncStatus === 'SYNCED' ? 'Đã đồng bộ thành công' : 'Đang xử lý đồng bộ'}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <p className="text-xs text-secondary-400 font-medium uppercase tracking-tighter">Status: {booking.tuyaSyncStatus}</p>
@@ -472,7 +474,7 @@ export default function BookingDetailPage() {
         bookingId={booking.bookingId}
         bookingCode={displayedCode}
         roomName={booking.roomName}
-        customerName={booking.guestName}
+        customerName={booking.guestName || ''}
         checkInDate={formatDate(booking.checkInAt)}
         totalAmountStr={formatCurrency(booking.finalAmount)}
       />
@@ -490,18 +492,18 @@ export default function BookingDetailPage() {
         bookingCode={displayedCode}
         roomName={booking.roomName}
         checkInDate={formatDate(booking.checkInAt)}
-        customerName={booking.guestName}
-        customerEmail={booking.guestEmail}
+        customerName={booking.guestName || ''}
+        customerEmail={booking.guestEmail || ''}
       />
 
 
       <IDCardViewer
         open={isIdViewerOpen}
         onClose={() => setIdViewerOpen(false)}
-        customerName={booking.guestName}
+        customerName={booking.guestName || ''}
         updatedAt={formatDate(booking.createdAt)}
-        frontImage={booking.nationalIdFrontUrl}
-        backImage={booking.nationalIdBackUrl}
+        frontImage={getCredentialImageUrl(booking.nationalIdFrontUrl)}
+        backImage={getCredentialImageUrl(booking.nationalIdBackUrl)}
         initialIndex={idViewerIndex}
       />
     </div>

@@ -16,7 +16,7 @@ import { Select } from '@/shared/components/ui/Select';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
-import { cn, formatCurrency } from '@/shared/utils';
+import { cn, formatCurrency, getCredentialImageUrl } from '@/shared/utils';
 import { useRooms } from '@/features/rooms/hooks/useRooms';
 import { useMultiDayAvailability } from '@/features/rooms/hooks/useTimeSlotBooking';
 import { useCalculatePrice } from '@/features/bookings/hooks/useBookings';
@@ -78,8 +78,8 @@ export function EditBookingDialog({
       setPaymentMethod(booking.paymentMethod || 'CASH');
       setTransactionNo(booking.payment?.transactionNo || '');
       
-      setFrontPreview(booking.nationalIdFrontUrl || '');
-      setBackPreview(booking.nationalIdBackUrl || '');
+      setFrontPreview(getCredentialImageUrl(booking.nationalIdFrontUrl) || '');
+      setBackPreview(getCredentialImageUrl(booking.nationalIdBackUrl) || '');
 
       // Pre-select current slots
       const initialSlots: Record<string, string[]> = {};
@@ -463,6 +463,7 @@ export function EditBookingDialog({
                   options={[
                     { value: 'CASH', label: 'Tiền mặt' },
                     { value: 'BANK_TRANSFER', label: 'Chuyển khoản' },
+                    { value: 'OTHER', label: 'Khác' },
                   ]}
                 />
               </div>

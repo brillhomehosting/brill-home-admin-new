@@ -360,67 +360,50 @@ export default function DiscountListPage() {
               </div>
             ) : (
               discounts.map((item) => (
-                <div key={item.id} className="flex flex-col p-4 gap-3 bg-surface hover:bg-secondary-50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-50 text-accent-500">
-                        <Tag className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-foreground text-sm">{item.name}</p>
-                        <p className="text-[10px] text-secondary-400 font-medium">#{item.id.substring(0, 8)}</p>
-                      </div>
-                    </div>
-                    <span
-                      className={cn(
-                        'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase',
+                <div key={item.id} className="flex items-center gap-3 px-4 py-3 bg-surface hover:bg-secondary-50 transition-colors">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-50 text-accent-600 border border-accent-100">
+                    <Tag className="h-4 w-4" />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                      <p className="font-bold text-foreground text-sm truncate">{item.name}</p>
+                      <span className={cn(
+                        'rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase shrink-0',
                         item.status === 'ACTIVE' ? 'bg-success-100 text-success-700' : 'bg-secondary-100 text-secondary-600'
-                      )}
-                    >
-                      {item.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm dừng'}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-lg bg-secondary-50 p-2 border border-border">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-secondary-400">Loại & Giá trị</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className={cn('rounded px-1.5 py-0.5 text-[9px] font-bold uppercase', typeStyles[item.type])}>
-                          {item.type}
-                        </span>
-                        <span className="font-bold text-accent-600 text-sm">
-                          {item.discountType === 'PERCENTAGE' ? `${item.discountValue}%` : formatCurrency(item.discountValue)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="rounded-lg bg-secondary-50 p-2 border border-border">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-secondary-400">Hiệu lực</p>
-                      <p className="mt-1 text-[10px] font-medium text-secondary-600">
-                        {formatDate(item.startDate)} - {formatDate(item.endDate)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-border pt-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleToggleStatus(item)}
-                        disabled={toggleStatus.isPending}
-                        className={cn(
-                          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200",
-                          item.status === 'ACTIVE' ? 'bg-success-500' : 'bg-secondary-300'
-                        )}
-                      >
-                        <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition duration-200", item.status === 'ACTIVE' ? 'translate-x-4' : 'translate-x-0')} />
-                      </button>
-                      <span className="text-xs font-medium text-secondary-500">
-                        {item.status === 'ACTIVE' ? 'Đang bật' : 'Đang tắt'}
+                      )}>
+                        {item.status === 'ACTIVE' ? 'Bật' : 'Tắt'}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" icon={Pencil} onClick={() => handleEdit(item)} />
-                      <Button variant="ghost" size="sm" icon={Trash2} className="text-danger-500" onClick={() => handleDeleteClick(item)} />
+                    <div className="flex items-center gap-1.5 text-[11px] text-secondary-500">
+                      <span className={cn('rounded px-1 py-0.5 text-[9px] font-bold uppercase', typeStyles[item.type])}>
+                        {item.type}
+                      </span>
+                      <span className="font-bold text-accent-600">
+                        {item.discountType === 'PERCENTAGE' ? `${item.discountValue}%` : formatCurrency(item.discountValue)}
+                      </span>
+                      <span className="text-secondary-300">·</span>
+                      <span>{formatDate(item.startDate, { day: '2-digit', month: '2-digit' })} – {formatDate(item.endDate, { day: '2-digit', month: '2-digit' })}</span>
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleToggleStatus(item)}
+                      disabled={toggleStatus.isPending}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200",
+                        item.status === 'ACTIVE' ? 'bg-success-500' : 'bg-secondary-300'
+                      )}
+                    >
+                      <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition duration-200", item.status === 'ACTIVE' ? 'translate-x-4' : 'translate-x-0')} />
+                    </button>
+                    <button onClick={() => handleEdit(item)} className="p-2 text-secondary-400 hover:text-accent-500 active:scale-90 transition-all">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => handleDeleteClick(item)} className="p-2 text-secondary-400 hover:text-danger-500 active:scale-90 transition-all">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               ))

@@ -108,6 +108,13 @@ export const API = {
     REVENUE_TREND: '/admin/dashboard/revenue-trend',
   },
 
+  // ── Tuya Passwords ──
+  TUYA_PASSWORDS: {
+    OVERVIEW: '/admin/tuya-passwords/overview',
+    DEVICE_PASSWORDS: '/admin/tuya-passwords/device-passwords',
+    SYNC: (bookingId: string) => `/admin/tuya-passwords/${bookingId}/sync` as const,
+  },
+
   // ── Uploads ──
   UPLOADS: {
     UPLOAD: '/uploads',

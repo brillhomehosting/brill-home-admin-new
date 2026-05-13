@@ -1,7 +1,7 @@
 import { Header, PageWrapper } from '@/shared/components/layout';
 import { Pagination, Select } from '@/shared/components/ui';
 import { ROUTES } from '@/shared/constants';
-import { cn, formatDate, formatCurrency } from '@/shared/utils';
+import { cn, formatCurrency } from '@/shared/utils';
 import {
   Banknote,
   CalendarDays,
@@ -9,47 +9,19 @@ import {
   Search,
   Loader2,
   Hourglass,
-  User,
-  Home,
-  Clock,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useBookings } from '../hooks/useBookings';
 import { useRooms } from '@/features/rooms/hooks/useRooms';
 import { useDashboardStats } from '@/features/dashboard/hooks/useDashboard';
 import type { BookingStatus } from '@/shared/types';
 import { Button } from '@/shared/components/ui/Button';
+import { BookingListCard } from '../components/BookingCard';
 
 // --- Types ---
 
-const statusMapping: Record<BookingStatus, { label: string; classes: string }> = {
-  CANCELLED: { label: 'Đã hủy', classes: 'bg-danger-100 text-danger-700' },
-  CONFIRMED: {
-    label: 'Đã xác nhận',
-    classes: 'bg-primary-100 text-primary-700',
-  },
-};
-
-const renderStatusPill = (status: BookingStatus) => {
-  const config = statusMapping[status] || {
-    label: status,
-    classes: 'bg-secondary-100 text-secondary-700',
-  };
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-tight',
-        config.classes,
-      )}
-    >
-      {config.label}
-    </span>
-  );
-};
-
 export default function BookingListPage() {
-  const navigate = useNavigate();
   const [page, setPage] = useState(0); 
   const [size] = useState(10);
   const [search, setSearch] = useState('');
@@ -119,91 +91,52 @@ export default function BookingListPage() {
 
       <PageWrapper className="flex-1 space-y-6">
         {/* --- Stats Cards --- */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Booking hôm nay</p>
-                <p className="mt-1 text-2xl font-bold text-foreground">
-                  {stats?.totalBookingsToday ?? 0}
-                </p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary-500">
-                <CalendarDays className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="text-[10px] font-bold text-success-600 flex items-center gap-1 mt-1 uppercase tracking-tighter">
-              <span className="font-extrabold">{stats?.confirmedBookingsToday ?? 0}</span> đã xác nhận
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Đang giữ chỗ</p>
-                <p className="mt-1 text-2xl font-bold text-foreground">
-                  {stats?.pendingBookingsToday ?? 0}
-                </p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning-50 text-warning-500">
-                <Hourglass className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-warning-100">
-              <div 
-                className="h-full bg-warning-400 rounded-full transition-all duration-500" 
-                style={{ width: stats?.totalBookingsToday ? `${(stats.pendingBookingsToday / stats.totalBookingsToday) * 100}%` : '0%' }}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Doanh thu hôm nay</p>
-                <p className="mt-1 text-2xl font-bold text-foreground">
-                  {formatCurrency(stats?.revenueToday ?? 0)}
-                </p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success-50 text-success-500">
-                <Banknote className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="text-[10px] font-bold text-success-600 flex items-center gap-1 mt-1 italic uppercase tracking-tighter">
-              Cập nhật trực tiếp
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Phòng hoạt động</p>
-                <p className="mt-1 text-2xl font-bold text-foreground">
-                  {rooms.length}
-                </p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info-50 text-info-500">
-                <CalendarDays className="h-5 w-5" />
-              </div>
-            </div>
-            <p className="text-[10px] text-secondary-400 mt-1 italic uppercase tracking-tighter">Dựa trên danh sách</p>
-          </div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <MiniStatCard
+            label="Booking hôm nay"
+            value={stats?.confirmedBookingsToday ?? 0}
+            sub="Đã xác nhận"
+            subColor="text-success-600"
+            icon={CalendarDays}
+            iconBg="bg-primary-50 text-primary-500"
+          />
+          <MiniStatCard
+            label="Phòng có khách"
+            value={stats?.occupiedRooms ?? 0}
+            sub={`${stats?.vacantRooms ?? 0} phòng trống`}
+            subColor="text-secondary-500"
+            icon={Hourglass}
+            iconBg="bg-warning-50 text-warning-500"
+          />
+          <MiniStatCard
+            label="Doanh thu hôm nay"
+            value={formatCurrency(stats?.revenueToday ?? 0)}
+            sub="Cập nhật trực tiếp"
+            subColor="text-success-600"
+            icon={Banknote}
+            iconBg="bg-success-50 text-success-500"
+          />
+          <MiniStatCard
+            label="Phòng hoạt động"
+            value={rooms.length}
+            sub="Danh sách phòng"
+            subColor="text-secondary-400"
+            icon={CalendarDays}
+            iconBg="bg-secondary-50 text-secondary-500"
+          />
         </div>
 
         {/* --- Tabs --- */}
-        <div className="border-b border-border overflow-x-auto scrollbar-hide">
-          <nav className="-mb-px flex space-x-6">
+        <div className="border-b border-border overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <nav className="-mb-px flex space-x-4 sm:space-x-6">
             {tabs.map((tab) => {
               const isActive = selectedRoomId === tab.id;
               return (
                 <button
                   key={tab.label}
-                  onClick={() => {
-                    setSelectedRoomId(tab.id);
-                    setPage(0);
-                  }}
+                  onClick={() => { setSelectedRoomId(tab.id); setPage(0); }}
                   className={cn(
-                    'flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-bold transition-colors whitespace-nowrap uppercase tracking-tight',
+                    'flex items-center gap-1.5 border-b-2 px-1 py-3 sm:py-4 text-xs sm:text-sm font-bold transition-colors whitespace-nowrap uppercase tracking-tight',
                     isActive
                       ? 'border-accent-400 text-accent-500'
                       : 'border-transparent text-secondary-400 hover:border-secondary-300 hover:text-secondary-600',
@@ -211,14 +144,10 @@ export default function BookingListPage() {
                 >
                   {tab.label}
                   {tab.count !== null && (
-                    <span
-                      className={cn(
-                        'rounded-full px-2 py-0.5 text-[10px] font-bold',
-                        isActive
-                          ? 'bg-accent-50 text-accent-600'
-                          : 'bg-secondary-100 text-secondary-500',
-                      )}
-                    >
+                    <span className={cn(
+                      'rounded-full px-1.5 py-0.5 text-[9px] font-bold',
+                      isActive ? 'bg-accent-50 text-accent-600' : 'bg-secondary-100 text-secondary-500',
+                    )}>
                       {tab.count}
                     </span>
                   )}
@@ -229,207 +158,107 @@ export default function BookingListPage() {
         </div>
 
         {/* --- Filters Section --- */}
-        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Date Filter */}
-              <div className="flex flex-col gap-1.5 lg:col-span-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Từ ngày</label>
-                <div className="relative">
-                  <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      setPage(0);
-                    }}
-                    className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5 lg:col-span-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Đến ngày</label>
-                <div className="relative">
-                  <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      setPage(0);
-                    }}
-                    className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
-                  />
-                </div>
-              </div>
-
-              {/* Status Filter */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Trạng thái</label>
-                <Select
-                  value={status || ''}
-                  onChange={(e) => {
-                    setStatus((e.target.value as BookingStatus) || undefined);
-                    setPage(0);
-                  }}
-                  options={[
-                    { value: '', label: 'Tất cả trạng thái' },
-                    { value: 'CONFIRMED', label: 'Đã xác nhận' },
-                    { value: 'CANCELLED', label: 'Đã hủy' },
-                  ]}
-                  className="h-10 !text-secondary-950"
+        <div className="rounded-2xl border border-border bg-surface p-4 sm:p-5 shadow-sm transition-shadow hover:shadow-md">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+            {/* Date from */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-secondary-400">Từ ngày</label>
+              <div className="relative">
+                <CalendarDays className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => { setStartDate(e.target.value); setPage(0); }}
+                  className="h-9 w-full rounded-lg border border-border bg-surface pl-8 pr-2 text-xs sm:text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
                 />
               </div>
+            </div>
 
-              {/* Search */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Tìm kiếm</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
-                  <input
-                    type="text"
-                    placeholder="Mã, Tên, SĐT..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
-                  />
-                </div>
+            {/* Date to */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-secondary-400">Đến ngày</label>
+              <div className="relative">
+                <CalendarDays className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => { setEndDate(e.target.value); setPage(0); }}
+                  className="h-9 w-full rounded-lg border border-border bg-surface pl-8 pr-2 text-xs sm:text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
+                />
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-secondary-400">Trạng thái</label>
+              <Select
+                value={status || ''}
+                onChange={(e) => { setStatus((e.target.value as BookingStatus) || undefined); setPage(0); }}
+                options={[
+                  { value: '', label: 'Tất cả' },
+                  { value: 'CONFIRMED', label: 'Đã xác nhận' },
+                  { value: 'CANCELLED', label: 'Đã hủy' },
+                ]}
+                className="h-9 !text-secondary-950 text-xs sm:text-sm"
+              />
+            </div>
+
+            {/* Search */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-secondary-400">Tìm kiếm</label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
+                <input
+                  type="text"
+                  placeholder="Mã, Tên, SĐT..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full h-9 rounded-lg border border-border bg-surface py-2 pl-8 pr-2 text-xs sm:text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
+                />
               </div>
             </div>
           </div>
         </div>
 
-        {/* --- Table Section --- */}
-        <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between sm:justify-end gap-3 px-1 sm:px-0 py-2">
-             <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider px-3">
-               Tổng số: {totalElements}
-             </span>
+        {/* --- Booking List --- */}
+        <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+          <div className="flex items-center justify-between gap-3 border-b border-border bg-surface-dim/50 px-4 py-3">
+            <div className="text-sm font-bold text-foreground">
+              Bảng đặt phòng
+            </div>
+            <span className="text-xs font-semibold text-secondary-500">
+              {totalElements} kết quả
+            </span>
           </div>
 
-          {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="min-w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-surface-dim uppercase text-secondary-500 text-xs font-semibold tracking-wider border-b border-border">
-                <tr>
-                  <th scope="col" className="px-5 py-4">Mã Booking</th>
-                  <th scope="col" className="px-5 py-4 text-center">Trạng thái</th>
-                  <th scope="col" className="px-5 py-4">Phòng</th>
-                  <th scope="col" className="px-5 py-4">Khách hàng</th>
-                  <th scope="col" className="px-5 py-4">SĐT</th>
-                  <th scope="col" className="px-5 py-4">Thời gian</th>
-                  <th scope="col" className="px-5 py-4 text-right">Tổng tiền</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-10 text-center text-secondary-500">
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
-                        <span className="text-sm font-medium">Đang tải dữ liệu...</span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : bookings.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-10 text-center text-secondary-500 font-medium">
-                      Không tìm thấy booking nào phù hợp.
-                    </td>
-                  </tr>
-                ) : (
-                  bookings.map((booking) => (
-                    <tr key={booking.bookingId} className="hover:bg-secondary-50/50 transition-colors group cursor-pointer" onClick={() => navigate(`/apps/bookings/${booking.bookingId}`)}>
-                      <td className="px-5 py-4">
-                        <Link
-                          to={`/apps/bookings/${booking.bookingId}`}
-                          className="text-sm font-bold text-primary-600 hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          #{booking.bookingCode}
-                        </Link>
-                      </td>
-                      <td className="px-5 py-4 text-center">
-                        {renderStatusPill(booking.status)}
-                      </td>
-                      <td className="px-5 py-4 font-bold text-foreground">{booking.roomName}</td>
-                      <td className="px-5 py-4 font-medium text-foreground">{booking.guestName}</td>
-                      <td className="px-5 py-4 text-secondary-600 font-medium">{booking.guestPhone}</td>
-                      <td className="px-5 py-4">
-                        <p className="font-bold text-foreground text-xs">
-                          {formatDate(booking.checkInAt, { hour: '2-digit', minute: '2-digit' })} -{' '}
-                          {formatDate(booking.checkOutAt, { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                        <p className="text-[10px] text-secondary-400 font-bold uppercase tracking-tighter">{formatDate(booking.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
-                      </td>
-                      <td className="px-5 py-4 text-right font-extrabold text-foreground">{formatCurrency(booking.finalAmount)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          {/* Desktop Header */}
+          <div className="hidden border-b-2 border-border bg-secondary-50 px-5 py-3.5 md:grid md:grid-cols-[minmax(220px,1.2fr)_minmax(150px,1fr)_minmax(180px,1fr)_minmax(140px,1fr)_minmax(120px,0.8fr)_40px] gap-4 items-center">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-secondary-600">Khách hàng</span>
+            <span className="text-xs font-extrabold uppercase tracking-wider text-secondary-600">Phòng & Mã</span>
+            <span className="text-xs font-extrabold uppercase tracking-wider text-secondary-600">Lưu trú</span>
+            <span className="text-xs font-extrabold uppercase tracking-wider text-secondary-600">Trạng thái</span>
+            <span className="text-xs font-extrabold uppercase tracking-wider text-secondary-600 text-right">Tổng tiền</span>
+            <span />
           </div>
 
-          {/* Mobile Card View */}
-          <div className="md:hidden divide-y divide-border">
+          <div className="px-2 py-2 md:px-3 md:py-2">
             {isLoading ? (
-              <div className="px-5 py-10 text-center">
-                <Loader2 className="h-6 w-6 animate-spin text-primary-500 mx-auto" />
+              <div className="flex flex-col items-center justify-center gap-3 py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+                <span className="text-sm font-medium text-secondary-500">Đang tải dữ liệu...</span>
               </div>
             ) : bookings.length === 0 ? (
-              <div className="px-5 py-10 text-center text-secondary-500 text-sm">
-                Không tìm thấy booking.
+              <div className="py-16 text-center text-secondary-500 text-sm font-medium">
+                Không tìm thấy booking nào phù hợp.
               </div>
             ) : (
-              bookings.map((booking) => (
-                <Link 
-                  key={booking.bookingId} 
-                  to={`/apps/bookings/${booking.bookingId}`}
-                  className="flex flex-col p-4 gap-3 bg-surface hover:bg-secondary-50 active:bg-secondary-100 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-50 text-primary-500">
-                        <Home className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-foreground text-sm">#{booking.bookingCode}</p>
-                        <p className="text-[10px] text-secondary-400 font-bold uppercase">{booking.roomName}</p>
-                      </div>
-                    </div>
-                    {renderStatusPill(booking.status)}
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-secondary-600">
-                      <User className="h-3.5 w-3.5 text-secondary-400" />
-                      <span className="text-xs font-bold">{booking.guestName}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-accent-600 font-extrabold text-sm">
-                      <Banknote className="h-3.5 w-3.5" />
-                      {formatCurrency(booking.finalAmount)}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-[10px] font-bold text-secondary-400 uppercase tracking-tighter border-t border-border pt-2">
-                    <div className="flex items-center gap-1">
-                      <CalendarDays className="h-3 w-3" />
-                      {formatDate(booking.date)}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatDate(booking.checkInAt, { hour: '2-digit', minute: '2-digit' })} - {formatDate(booking.checkOutAt, { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </div>
-                </Link>
+              bookings.map((booking, index) => (
+                <BookingListCard key={booking.bookingId} booking={booking} index={index} />
               ))
             )}
           </div>
 
-          {/* Pagination */}
-          <div className="border-t border-border px-4 py-4 sm:px-6">
+          <div className="border-t border-border px-4 py-4 sm:px-6 bg-surface">
             <Pagination
               currentPage={page + 1}
               totalPages={totalPages}
@@ -439,6 +268,30 @@ export default function BookingListPage() {
           </div>
         </div>
       </PageWrapper>
+    </div>
+  );
+}
+
+function MiniStatCard({ label, value, sub, subColor, icon: Icon, iconBg }: {
+  label: string;
+  value: string | number;
+  sub: string;
+  subColor: string;
+  icon: any;
+  iconBg: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 rounded-2xl border border-border bg-surface p-3 sm:p-5 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex items-start justify-between gap-1">
+        <div className="min-w-0">
+          <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-secondary-400 leading-tight">{label}</p>
+          <p className="mt-0.5 sm:mt-1 text-lg sm:text-2xl font-bold text-foreground truncate">{value}</p>
+        </div>
+        <div className={cn('flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg', iconBg)}>
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+        </div>
+      </div>
+      <p className={cn('text-[9px] sm:text-[10px] font-bold uppercase tracking-tighter', subColor)}>{sub}</p>
     </div>
   );
 }
