@@ -105,6 +105,7 @@ export const API = {
     STATS: '/admin/dashboard/stats',
     RECENT_BOOKINGS: '/admin/dashboard/recent-bookings',
     UPCOMING_BOOKINGS: '/admin/dashboard/upcoming-bookings',
+    REVENUE_TREND: '/admin/dashboard/revenue-trend',
   },
 
   // ── Uploads ──
