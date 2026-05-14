@@ -2,13 +2,21 @@ import { Header, PageWrapper } from '@/shared/components/layout';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/shared/components/feedback/Toast';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { ROUTES } from '@/shared/constants';
 
 export default function ProfilePage() {
   const { toast } = useToast();
+  const { logoutAllDevices } = useAuth();
+  const navigate = useNavigate();
+
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const [isLoggingOutAll, setIsLoggingOutAll] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,6 +25,19 @@ export default function ProfilePage() {
       return;
     }
     toast('Đổi mật khẩu thành công (Demo)', 'success');
+  };
+
+  const handleLogoutAll = async () => {
+    setIsLoggingOutAll(true);
+    try {
+      await logoutAllDevices();
+      navigate(ROUTES.SIGN_IN, { replace: true });
+    } catch {
+      toast('Đã đăng xuất thiết bị hiện tại', 'success');
+      navigate(ROUTES.SIGN_IN, { replace: true });
+    } finally {
+      setIsLoggingOutAll(false);
+    }
   };
 
   return (
@@ -40,6 +61,22 @@ export default function ProfilePage() {
             </div>
             <Button type="submit" className="w-full">Cập nhật mật khẩu</Button>
           </form>
+        </div>
+
+        <div className="max-w-md mx-auto bg-white p-6 rounded-xl border border-red-200">
+          <h2 className="text-lg font-bold mb-1 text-red-600">Đăng xuất tất cả thiết bị</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Hành động này sẽ vô hiệu hoá tất cả phiên đăng nhập đang hoạt động trên mọi thiết bị,
+            bao gồm thiết bị hiện tại. Bạn sẽ cần đăng nhập lại.
+          </p>
+          <Button
+            type="button"
+            onClick={handleLogoutAll}
+            disabled={isLoggingOutAll}
+            className="w-full bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+          >
+            {isLoggingOutAll ? 'Đang xử lý...' : 'Đăng xuất tất cả thiết bị'}
+          </Button>
         </div>
       </PageWrapper>
     </div>

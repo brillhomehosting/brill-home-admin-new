@@ -35,4 +35,20 @@ export async function refreshToken(
   return data.data.tokens;
 }
 
-export const authService = { login, refreshToken };
+/**
+ * Invalidate the current device's refresh token.
+ * Backend: POST /api/v1/accounts/logout
+ */
+export async function logout(refreshToken: string): Promise<void> {
+  await api.post(API.AUTH.LOGOUT, { refreshToken });
+}
+
+/**
+ * Invalidate all refresh tokens for the authenticated account (logout all devices).
+ * Backend: POST /api/v1/accounts/logout-all
+ */
+export async function logoutAllDevices(): Promise<void> {
+  await api.post(API.AUTH.LOGOUT_ALL);
+}
+
+export const authService = { login, refreshToken, logout, logoutAllDevices };
