@@ -29,7 +29,7 @@ export type DashboardBooking = {
 export type RoomTrackerBooking = {
   bookingId: string;
   bookingCode: string;
-  guestName: string;
+  guestName: string | null;
   guestPhone?: string;
   checkInAt: string;
   checkOutAt: string;

@@ -496,6 +496,14 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
+function getTrackerGuestName(guestName: string | null | undefined, fallback = 'Khách chưa có tên') {
+  if (!guestName) {
+    return fallback;
+  }
+
+  return guestName.includes('Ã') ? 'Khách hàng cũ' : guestName;
+}
+
 function RoomTrackerRow({ tracker, slots }: { tracker: RoomTracker; slots: BookingAvailabilitySlot[] }) {
   const isAvailable = tracker.status === 'AVAILABLE' || tracker.status === 'VACANT';
 
@@ -547,9 +555,9 @@ function RoomTrackerRow({ tracker, slots }: { tracker: RoomTracker; slots: Booki
               <Link
                 to={`/apps/bookings/${tracker.currentBooking.bookingId}`}
                 className="font-semibold text-foreground truncate block hover:text-primary-600"
-                title={tracker.currentBooking.guestName}
+                title={getTrackerGuestName(tracker.currentBooking.guestName)}
               >
-                {tracker.currentBooking.guestName.includes('Ã') ? 'Khách cũ' : tracker.currentBooking.guestName}
+                {getTrackerGuestName(tracker.currentBooking.guestName, 'Khách cũ')}
               </Link>
               <p className="text-secondary-500 text-[10px] mt-0.5">
                 Out: <span className="font-medium text-foreground">{formatDate(tracker.currentBooking.checkOutAt, { hour: '2-digit', minute: '2-digit' })}</span>
@@ -580,9 +588,9 @@ function RoomTrackerRow({ tracker, slots }: { tracker: RoomTracker; slots: Booki
               <Link
                 to={`/apps/bookings/${tracker.nextBooking.bookingId}`}
                 className="font-semibold text-foreground truncate block hover:text-primary-600"
-                title={tracker.nextBooking.guestName}
+                title={getTrackerGuestName(tracker.nextBooking.guestName)}
               >
-                {tracker.nextBooking.guestName.includes('Ã') ? 'Khách cũ' : tracker.nextBooking.guestName}
+                {getTrackerGuestName(tracker.nextBooking.guestName, 'Khách cũ')}
               </Link>
               <p className="text-secondary-500 text-[10px] mt-0.5">
                 In: <span className="font-medium text-foreground">{formatDate(tracker.nextBooking.checkInAt, { hour: '2-digit', minute: '2-digit' })}</span>
@@ -650,8 +658,8 @@ function RoomTrackerItem({ tracker, slots }: { tracker: RoomTracker; slots: Book
               <span>Hiện tại</span>
               <Link to={`/apps/bookings/${tracker.currentBooking.bookingId}`} className="text-primary-600 hover:underline">#{tracker.currentBooking.bookingCode}</Link>
             </div>
-            <p className="font-semibold text-foreground truncate text-[11px]" title={tracker.currentBooking.guestName}>
-              {tracker.currentBooking.guestName.includes('Ã') ? 'Khách hàng cũ' : tracker.currentBooking.guestName}
+            <p className="font-semibold text-foreground truncate text-[11px]" title={getTrackerGuestName(tracker.currentBooking.guestName)}>
+              {getTrackerGuestName(tracker.currentBooking.guestName)}
             </p>
             <p className="text-secondary-500">
               Out: <span className="font-medium text-foreground">{formatDate(tracker.currentBooking.checkOutAt, { hour: '2-digit', minute: '2-digit' })}</span>
@@ -674,8 +682,8 @@ function RoomTrackerItem({ tracker, slots }: { tracker: RoomTracker; slots: Book
               <span>Tiếp theo</span>
               <Link to={`/apps/bookings/${tracker.nextBooking.bookingId}`} className="text-primary-600 hover:underline">#{tracker.nextBooking.bookingCode}</Link>
             </div>
-            <p className="font-medium text-foreground truncate text-[11px]" title={tracker.nextBooking.guestName}>
-               {tracker.nextBooking.guestName.includes('Ã') ? 'Khách hàng cũ' : tracker.nextBooking.guestName}
+            <p className="font-medium text-foreground truncate text-[11px]" title={getTrackerGuestName(tracker.nextBooking.guestName)}>
+               {getTrackerGuestName(tracker.nextBooking.guestName)}
             </p>
             <p className="text-secondary-400 text-[10px]">
               In: <span className="font-medium text-foreground">{formatDate(tracker.nextBooking.checkInAt, { hour: '2-digit', minute: '2-digit' })}</span>
