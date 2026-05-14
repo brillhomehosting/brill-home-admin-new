@@ -8,6 +8,8 @@ export const API = {
   AUTH: {
     LOGIN: '/accounts/login',
     REFRESH_TOKEN: '/accounts/refresh-token',
+    LOGOUT: '/accounts/logout',
+    LOGOUT_ALL: '/accounts/logout-all',
   },
 
   // ── Rooms ──

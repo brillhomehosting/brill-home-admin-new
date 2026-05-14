@@ -12,6 +12,14 @@ export type RevenueTrendItem = {
   bookingCount: number;
 };
 
+export type RevenueTrendRoomItem = {
+  date: string;
+  roomId: string;
+  roomName: string;
+  revenue: number;
+  bookingCount: number;
+};
+
 export type DashboardBooking = {
   bookingId: string;
   bookingCode: string;

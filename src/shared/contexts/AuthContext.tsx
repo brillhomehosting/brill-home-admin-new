@@ -28,6 +28,7 @@ type AuthState = {
 type AuthContextValue = AuthState & {
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
+  logoutAllDevices: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -164,8 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [scheduleRefresh],
   );
 
-  // ── Logout ──
-  const logout = useCallback(() => {
+  // ── Shared local cleanup ──
+  const clearAuthState = useCallback(() => {
     clearTimeout(refreshTimerRef.current);
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
@@ -173,10 +174,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ user: null, isAuthenticated: false, isLoading: false });
   }, []);
 
+  // ── Logout (current device) ──
+  const logout = useCallback(() => {
+    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    if (storedRefreshToken) {
+      authService.logout(storedRefreshToken).catch(() => {});
+    }
+    clearAuthState();
+  }, [clearAuthState]);
+
+  // ── Logout all devices ──
+  const logoutAllDevices = useCallback(async () => {
+    try {
+      await authService.logoutAllDevices();
+    } catch {
+      // ignore backend errors — clear locally regardless
+    }
+    clearAuthState();
+  }, [clearAuthState]);
+
   // ── Memoised value ──
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, login, logout }),
-    [state, login, logout],
+    () => ({ ...state, login, logout, logoutAllDevices }),
+    [state, login, logout, logoutAllDevices],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

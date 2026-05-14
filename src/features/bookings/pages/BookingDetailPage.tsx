@@ -192,6 +192,43 @@ export default function BookingDetailPage() {
               </div>
             )}
 
+            {booking.status === 'CANCELLED' && (
+              <div className="rounded-xl border border-danger-100 bg-danger-50/40 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-2 border-b border-danger-100 bg-danger-50 px-5 py-4 text-sm font-semibold text-danger-700">
+                  <XCircle className="h-5 w-5" />
+                  Thông tin hủy booking
+                </div>
+                <div className="grid grid-cols-1 gap-4 p-4 sm:p-5 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-danger-400">Lý do hủy</p>
+                    <p className="mt-1 text-sm font-semibold text-danger-800">
+                      {booking.cancellationReason || 'Chưa có lý do hủy.'}
+                    </p>
+                  </div>
+                  {booking.cancellationNote && (
+                    <div className="sm:col-span-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-danger-400">Ghi chú nội bộ</p>
+                      <p className="mt-1 whitespace-pre-line text-sm text-secondary-700">
+                        {booking.cancellationNote}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-danger-400">Thời gian hủy</p>
+                    <p className="mt-1 text-sm font-medium text-secondary-700">
+                      {booking.cancelledAt ? formatDate(booking.cancelledAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric', hour12: false }) : 'Chưa có thông tin'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-danger-400">Nguồn hủy</p>
+                    <p className="mt-1 text-sm font-medium text-secondary-700">
+                      {booking.cancelledByType || 'Chưa có thông tin'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Customer Info */}
             <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
               <div className="flex items-center justify-between border-b border-border bg-surface-dim px-5 py-4">
