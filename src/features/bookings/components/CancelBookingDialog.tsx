@@ -34,13 +34,13 @@ export function CancelBookingDialog({
   const { cancelBooking } = useBookingMutation();
 
   const handleCancel = async () => {
-    // Combine base reason and internal note if needed, 
-    // but the API specifically asks for cancellationReason.
-    const fullReason = note ? `${reason}: ${note}` : reason;
-    
     await cancelBooking.mutateAsync({ 
       bookingId, 
-      reason: fullReason 
+      data: {
+        cancellationReason: reason,
+        cancellationNote: note.trim() || undefined,
+        sendCancellationEmail: sendEmail,
+      },
     });
     
     onClose();

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingService } from '@/shared/services/booking.service';
 import { bookingKeys } from './queryKeys';
 import { useToast } from '@/shared/components/feedback/Toast';
-import type { ConfirmPaymentData, AdminCreateBookingData } from '@/shared/types';
+import type { ConfirmPaymentData, AdminCreateBookingData, CancelBookingData } from '@/shared/types';
 
 /**
  * Hook for booking-related mutations (cancel, update status, etc.)
@@ -12,15 +12,10 @@ export function useBookingMutation() {
   const { toast } = useToast();
 
   const cancelMutation = useMutation({
-    mutationFn: ({ bookingId, reason }: { bookingId: string; reason: string }) =>
-      bookingService.cancelBooking(bookingId, reason),
-    onSuccess: (_, { bookingId }) => {
+    mutationFn: ({ bookingId, data }: { bookingId: string; data: CancelBookingData }) =>
+      bookingService.cancelBooking(bookingId, data),
+    onSuccess: () => {
       toast('Hủy booking thành công', 'success');
-      
-      // Automatically trigger cancellation email
-      bookingService.resendCancellation(bookingId).catch(() => {
-        console.error('Failed to send auto cancellation email');
-      });
 
       // Invalidate both the list and the specific detail query
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });

@@ -5,6 +5,7 @@ import { Header, PageWrapper } from '@/shared/components/layout';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Select } from '@/shared/components/ui/Select';
+import { Textarea } from '@/shared/components/ui/Textarea';
 import { ROUTES } from '@/shared/constants';
 import { cn, formatCurrency } from '@/shared/utils';
 import { 
@@ -38,7 +39,7 @@ export default function CreateBookingPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [note] = useState('');
+  const [note, setNote] = useState('');
   const [nationalIdFrontFile, setNationalIdFrontFile] = useState<File | null>(null);
   const [nationalIdBackFile, setNationalIdBackFile] = useState<File | null>(null);
   const [frontPreview, setFrontPreview] = useState<string>('');
@@ -198,7 +199,7 @@ export default function CreateBookingPage() {
         guestPhone: customerPhone.trim() || undefined,
         nationalIdFrontUrl: frontUrl || undefined,
         nationalIdBackUrl: backUrl || undefined,
-        note: note || 'Admin Created',
+        note: note.trim() || undefined,
         paymentMethod,
         transactionNo: transactionNo || undefined,
         paymentNote: paymentNote || undefined,
@@ -413,6 +414,16 @@ export default function CreateBookingPage() {
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
                     className="h-9 text-sm font-semibold rounded-lg border-secondary-200"
+                  />
+                </div>
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Ghi chú</label>
+                  <Textarea
+                    placeholder="Ghi chú cho admin..."
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    rows={3}
+                    className="min-h-[72px] text-sm font-medium rounded-lg border-secondary-200"
                   />
                 </div>
                 

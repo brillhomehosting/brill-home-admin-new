@@ -48,10 +48,18 @@ export function useAllRoomsAvailability(date: string) {
   });
 }
 
-export function useRevenueTrend(startDate: string, endDate: string) {
+export function useRevenueTrend(startDate: string, endDate: string, roomId?: string, enabled = true) {
   return useQuery({
-    queryKey: ['dashboard', 'revenue-trend', startDate, endDate],
-    queryFn: () => dashboardService.getRevenueTrend(startDate, endDate),
-    enabled: !!startDate && !!endDate,
+    queryKey: ['dashboard', 'revenue-trend', startDate, endDate, roomId ?? 'all'],
+    queryFn: () => dashboardService.getRevenueTrend(startDate, endDate, roomId),
+    enabled: enabled && !!startDate && !!endDate,
+  });
+}
+
+export function useRevenueTrendByRoom(startDate: string, endDate: string, enabled = true) {
+  return useQuery({
+    queryKey: ['dashboard', 'revenue-trend-by-room', startDate, endDate],
+    queryFn: () => dashboardService.getRevenueTrendByRoom(startDate, endDate),
+    enabled: enabled && !!startDate && !!endDate,
   });
 }

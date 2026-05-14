@@ -83,6 +83,10 @@ export type BookingPayment = {
 
 export type AdminBookingDetail = AdminBooking & {
   note: string;
+  cancelledAt?: string;
+  cancelledByType?: string;
+  cancellationReason?: string;
+  cancellationNote?: string;
   nationalIdFrontUrl: string;
   nationalIdBackUrl: string;
   originalAmount: number;
@@ -135,6 +139,13 @@ export type AdminCreateBookingData = {
   proofImageUrls?: string[];
   paymentNote?: string;
   sendConfirmationEmail?: boolean;
+};
+
+export type CancelBookingData = {
+  cancellationReason: string;
+  cancellationNote?: string;
+  sendCancellationEmail?: boolean;
+  email?: string;
 };
 
 export type BookingAvailabilitySlot = {

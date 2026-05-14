@@ -12,6 +12,7 @@ import type {
   GetBookingsParams,
   ConfirmPaymentData,
   AdminCreateBookingData,
+  CancelBookingData,
   BookingAvailabilityResponse,
   BookingAvailabilitySlot,
   TuyaSyncResponse,
@@ -121,8 +122,8 @@ export async function getBookingDetail(bookingId: string) {
 }
 
 /** PATCH /admin/bookings/:id/cancel */
-export async function cancelBooking(bookingId: string, reason: string) {
-  await api.patch(API.BOOKINGS.CANCEL(bookingId), { cancellationReason: reason });
+export async function cancelBooking(bookingId: string, payload: CancelBookingData) {
+  await api.patch(API.BOOKINGS.CANCEL(bookingId), payload);
 }
 
 /** POST /admin/bookings/:id/resend-confirmation */
