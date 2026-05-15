@@ -26,6 +26,9 @@ export type MonitorSystem = {
   systemCpuLoad?: number | null;
   totalPhysicalMemoryBytes?: number | null;
   freePhysicalMemoryBytes?: number | null;
+  availablePhysicalMemoryBytes?: number | null;
+  usedPhysicalMemoryBytes?: number | null;
+  bufferCacheMemoryBytes?: number | null;
   diskTotalBytes: number;
   diskFreeBytes: number;
   diskUsableBytes: number;

@@ -67,9 +67,11 @@ export default function MonitorPage() {
 
 function MonitorContent({ data }: { data: MonitorOverview }) {
   const heapPercent = percent(data.jvm.heapUsedBytes, data.jvm.heapMaxBytes);
-  const memoryUsed = data.system.totalPhysicalMemoryBytes && data.system.freePhysicalMemoryBytes
-    ? data.system.totalPhysicalMemoryBytes - data.system.freePhysicalMemoryBytes
-    : null;
+  const memoryUsed = data.system.usedPhysicalMemoryBytes ?? (
+    data.system.totalPhysicalMemoryBytes && data.system.freePhysicalMemoryBytes && data.system.bufferCacheMemoryBytes
+      ? data.system.totalPhysicalMemoryBytes - data.system.freePhysicalMemoryBytes - data.system.bufferCacheMemoryBytes
+      : null
+  );
   const memoryPercent = memoryUsed && data.system.totalPhysicalMemoryBytes
     ? percent(memoryUsed, data.system.totalPhysicalMemoryBytes)
     : null;
@@ -97,12 +99,12 @@ function MonitorContent({ data }: { data: MonitorOverview }) {
           tone={data.database.status === 'UP' ? 'success' : 'danger'}
         />
         <MetricCard title="CPU" value={formatPercent(data.system.systemCpuLoad)} detail="System load" icon={Cpu} />
-        <MetricCard title="Heap" value={formatPercentValue(heapPercent)} detail={formatBytes(data.jvm.heapUsedBytes)} icon={MemoryStick} />
+        <MetricCard title="Available" value={formatBytes(data.system.availablePhysicalMemoryBytes)} detail="Memory available" icon={MemoryStick} />
         <MetricCard title="Disk" value={formatPercentValue(diskPercent)} detail={formatBytes(diskUsed)} icon={HardDrive} />
         <MetricCard title="Uptime" value={formatDuration(data.application.uptimeMillis)} detail={`PID ${data.application.processId}`} icon={Clock} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Panel title="Application" icon={Server}>
           <InfoGrid
             items={[
@@ -132,10 +134,17 @@ function MonitorContent({ data }: { data: MonitorOverview }) {
           </div>
         </Panel>
 
-        <Panel title="System" icon={Activity}>
+        <Panel title="System" icon={Activity} className="xl:col-span-2">
           <div className="space-y-4">
-            <Meter label="Physical memory" value={memoryPercent} detail={memoryUsed ? `${formatBytes(memoryUsed)} / ${formatBytes(data.system.totalPhysicalMemoryBytes)}` : '—'} />
+            <Meter label="Memory used" value={memoryPercent} detail={memoryUsed ? `${formatBytes(memoryUsed)} / ${formatBytes(data.system.totalPhysicalMemoryBytes)}` : '—'} />
             <Meter label="Disk used" value={diskPercent} detail={`${formatBytes(diskUsed)} / ${formatBytes(data.system.diskTotalBytes)}`} />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <SmallStat label="Total" value={formatBytes(data.system.totalPhysicalMemoryBytes)} />
+              <SmallStat label="Used" value={formatBytes(memoryUsed)} />
+              <SmallStat label="Free" value={formatBytes(data.system.freePhysicalMemoryBytes)} />
+              <SmallStat label="Buff/cache" value={formatBytes(data.system.bufferCacheMemoryBytes)} />
+              <SmallStat label="Available" value={formatBytes(data.system.availablePhysicalMemoryBytes)} />
+            </div>
             <InfoGrid
               items={[
                 ['Processors', data.system.availableProcessors],
@@ -243,9 +252,9 @@ function MetricCard({ title, value, detail, icon: Icon }: {
   );
 }
 
-function Panel({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
+function Panel({ title, icon: Icon, children, className }: { title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
   return (
-    <section className="rounded-xl border border-border bg-surface shadow-sm">
+    <section className={cn("rounded-xl border border-border bg-surface shadow-sm", className)}>
       <div className="flex items-center gap-2 border-b border-border bg-surface-dim px-5 py-4 text-sm font-bold text-secondary-700">
         <Icon className="h-5 w-5 text-accent-500" />
         {title}
@@ -272,9 +281,9 @@ function Meter({ label, value, detail }: { label: string; value?: number | null;
   const safeValue = value == null ? 0 : Math.max(0, Math.min(100, value));
   return (
     <div>
-      <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
+      <div className="mb-1.5 flex flex-col gap-1 text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <span className="font-bold text-secondary-600">{label}</span>
-        <span className="font-medium text-secondary-500">{detail}</span>
+        <span className="font-medium text-secondary-500 sm:text-right">{detail}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-secondary-100">
         <div
@@ -289,11 +298,11 @@ function Meter({ label, value, detail }: { label: string; value?: number | null;
   );
 }
 
-function SmallStat({ label, value }: { label: string; value: number }) {
+function SmallStat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-border bg-surface-dim p-4">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">{label}</p>
-      <p className="mt-1 text-2xl font-black text-foreground">{value}</p>
+    <div className="min-w-0 rounded-lg border border-border bg-surface-dim p-3 sm:p-4">
+      <p className="truncate text-[10px] font-bold uppercase tracking-wider text-secondary-400">{label}</p>
+      <p className="mt-1 break-words text-base font-black leading-tight text-foreground sm:text-lg">{value}</p>
     </div>
   );
 }
