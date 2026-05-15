@@ -88,9 +88,9 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         />
       )}
 
-      <aside
+    <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-[201] flex w-60 flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 lg:z-sticky lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-[4001] flex w-60 flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 lg:z-sticky lg:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >

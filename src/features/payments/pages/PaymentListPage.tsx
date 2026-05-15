@@ -195,7 +195,7 @@ export default function PaymentListPage() {
       <PageWrapper className="flex-1 space-y-6">
         <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
           {/* Filters */}
-          <div className="flex flex-col gap-3 border-b border-border p-3.5 bg-surface/50">
+          <div className="flex flex-col gap-4 border-b border-border p-4 sm:p-5 bg-surface/50">
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <Select
                 value={status || ''}
@@ -355,22 +355,24 @@ export default function PaymentListPage() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="font-bold text-foreground text-sm">#{pm.bookingCode}</span>
-                        <span className={cn('rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase', pmStatus.classes)}>
+                      <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                        <span className="font-bold text-foreground text-sm truncate">#{pm.bookingCode}</span>
+                        <span className={cn('rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase shrink-0', pmStatus.classes)}>
                           {pmStatus.label}
                         </span>
                       </div>
                       <p className="text-[11px] text-secondary-500 truncate">
-                        {methodMapping[pm.paymentMethod] || pm.paymentMethod} · <span className="text-secondary-400">{pm.transactionNo || pm.paymentCode}</span>
+                        {methodMapping[pm.paymentMethod] || pm.paymentMethod} · <span className="text-secondary-400 font-medium">{pm.transactionNo || pm.paymentCode}</span>
                       </p>
-                      <p className="text-[10px] text-secondary-400 mt-0.5">
-                        {formatDate(pm.createdAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-[10px] text-secondary-400">
+                          {formatDate(pm.createdAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="shrink-0 text-right">
-                      <p className="font-extrabold text-sm text-foreground">{formatCurrency(pm.amount)}</p>
+                    <div className="shrink-0 text-right self-start pt-0.5">
+                      <p className="font-black text-sm text-foreground">{formatCurrency(pm.amount)}</p>
                     </div>
                   </div>
                 );

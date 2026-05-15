@@ -24,12 +24,12 @@ export function PaymentDetailDrawer({ open, onClose, data, onRefundClick }: Draw
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 z-[201] bg-black/30 backdrop-blur-sm transition-opacity" 
+        className="fixed inset-0 z-overlay bg-black/30 backdrop-blur-sm transition-opacity" 
         onClick={onClose} 
       />
 
       {/* Drawer Panel */}
-      <div className="fixed inset-y-0 right-0 z-[202] w-full max-w-[420px] bg-surface shadow-2xl flex flex-col transform transition-transform duration-300">
+      <div className="fixed inset-y-0 right-0 z-[4001] w-full max-w-[420px] bg-surface shadow-2xl flex flex-col transform transition-transform duration-300">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
