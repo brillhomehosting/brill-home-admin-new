@@ -13,6 +13,7 @@ import {
   Database,
   User,
   KeyRound,
+  MonitorCog,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/shared/utils';
@@ -50,6 +51,12 @@ const navigation: NavGroup[] = [
       { label: 'System Configs', path: '/settings/system-configs', icon: Settings },
       { label: 'Combo Configs', path: '/settings/combo-configs', icon: PackageOpen },
       { label: 'Cache Data', path: '/settings/caches', icon: Database },
+    ],
+  },
+  {
+    title: 'Developer',
+    items: [
+      { label: 'System Monitor', path: ROUTES.MONITOR, icon: MonitorCog },
     ],
   },
 ];
