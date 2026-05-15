@@ -67,9 +67,11 @@ export default function MonitorPage() {
 
 function MonitorContent({ data }: { data: MonitorOverview }) {
   const heapPercent = percent(data.jvm.heapUsedBytes, data.jvm.heapMaxBytes);
-  const memoryUsed = data.system.totalPhysicalMemoryBytes && data.system.freePhysicalMemoryBytes
-    ? data.system.totalPhysicalMemoryBytes - data.system.freePhysicalMemoryBytes
-    : null;
+  const memoryUsed = data.system.usedPhysicalMemoryBytes ?? (
+    data.system.totalPhysicalMemoryBytes && data.system.availablePhysicalMemoryBytes
+      ? data.system.totalPhysicalMemoryBytes - data.system.availablePhysicalMemoryBytes
+      : null
+  );
   const memoryPercent = memoryUsed && data.system.totalPhysicalMemoryBytes
     ? percent(memoryUsed, data.system.totalPhysicalMemoryBytes)
     : null;
@@ -97,7 +99,7 @@ function MonitorContent({ data }: { data: MonitorOverview }) {
           tone={data.database.status === 'UP' ? 'success' : 'danger'}
         />
         <MetricCard title="CPU" value={formatPercent(data.system.systemCpuLoad)} detail="System load" icon={Cpu} />
-        <MetricCard title="Heap" value={formatPercentValue(heapPercent)} detail={formatBytes(data.jvm.heapUsedBytes)} icon={MemoryStick} />
+        <MetricCard title="Memory" value={formatPercentValue(memoryPercent)} detail={`${formatBytes(data.system.availablePhysicalMemoryBytes)} available`} icon={MemoryStick} />
         <MetricCard title="Disk" value={formatPercentValue(diskPercent)} detail={formatBytes(diskUsed)} icon={HardDrive} />
         <MetricCard title="Uptime" value={formatDuration(data.application.uptimeMillis)} detail={`PID ${data.application.processId}`} icon={Clock} />
       </div>
@@ -134,13 +136,16 @@ function MonitorContent({ data }: { data: MonitorOverview }) {
 
         <Panel title="System" icon={Activity}>
           <div className="space-y-4">
-            <Meter label="Physical memory" value={memoryPercent} detail={memoryUsed ? `${formatBytes(memoryUsed)} / ${formatBytes(data.system.totalPhysicalMemoryBytes)}` : '—'} />
+            <Meter label="Memory used" value={memoryPercent} detail={memoryUsed ? `${formatBytes(memoryUsed)} / ${formatBytes(data.system.totalPhysicalMemoryBytes)}` : '—'} />
             <Meter label="Disk used" value={diskPercent} detail={`${formatBytes(diskUsed)} / ${formatBytes(data.system.diskTotalBytes)}`} />
             <InfoGrid
               items={[
                 ['Processors', data.system.availableProcessors],
                 ['Process CPU', formatPercent(data.system.processCpuLoad)],
                 ['System CPU', formatPercent(data.system.systemCpuLoad)],
+                ['Free memory', formatBytes(data.system.freePhysicalMemoryBytes)],
+                ['Buff/cache', formatBytes(data.system.bufferCacheMemoryBytes)],
+                ['Available memory', formatBytes(data.system.availablePhysicalMemoryBytes)],
                 ['Disk usable', formatBytes(data.system.diskUsableBytes)],
               ]}
             />
