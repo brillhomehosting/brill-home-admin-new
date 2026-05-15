@@ -110,6 +110,11 @@ export const API = {
     REVENUE_TREND: '/admin/dashboard/revenue-trend',
   },
 
+  // ── Monitor ──
+  MONITOR: {
+    OVERVIEW: '/admin/monitor/overview',
+  },
+
   // ── Tuya Passwords ──
   TUYA_PASSWORDS: {
     OVERVIEW: '/admin/tuya-passwords/overview',

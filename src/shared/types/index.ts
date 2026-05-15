@@ -20,3 +20,4 @@ export * from './upload';
 export * from './enums';
 export * from './system-config';
 export * from './combo-config';
+export * from './monitor';

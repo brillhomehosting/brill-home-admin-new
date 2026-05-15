@@ -47,6 +47,9 @@ export const ROUTES = {
   // ── Password Generator ──
   RANDOM_GENERATOR: '/apps/random-generator',
 
+  // ── Developer ──
+  MONITOR: '/developer/monitor',
+
   // ── Error pages ──
   ERROR_401: '/401',
   ERROR_404: '/404',
