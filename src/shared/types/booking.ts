@@ -141,6 +141,14 @@ export type AdminCreateBookingData = {
   sendConfirmationEmail?: boolean;
 };
 
+export type AdminBookingUpdateData = {
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
+  note?: string;
+  gatePassword?: string;
+};
+
 export type CancelBookingData = {
   cancellationReason: string;
   cancellationNote?: string;

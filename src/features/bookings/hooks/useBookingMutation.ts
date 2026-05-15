@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingService } from '@/shared/services/booking.service';
 import { bookingKeys } from './queryKeys';
 import { useToast } from '@/shared/components/feedback/Toast';
-import type { ConfirmPaymentData, AdminCreateBookingData, CancelBookingData } from '@/shared/types';
+import type { ConfirmPaymentData, AdminCreateBookingData, AdminBookingUpdateData, CancelBookingData } from '@/shared/types';
 
 /**
  * Hook for booking-related mutations (cancel, update status, etc.)
@@ -111,7 +111,7 @@ export function useBookingMutation() {
     mutationFn: ({ bookingId, tuyaSyncStatus }: { bookingId: string; tuyaSyncStatus: string }) =>
       bookingService.syncTuyaStatus(bookingId, tuyaSyncStatus),
     onSuccess: (data, { bookingId }) => {
-      // Update the cache silently without toast
+      toast('Cập nhật trạng thái Tuya thành công', 'success');
       queryClient.setQueryData(bookingKeys.detail(bookingId), (old: any) => {
         if (!old) return old;
         return {
@@ -122,14 +122,21 @@ export function useBookingMutation() {
           gatePassword: data.gatePassword,
         };
       });
+      queryClient.invalidateQueries({ queryKey: bookingKeys.detail(bookingId) });
+    },
+    onError: (error: any) => {
+      const message =
+        error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật trạng thái Tuya';
+      toast(message, 'error');
     },
   });
 
   const updateBookingMutation = useMutation({
-    mutationFn: ({ bookingId, data }: { bookingId: string; data: any }) =>
+    mutationFn: ({ bookingId, data }: { bookingId: string; data: AdminBookingUpdateData & Record<string, unknown> }) =>
       bookingService.updateBooking(bookingId, data),
-    onSuccess: (_, { bookingId }) => {
+    onSuccess: (data, { bookingId }) => {
       toast('Cập nhật booking thành công', 'success');
+      queryClient.setQueryData(bookingKeys.detail(bookingId), data);
       queryClient.invalidateQueries({ queryKey: bookingKeys.detail(bookingId) });
     },
     onError: (error: any) => {

@@ -1,6 +1,10 @@
 import { useToast } from '@/shared/components/feedback/Toast';
 import { Header, PageWrapper } from '@/shared/components/layout';
 import { Button } from '@/shared/components/ui/Button';
+import { Input } from '@/shared/components/ui/Input';
+import { Modal } from '@/shared/components/ui/Modal';
+import { Select } from '@/shared/components/ui/Select';
+import { Textarea } from '@/shared/components/ui/Textarea';
 import { ROUTES } from '@/shared/constants';
 import { cn, formatCurrency, formatDate, getCredentialImageUrl } from '@/shared/utils';
 import {
@@ -25,24 +29,47 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { IDCardViewer } from '../components/IDCardViewer';
 import { CancelBookingDialog } from '../components/CancelBookingDialog';
-import { EditBookingDialog } from '../components/EditBookingDialog';
 import { ResendEmailDialog } from '../components/ResendEmailDialog';
 import { useBookingDetail } from '../hooks/useBookingDetail';
 import { useBookingMutation } from '../hooks/useBookingMutation';
 import { useSystemConfig } from '../hooks/useSystemConfig';
 
+const tuyaStatusOptions = [
+  { value: 'PENDING', label: 'Chờ đồng bộ' },
+  { value: 'SYNCED', label: 'Đã đồng bộ' },
+  { value: 'FAILED', label: 'Đồng bộ lỗi' },
+  { value: 'DELETE_PENDING', label: 'Chờ xoá mật khẩu' },
+  { value: 'DELETED', label: 'Đã xoá mật khẩu' },
+  { value: 'DELETE_FAILED', label: 'Xoá mật khẩu lỗi' },
+];
+
+type EditMode = 'customer' | 'gatePass' | 'tuya' | null;
+
 export default function BookingDetailPage() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
   const [isCancelOpen, setCancelOpen] = useState(false);
-  const [isEditOpen, setEditOpen] = useState(false);
+  const [editMode, setEditMode] = useState<EditMode>(null);
   const [isEmailOpen, setEmailOpen] = useState(false);
   const [isIdViewerOpen, setIdViewerOpen] = useState(false);
   const [idViewerIndex, setIdViewerIndex] = useState<0 | 1>(0);
+  const [customerForm, setCustomerForm] = useState({
+    guestName: '',
+    guestPhone: '',
+    guestEmail: '',
+    note: '',
+  });
+  const [gatePassForm, setGatePassForm] = useState({
+    gatePassword: '',
+  });
+  const [tuyaForm, setTuyaForm] = useState({
+    tuyaSyncStatus: 'PENDING',
+  });
   const { toast } = useToast();
 
   const { data: booking, isLoading, error } = useBookingDetail(bookingId);
   const { 
+    updateBooking,
     retryTuya,
     syncTuyaStatus
   } = useBookingMutation();
@@ -50,18 +77,69 @@ export default function BookingDetailPage() {
   const { data: bufferConfig } = useSystemConfig('GATE_PASSWORD_BUFFER_MINUTES');
   const bufferMinutes = parseInt(bufferConfig?.data?.configValue || '15', 10) || 15;
 
-  // Auto-sync Tuya based on booking's tuyaSyncStatus
   useEffect(() => {
+    if (!booking || !editMode) return;
+    setCustomerForm({
+      guestName: booking.guestName || '',
+      guestPhone: booking.guestPhone || '',
+      guestEmail: booking.guestEmail || '',
+      note: booking.note || '',
+    });
+    setGatePassForm({
+      gatePassword: booking.gatePassword || '',
+    });
+    setTuyaForm({
+      tuyaSyncStatus: booking.tuyaSyncStatus || 'PENDING',
+    });
+  }, [booking, editMode]);
+
+  const handleCustomerFieldChange = (field: keyof typeof customerForm, value: string) => {
+    setCustomerForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSaveCustomerInfo = async () => {
     if (!bookingId || !booking) return;
 
-    const status = booking.tuyaSyncStatus;
+    await updateBooking.mutateAsync({
+      bookingId,
+      data: {
+        guestName: customerForm.guestName,
+        guestPhone: customerForm.guestPhone,
+        guestEmail: customerForm.guestEmail,
+        note: customerForm.note,
+      },
+    });
 
-    // CONFIRMED → auto call sync
-    if (status === 'CONFIRMED') {
-      syncTuyaStatus.mutate({ bookingId, tuyaSyncStatus: 'PENDING' });
+    setEditMode(null);
+  };
+
+  const handleSaveGatePass = async () => {
+    if (!bookingId || !booking) return;
+
+    await updateBooking.mutateAsync({
+      bookingId,
+      data: {
+        gatePassword: gatePassForm.gatePassword,
+      },
+    });
+
+    setEditMode(null);
+  };
+
+  const handleSaveTuyaStatus = async () => {
+    if (!bookingId || !booking) return;
+
+    if (tuyaForm.tuyaSyncStatus !== booking.tuyaSyncStatus) {
+      await syncTuyaStatus.mutateAsync({
+        bookingId,
+        tuyaSyncStatus: tuyaForm.tuyaSyncStatus,
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookingId, booking?.tuyaSyncStatus]);
+
+    setEditMode(null);
+  };
+
+  const isSavingEdit = updateBooking.isPending || syncTuyaStatus.isPending;
 
   if (isLoading) {
     return (
@@ -141,11 +219,11 @@ export default function BookingDetailPage() {
             <Button 
               variant="secondary"
               size="sm"
-              onClick={() => setEditOpen(true)}
+              onClick={() => setEditMode('customer')}
               icon={Pencil}
               className="px-2 sm:px-4"
             >
-              <span className="hidden sm:inline">Sửa</span>
+              <span className="hidden sm:inline">Sửa khách</span>
             </Button>
             <Button 
               variant={booking.status === 'CANCELLED' ? 'secondary' : 'danger'}
@@ -236,7 +314,10 @@ export default function BookingDetailPage() {
                   <User className="h-5 w-5 text-accent-500" />
                   Khách hàng
                 </div>
-                <button className="text-sm font-medium text-accent-500 transition-colors hover:text-accent-600">
+                <button
+                  onClick={() => setEditMode('customer')}
+                  className="text-sm font-medium text-accent-500 transition-colors hover:text-accent-600"
+                >
                   Chỉnh sửa
                 </button>
               </div>
@@ -309,9 +390,17 @@ export default function BookingDetailPage() {
 
             {/* Room & Time Info */}
             <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-              <div className="flex items-center gap-2 border-b border-border bg-surface-dim px-5 py-4 text-sm font-semibold text-secondary-700">
-                <BedDouble className="h-5 w-5 text-accent-500" />
-                Thông tin phòng & Thời gian
+              <div className="flex items-center justify-between border-b border-border bg-surface-dim px-5 py-4 text-sm font-semibold text-secondary-700">
+                <div className="flex items-center gap-2">
+                  <BedDouble className="h-5 w-5 text-accent-500" />
+                  Thông tin phòng & Thời gian
+                </div>
+                <button
+                  onClick={() => setEditMode('gatePass')}
+                  className="text-sm font-medium text-accent-500 transition-colors hover:text-accent-600"
+                >
+                  Sửa mật khẩu
+                </button>
               </div>
               <div className="grid grid-cols-1 gap-6 p-4 sm:p-5 sm:grid-cols-2">
                 <div className="flex flex-col gap-4">
@@ -410,14 +499,23 @@ export default function BookingDetailPage() {
                     </div>
                   </div>
                 </div>
-                <button 
-                  onClick={() => retryTuya.mutate(bookingId!)}
-                  disabled={booking.tuyaSyncStatus === 'PENDING' || retryTuya.isPending}
-                  className="flex items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-bold text-secondary-700 transition-colors hover:bg-secondary-50 disabled:opacity-50"
-                >
-                  <RefreshCw className={cn('h-4 w-4', (booking.tuyaSyncStatus === 'PENDING' || retryTuya.isPending) && 'animate-spin')} />
-                  Thử lại
-                </button>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    onClick={() => setEditMode('tuya')}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-bold text-secondary-700 transition-colors hover:bg-secondary-50"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Sửa trạng thái
+                  </button>
+                  <button 
+                    onClick={() => retryTuya.mutate(bookingId!)}
+                    disabled={booking.tuyaSyncStatus === 'PENDING' || retryTuya.isPending}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-bold text-secondary-700 transition-colors hover:bg-secondary-50 disabled:opacity-50"
+                  >
+                    <RefreshCw className={cn('h-4 w-4', (booking.tuyaSyncStatus === 'PENDING' || retryTuya.isPending) && 'animate-spin')} />
+                    Thử lại
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -516,11 +614,146 @@ export default function BookingDetailPage() {
         totalAmountStr={formatCurrency(booking.finalAmount)}
       />
 
-      <EditBookingDialog
-        open={isEditOpen}
-        onClose={() => setEditOpen(false)}
-        booking={booking}
-      />
+      <Modal
+        open={editMode === 'customer'}
+        onClose={() => setEditMode(null)}
+        title="Cập nhật khách hàng"
+        description="Chỉnh sửa thông tin hiển thị trong mục Khách hàng."
+        size="xl"
+        closeOnOverlayClick={!isSavingEdit}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEditMode(null)}
+              disabled={isSavingEdit}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveCustomerInfo}
+              loading={updateBooking.isPending}
+            >
+              Lưu thay đổi
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Họ và tên"
+              value={customerForm.guestName}
+              onChange={(event) => handleCustomerFieldChange('guestName', event.target.value)}
+              placeholder="Tên khách hàng"
+              disabled={isSavingEdit}
+            />
+            <Input
+              label="Số điện thoại"
+              value={customerForm.guestPhone}
+              onChange={(event) => handleCustomerFieldChange('guestPhone', event.target.value)}
+              placeholder="Số điện thoại"
+              disabled={isSavingEdit}
+            />
+            <Input
+              label="Email"
+              type="email"
+              value={customerForm.guestEmail}
+              onChange={(event) => handleCustomerFieldChange('guestEmail', event.target.value)}
+              placeholder="email@example.com"
+              disabled={isSavingEdit}
+            />
+          </div>
+
+          <Textarea
+            label="Ghi chú"
+            value={customerForm.note}
+            onChange={(event) => handleCustomerFieldChange('note', event.target.value)}
+            placeholder="Ghi chú nội bộ cho booking"
+            rows={4}
+            disabled={isSavingEdit}
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        open={editMode === 'gatePass'}
+        onClose={() => setEditMode(null)}
+        title="Cập nhật mật khẩu phòng"
+        description="Chỉ chỉnh sửa mã cổng chính trong mục Thông tin phòng & Thời gian."
+        size="md"
+        closeOnOverlayClick={!isSavingEdit}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEditMode(null)}
+              disabled={isSavingEdit}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveGatePass}
+              loading={updateBooking.isPending}
+            >
+              Lưu mật khẩu
+            </Button>
+          </>
+        }
+      >
+        <Input
+          label="Mật khẩu phòng"
+          value={gatePassForm.gatePassword}
+          onChange={(event) => setGatePassForm({ gatePassword: event.target.value.replace(/\D/g, '').slice(0, 20) })}
+          placeholder="Ví dụ: 123456"
+          hint="Chỉ nhập số, 4 đến 20 chữ số. Để trống nếu booking chưa có mật khẩu."
+          inputMode="numeric"
+          disabled={isSavingEdit}
+        />
+      </Modal>
+
+      <Modal
+        open={editMode === 'tuya'}
+        onClose={() => setEditMode(null)}
+        title="Cập nhật Tuya Smart Lock"
+        description="Chỉ chỉnh sửa trạng thái đồng bộ Tuya của booking."
+        size="md"
+        closeOnOverlayClick={!isSavingEdit}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEditMode(null)}
+              disabled={isSavingEdit}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveTuyaStatus}
+              loading={syncTuyaStatus.isPending}
+            >
+              Lưu trạng thái
+            </Button>
+          </>
+        }
+      >
+        <div className="rounded-xl border border-border bg-surface-dim p-4">
+          <Select
+            label="Trạng thái Tuya Smart Lock"
+            value={tuyaForm.tuyaSyncStatus}
+            onChange={(event) => setTuyaForm({ tuyaSyncStatus: event.target.value })}
+            options={tuyaStatusOptions}
+            disabled={isSavingEdit}
+            hint="Chọn trạng thái thực tế sau khi kiểm tra đồng bộ mật khẩu cửa."
+          />
+        </div>
+      </Modal>
 
       <ResendEmailDialog
         open={isEmailOpen}
