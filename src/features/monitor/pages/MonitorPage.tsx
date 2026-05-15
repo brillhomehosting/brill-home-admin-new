@@ -83,6 +83,7 @@ function MonitorContent({ data }: { data: MonitorOverview }) {
 
   return (
     <>
+      {/* Section 1: KPI strip */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <StatusCard
           title="Application"
@@ -104,7 +105,35 @@ function MonitorContent({ data }: { data: MonitorOverview }) {
         <MetricCard title="Uptime" value={formatDuration(data.application.uptimeMillis)} detail={`PID ${data.application.processId}`} icon={Clock} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      {/* Section 2: System Resources — full width */}
+      <Panel title="System" icon={Activity}>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="space-y-4">
+            <Meter label="Memory used" value={memoryPercent} detail={memoryUsed ? `${formatBytes(memoryUsed)} / ${formatBytes(data.system.totalPhysicalMemoryBytes)}` : '—'} />
+            <Meter label="Disk used" value={diskPercent} detail={`${formatBytes(diskUsed)} / ${formatBytes(data.system.diskTotalBytes)}`} />
+          </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5">
+              <SmallStat label="Total" value={formatBytes(data.system.totalPhysicalMemoryBytes)} />
+              <SmallStat label="Used" value={formatBytes(memoryUsed)} />
+              <SmallStat label="Free" value={formatBytes(data.system.freePhysicalMemoryBytes)} />
+              <SmallStat label="Buff/cache" value={formatBytes(data.system.bufferCacheMemoryBytes)} />
+              <SmallStat label="Available" value={formatBytes(data.system.availablePhysicalMemoryBytes)} />
+            </div>
+            <InfoGrid
+              items={[
+                ['Processors', data.system.availableProcessors],
+                ['Process CPU', formatPercent(data.system.processCpuLoad)],
+                ['System CPU', formatPercent(data.system.systemCpuLoad)],
+                ['Disk usable', formatBytes(data.system.diskUsableBytes)],
+              ]}
+            />
+          </div>
+        </div>
+      </Panel>
+
+      {/* Section 3: Application | JVM & Threads | Database Pool — 3 columns */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Panel title="Application" icon={Server}>
           <InfoGrid
             items={[
@@ -134,30 +163,6 @@ function MonitorContent({ data }: { data: MonitorOverview }) {
           </div>
         </Panel>
 
-        <Panel title="System" icon={Activity} className="xl:col-span-2">
-          <div className="space-y-4">
-            <Meter label="Memory used" value={memoryPercent} detail={memoryUsed ? `${formatBytes(memoryUsed)} / ${formatBytes(data.system.totalPhysicalMemoryBytes)}` : '—'} />
-            <Meter label="Disk used" value={diskPercent} detail={`${formatBytes(diskUsed)} / ${formatBytes(data.system.diskTotalBytes)}`} />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <SmallStat label="Total" value={formatBytes(data.system.totalPhysicalMemoryBytes)} />
-              <SmallStat label="Used" value={formatBytes(memoryUsed)} />
-              <SmallStat label="Free" value={formatBytes(data.system.freePhysicalMemoryBytes)} />
-              <SmallStat label="Buff/cache" value={formatBytes(data.system.bufferCacheMemoryBytes)} />
-              <SmallStat label="Available" value={formatBytes(data.system.availablePhysicalMemoryBytes)} />
-            </div>
-            <InfoGrid
-              items={[
-                ['Processors', data.system.availableProcessors],
-                ['Process CPU', formatPercent(data.system.processCpuLoad)],
-                ['System CPU', formatPercent(data.system.systemCpuLoad)],
-                ['Disk usable', formatBytes(data.system.diskUsableBytes)],
-              ]}
-            />
-          </div>
-        </Panel>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Panel title="Database Pool" icon={Database}>
           <div className="space-y-4">
             <Meter
@@ -175,8 +180,11 @@ function MonitorContent({ data }: { data: MonitorOverview }) {
             />
           </div>
         </Panel>
+      </div>
 
-        <Panel title="Cache" icon={HardDrive}>
+      {/* Section 4: Cache + Background Workers */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        <Panel title="Cache" icon={HardDrive} className="xl:col-span-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <SmallStat label="Total" value={data.cache.total} />
             <SmallStat label="Object" value={data.cache.objectCount} />
@@ -184,17 +192,17 @@ function MonitorContent({ data }: { data: MonitorOverview }) {
             <SmallStat label="Lock" value={data.cache.lockCount} />
           </div>
         </Panel>
-      </div>
 
-      <Panel title="Background Workers" icon={Timer}>
-        {data.executors.length === 0 ? (
-          <div className="rounded-lg border border-border bg-surface-dim p-4 text-sm text-secondary-500">
-            Không có executor metrics.
-          </div>
-        ) : (
-          <ExecutorTable executors={data.executors} />
-        )}
-      </Panel>
+        <Panel title="Background Workers" icon={Timer} className="xl:col-span-8">
+          {data.executors.length === 0 ? (
+            <div className="rounded-lg border border-border bg-surface-dim p-4 text-sm text-secondary-500">
+              Không có executor metrics.
+            </div>
+          ) : (
+            <ExecutorTable executors={data.executors} />
+          )}
+        </Panel>
+      </div>
     </>
   );
 }
