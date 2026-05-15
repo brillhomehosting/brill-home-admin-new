@@ -12,6 +12,7 @@ import type {
   GetBookingsParams,
   ConfirmPaymentData,
   AdminCreateBookingData,
+  AdminBookingUpdateData,
   CancelBookingData,
   BookingAvailabilityResponse,
   BookingAvailabilitySlot,
@@ -148,9 +149,15 @@ export async function adminCreateBooking(data: AdminCreateBookingData) {
 }
 
 /** PATCH /admin/bookings/:id */
-export async function updateBooking(bookingId: string, data: Partial<AdminCreateBookingData>) {
-  const response = await api.patch(API.BOOKINGS.UPDATE(bookingId), data);
-  return response.data;
+export async function updateBooking(
+  bookingId: string,
+  payload: AdminBookingUpdateData & Record<string, unknown>,
+): Promise<AdminBookingDetail> {
+  const { data } = await api.patch<ApiResponse<AdminBookingDetail>>(
+    API.BOOKINGS.UPDATE(bookingId),
+    payload,
+  );
+  return data.data;
 }
 
 /** PATCH /admin/bookings/:id/tuya-sync-status */
