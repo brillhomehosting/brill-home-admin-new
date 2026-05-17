@@ -1,5 +1,5 @@
 import { Header, PageWrapper } from '@/shared/components/layout';
-import { Pagination, Select } from '@/shared/components/ui';
+import { DateInput, Pagination, Select } from '@/shared/components/ui';
 import { ROUTES } from '@/shared/constants';
 import { cn, formatCurrency } from '@/shared/utils';
 import {
@@ -163,29 +163,21 @@ export default function BookingListPage() {
             {/* Date from */}
             <div className="flex flex-col gap-1">
               <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-secondary-400">Từ ngày</label>
-              <div className="relative">
-                <CalendarDays className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => { setStartDate(e.target.value); setPage(0); }}
-                  className="h-9 w-full rounded-lg border border-border bg-surface pl-8 pr-2 text-xs sm:text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
-                />
-              </div>
+              <DateInput
+                value={startDate}
+                onChange={(value) => { setStartDate(value); setPage(0); }}
+                className="h-9 rounded-lg text-xs sm:text-sm"
+              />
             </div>
 
             {/* Date to */}
             <div className="flex flex-col gap-1">
               <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-secondary-400">Đến ngày</label>
-              <div className="relative">
-                <CalendarDays className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => { setEndDate(e.target.value); setPage(0); }}
-                  className="h-9 w-full rounded-lg border border-border bg-surface pl-8 pr-2 text-xs sm:text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
-                />
-              </div>
+              <DateInput
+                value={endDate}
+                onChange={(value) => { setEndDate(value); setPage(0); }}
+                className="h-9 rounded-lg text-xs sm:text-sm"
+              />
             </div>
 
             {/* Status */}

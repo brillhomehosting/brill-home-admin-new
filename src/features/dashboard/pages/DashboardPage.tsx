@@ -1,4 +1,5 @@
 import { Header, PageWrapper } from '@/shared/components/layout';
+import { DateInput } from '@/shared/components/ui';
 import type { BookingAvailabilitySlot, RevenueTrendRoomItem, RoomTracker } from '@/shared/types';
 import { cn, formatCurrency, formatDate } from '@/shared/utils';
 import {
@@ -112,6 +113,12 @@ function formatDateParam(date: Date) {
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
   const day = `${date.getDate()}`.padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function formatShortDateLabel(value: string | number) {
+  const [year, month, day] = String(value).split('-');
+  if (!year || !month || !day) return String(value);
+  return `${day}/${month}`;
 }
 
 function getClampedPreviousMonthDate(date: Date) {
@@ -497,21 +504,19 @@ export default function DashboardPage() {
                 >
                 {paymentMethodRange === 'custom' ? (
                   <>
-                    <input
-                      type="date"
+                    <DateInput
                       value={customPaymentMethodStart}
                       max={customPaymentMethodEnd}
-                      onChange={(e) => handleCustomPaymentMethodStartChange(e.target.value)}
-                      className="w-full rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary-400 sm:w-[9rem]"
+                      onChange={handleCustomPaymentMethodStartChange}
+                      className="h-8 rounded-lg bg-white text-xs sm:w-[9rem]"
                     />
                     <span className="hidden text-secondary-400 sm:inline">→</span>
-                    <input
-                      type="date"
+                    <DateInput
                       value={customPaymentMethodEnd}
                       min={customPaymentMethodStart}
                       max={formatDateParam(new Date())}
-                      onChange={(e) => handleCustomPaymentMethodEndChange(e.target.value)}
-                      className="w-full rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary-400 sm:w-[9rem]"
+                      onChange={handleCustomPaymentMethodEndChange}
+                      className="h-8 rounded-lg bg-white text-xs sm:w-[9rem]"
                     />
                   </>
                 ) : null}
@@ -629,21 +634,19 @@ export default function DashboardPage() {
               >
               {trendRange === 'custom' ? (
                 <>
-                  <input
-                    type="date"
+                  <DateInput
                     value={trendStart}
                     max={trendEnd}
-                    onChange={(e) => handleTrendStartChange(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary-400 sm:w-[9rem]"
+                    onChange={handleTrendStartChange}
+                    className="h-8 rounded-lg bg-white text-xs sm:w-[9rem]"
                   />
                   <span className="hidden text-secondary-400 sm:inline">→</span>
-                  <input
-                    type="date"
+                  <DateInput
                     value={trendEnd}
                     min={trendStart}
                     max={today}
-                    onChange={(e) => handleTrendEndChange(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary-400 sm:w-[9rem]"
+                    onChange={handleTrendEndChange}
+                    className="h-8 rounded-lg bg-white text-xs sm:w-[9rem]"
                   />
                 </>
               ) : null}
@@ -662,7 +665,7 @@ export default function DashboardPage() {
                   <XAxis
                     dataKey="date"
                     tick={{ fontSize: 10, fill: '#94a3b8' }}
-                    tickFormatter={(v) => v.slice(5)}
+                    tickFormatter={formatShortDateLabel}
                     tickLine={false}
                     axisLine={false}
                   />
@@ -675,7 +678,7 @@ export default function DashboardPage() {
                   />
                   <Tooltip
                     formatter={(value, name) => [formatCurrency(Number(value)), name]}
-                    labelFormatter={(label) => `Ngày ${label}`}
+                    labelFormatter={(label) => `Ngày ${formatShortDateLabel(label)}`}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -704,7 +707,7 @@ export default function DashboardPage() {
                   <XAxis
                     dataKey="date"
                     tick={{ fontSize: 10, fill: '#94a3b8' }}
-                    tickFormatter={(v) => v.slice(5)}
+                    tickFormatter={formatShortDateLabel}
                     tickLine={false}
                     axisLine={false}
                   />
@@ -717,7 +720,7 @@ export default function DashboardPage() {
                   />
                   <Tooltip
                     formatter={(value) => [formatCurrency(Number(value)), 'Doanh thu']}
-                    labelFormatter={(label) => `Ngày ${label}`}
+                    labelFormatter={(label) => `Ngày ${formatShortDateLabel(label)}`}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}
                   />
                   <Line
@@ -1035,7 +1038,7 @@ function RoomTrackerRow({ tracker, slots }: { tracker: RoomTracker; slots: Booki
                 {getTrackerGuestName(tracker.currentBooking.guestName, 'Khách cũ')}
               </Link>
               <p className="text-secondary-500 text-[10px] mt-0.5">
-                Out: <span className="font-medium text-foreground">{formatDate(tracker.currentBooking.checkOutAt, { hour: '2-digit', minute: '2-digit' })}</span>
+                Out: <span className="font-medium text-foreground">{formatDate(tracker.currentBooking.checkOutAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>
               </p>
               {tracker.currentBooking.minutesUntilCheckout !== undefined &&
                tracker.currentBooking.minutesUntilCheckout <= 120 &&
@@ -1068,7 +1071,7 @@ function RoomTrackerRow({ tracker, slots }: { tracker: RoomTracker; slots: Booki
                 {getTrackerGuestName(tracker.nextBooking.guestName, 'Khách cũ')}
               </Link>
               <p className="text-secondary-500 text-[10px] mt-0.5">
-                In: <span className="font-medium text-foreground">{formatDate(tracker.nextBooking.checkInAt, { hour: '2-digit', minute: '2-digit' })}</span>
+                In: <span className="font-medium text-foreground">{formatDate(tracker.nextBooking.checkInAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>
               </p>
             </>
           ) : (
@@ -1137,7 +1140,7 @@ function RoomTrackerItem({ tracker, slots }: { tracker: RoomTracker; slots: Book
               {getTrackerGuestName(tracker.currentBooking.guestName)}
             </p>
             <p className="text-secondary-500">
-              Out: <span className="font-medium text-foreground">{formatDate(tracker.currentBooking.checkOutAt, { hour: '2-digit', minute: '2-digit' })}</span>
+              Out: <span className="font-medium text-foreground">{formatDate(tracker.currentBooking.checkOutAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>
             </p>
             {tracker.currentBooking.minutesUntilCheckout !== undefined && tracker.currentBooking.minutesUntilCheckout <= 120 && tracker.currentBooking.minutesUntilCheckout >= 0 && (
               <p className="text-[9px] text-danger-600 font-bold bg-danger-50 px-1 py-0.5 rounded mt-0.5 inline-block border border-danger-100">
@@ -1161,7 +1164,7 @@ function RoomTrackerItem({ tracker, slots }: { tracker: RoomTracker; slots: Book
                {getTrackerGuestName(tracker.nextBooking.guestName)}
             </p>
             <p className="text-secondary-400 text-[10px]">
-              In: <span className="font-medium text-foreground">{formatDate(tracker.nextBooking.checkInAt, { hour: '2-digit', minute: '2-digit' })}</span>
+              In: <span className="font-medium text-foreground">{formatDate(tracker.nextBooking.checkInAt, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>
             </p>
           </div>
         ) : (

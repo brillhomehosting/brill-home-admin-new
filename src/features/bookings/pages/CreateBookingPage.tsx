@@ -3,6 +3,7 @@ import { useMultiDayAvailability } from '@/features/rooms/hooks/useTimeSlotBooki
 import { useToast } from '@/shared/components/feedback/Toast';
 import { Header, PageWrapper } from '@/shared/components/layout';
 import { Button } from '@/shared/components/ui/Button';
+import { DateInput } from '@/shared/components/ui/DateInput';
 import { Input } from '@/shared/components/ui/Input';
 import { Select } from '@/shared/components/ui/Select';
 import { Textarea } from '@/shared/components/ui/Textarea';
@@ -266,19 +267,15 @@ export default function CreateBookingPage() {
                   <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400 flex items-center gap-1.5">
                     <Calendar className="h-3 w-3" /> Ngày bắt đầu
                   </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-300" />
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => {
-                        setSelectedDate(e.target.value);
-                        setViewDate(e.target.value);
-                        setSelectedSlots({});
-                      }}
-                      className="h-10 w-full rounded-lg border border-secondary-200 bg-surface pl-9 pr-3 text-sm font-semibold outline-none focus:border-primary-500"
-                    />
-                  </div>
+                  <DateInput
+                    value={selectedDate}
+                    onChange={(value) => {
+                      setSelectedDate(value);
+                      setViewDate(value);
+                      setSelectedSlots({});
+                    }}
+                    className="rounded-lg border-secondary-200 text-sm font-semibold"
+                  />
                 </div>
               </div>
             </div>

@@ -110,14 +110,14 @@ export function DiscountCalendarSection({ onEdit }: Props) {
   return (
     <div className="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-surface/50 border-b border-border">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 bg-surface/50 border-b border-border sm:flex sm:flex-wrap">
         <div className="flex items-center gap-2 shrink-0">
           <CalendarDays className="h-4 w-4 text-primary-500" />
           <span className="text-sm font-bold text-foreground">Lịch chiến dịch</span>
         </div>
 
         {/* Month jump controls */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="order-3 col-span-2 flex w-full items-center justify-between gap-1 rounded-lg bg-secondary-50 p-1 sm:order-none sm:col-span-1 sm:w-auto sm:justify-start sm:bg-transparent sm:p-0">
           <button
             onClick={jumpPrevMonth}
             className="p-1.5 rounded-lg hover:bg-secondary-100 text-secondary-500 hover:text-foreground transition-colors"
@@ -142,8 +142,8 @@ export function DiscountCalendarSection({ onEdit }: Props) {
         </div>
 
         {/* Custom date range pickers */}
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="flex items-center gap-2 min-w-0 flex-1 sm:flex-none sm:w-36">
+        <div className="order-4 col-span-2 grid w-full grid-cols-1 gap-2 sm:order-none sm:col-span-1 sm:flex sm:flex-1 sm:items-center sm:min-w-0">
+          <div className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-2 sm:flex sm:min-w-0 sm:flex-none sm:w-36">
             <span className="text-xs text-secondary-400 shrink-0">Từ</span>
             <DateInput
               value={rangeStart}
@@ -151,8 +151,8 @@ export function DiscountCalendarSection({ onEdit }: Props) {
               max={rangeEnd || undefined}
             />
           </div>
-          <span className="text-secondary-300 shrink-0">—</span>
-          <div className="flex items-center gap-2 min-w-0 flex-1 sm:flex-none sm:w-36">
+          <span className="hidden text-secondary-300 shrink-0 sm:block">—</span>
+          <div className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-2 sm:flex sm:min-w-0 sm:flex-none sm:w-36">
             <span className="text-xs text-secondary-400 shrink-0">Đến</span>
             <DateInput
               value={rangeEnd}
@@ -161,14 +161,14 @@ export function DiscountCalendarSection({ onEdit }: Props) {
             />
           </div>
           {!isValidRange && rangeStart && rangeEnd && (
-            <span className="text-xs text-danger-500 shrink-0">Ngày kết thúc phải sau ngày bắt đầu</span>
+            <span className="text-xs text-danger-500 sm:shrink-0">Ngày kết thúc phải sau ngày bắt đầu</span>
           )}
         </div>
 
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="flex items-center gap-1 text-xs text-secondary-400 hover:text-foreground px-2 py-1 rounded-lg hover:bg-secondary-100 transition-colors shrink-0 ml-auto"
+          className="justify-self-end flex items-center gap-1 text-xs text-secondary-400 hover:text-foreground px-2 py-1 rounded-lg hover:bg-secondary-100 transition-colors shrink-0 sm:ml-auto"
         >
           {collapsed ? (
             <>Mở rộng <ChevronDown className="h-3.5 w-3.5" /></>
