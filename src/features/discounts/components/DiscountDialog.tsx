@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
+import { DateInput } from '@/shared/components/ui/DateInput';
 import { Input } from '@/shared/components/ui/Input';
 import { Select } from '@/shared/components/ui/Select';
 import { Tag, Loader2 } from 'lucide-react';
@@ -224,20 +225,18 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                 <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
                   Từ ngày <span className="text-danger-500">*</span>
                 </label>
-                <Input
-                  type="date"
+                <DateInput
                   value={form.startDate}
-                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                  onChange={(value) => setForm({ ...form, startDate: value })}
                 />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
                   Đến ngày <span className="text-danger-500">*</span>
                 </label>
-                <Input
-                  type="date"
+                <DateInput
                   value={form.endDate}
-                  onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                  onChange={(value) => setForm({ ...form, endDate: value })}
                 />
               </div>
             </div>

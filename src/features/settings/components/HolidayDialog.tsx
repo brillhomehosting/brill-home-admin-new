@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
+import { DateInput } from '@/shared/components/ui/DateInput';
 import { Input } from '@/shared/components/ui/Input';
 import { Select } from '@/shared/components/ui/Select';
 import { CalendarRange, Loader2 } from 'lucide-react';
@@ -136,20 +137,18 @@ export function HolidayDialog({ open, onClose, initialData, onSuccess }: Holiday
           <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
             {form.holidayType === 'ANNUAL' ? 'Ngày bắt đầu' : 'Từ ngày'} <span className="text-danger-500">*</span>
           </label>
-          <Input
-            type="date"
+          <DateInput
             value={form.startDay}
-            onChange={(e) => setForm({ ...form, startDay: e.target.value })}
+            onChange={(value) => setForm({ ...form, startDay: value })}
           />
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
             {form.holidayType === 'ANNUAL' ? 'Ngày kết thúc' : 'Đến ngày'} <span className="text-danger-500">*</span>
           </label>
-          <Input
-            type="date"
+          <DateInput
             value={form.endDay}
-            onChange={(e) => setForm({ ...form, endDay: e.target.value })}
+            onChange={(value) => setForm({ ...form, endDay: value })}
           />
         </div>
       </div>

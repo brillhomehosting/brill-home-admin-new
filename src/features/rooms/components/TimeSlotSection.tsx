@@ -1,6 +1,5 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import {
-  Calendar,
   CalendarCheck,
   CalendarX,
   Clock,
@@ -10,7 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/shared/utils';
 import { formatCurrency } from '@/shared/utils';
-import { Button, ConfirmDialog } from '@/shared/components/ui';
+import { Button, ConfirmDialog, DateInput } from '@/shared/components/ui';
 import { useToast } from '@/shared/components/feedback/Toast';
 import {
   useTimeSlotAvailability,
@@ -47,7 +46,6 @@ function formatDisplayDate(iso: string): string {
 
 export function TimeSlotSection({ roomId }: TimeSlotSectionProps) {
   const { toast } = useToast();
-  const dateInputRef = useRef<HTMLInputElement>(null);
 
   // ── Date state ──
   const today = toLocalDateString(new Date());
@@ -111,32 +109,20 @@ export function TimeSlotSection({ roomId }: TimeSlotSectionProps) {
       <h2 className="mb-4 text-lg font-semibold text-foreground">Khung giờ</h2>
 
       {/* ── Date picker ── */}
-      <div
-        className="relative mb-2 flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-secondary-50 px-4 py-2.5 transition-colors hover:border-accent-300"
-        onClick={() => dateInputRef.current?.showPicker?.()}
-      >
-        <Calendar className="h-5 w-5 shrink-0 text-accent-500" />
-        <div className="flex-1">
-          <span className="block text-[11px] leading-tight text-secondary-400">
-            Kiểm tra tình trạng theo ngày
-          </span>
-          <span className="text-sm font-semibold text-foreground">
-            {formatDisplayDate(selectedDate)}
-          </span>
-        </div>
+      <div className="mb-2">
+        <span className="mb-1.5 block text-[11px] leading-tight text-secondary-400">
+          Kiểm tra tình trạng theo ngày
+        </span>
+        <div className="relative">
+          <DateInput
+            value={selectedDate}
+            onChange={setSelectedDate}
+            className="rounded-lg border-border bg-secondary-50 pr-9 hover:border-accent-300"
+          />
         {isFetching && !isLoading && (
-          <Loader2 className="h-4 w-4 animate-spin text-accent-400" />
+          <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-accent-400" />
         )}
-        <input
-          ref={dateInputRef}
-          type="date"
-          value={selectedDate}
-          onChange={(e) => {
-            if (e.target.value) setSelectedDate(e.target.value);
-          }}
-          className="absolute inset-0 cursor-pointer opacity-0"
-          tabIndex={-1}
-        />
+        </div>
       </div>
 
       <p className="mb-5 text-xs text-secondary-400">

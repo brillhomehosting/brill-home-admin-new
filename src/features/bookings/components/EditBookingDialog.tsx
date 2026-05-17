@@ -14,6 +14,7 @@ import {
 import { Modal } from '@/shared/components/ui/Modal';
 import { Select } from '@/shared/components/ui/Select';
 import { Button } from '@/shared/components/ui/Button';
+import { DateInput } from '@/shared/components/ui/DateInput';
 import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { cn, formatCurrency, getCredentialImageUrl } from '@/shared/utils';
@@ -289,11 +290,10 @@ export function EditBookingDialog({
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Ngày bắt đầu</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={viewDate}
-                    onChange={(e) => setViewDate(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-secondary-200 bg-surface px-3 text-sm font-medium outline-none focus:border-accent-500 !text-secondary-950"
+                    onChange={setViewDate}
+                    className="h-9 rounded-lg border-secondary-200 text-sm"
                   />
                 </div>
               </div>
