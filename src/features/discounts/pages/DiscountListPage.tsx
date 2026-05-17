@@ -1,5 +1,5 @@
 import { Header, PageWrapper } from '@/shared/components/layout';
-import { Pagination, Select } from '@/shared/components/ui';
+import { DateInput, Pagination, Select } from '@/shared/components/ui';
 import { Button } from '@/shared/components/ui/Button';
 import { Modal } from '@/shared/components/ui/Modal';
 import { ROUTES } from '@/shared/constants';
@@ -11,7 +11,6 @@ import type {
 import { cn, formatCurrency, formatDate } from '@/shared/utils';
 import {
   AlertTriangle,
-  CalendarDays,
   Loader2,
   Pencil,
   Plus,
@@ -20,6 +19,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { DiscountCalendarSection } from '../components/DiscountCalendarSection';
 import { DiscountDialog } from '../components/DiscountDialog';
 import { useDiscountMutations, useDiscounts } from '../hooks/useDiscounts';
 
@@ -129,7 +129,9 @@ export default function DiscountListPage() {
       />
 
       <PageWrapper className="flex-1 space-y-6">
-        {/* Table Section */}
+        {/* --- Calendar Section --- */}
+        <DiscountCalendarSection onEdit={handleEdit} />
+
         {/* --- Filters Section --- */}
         <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
           <div className="flex flex-col gap-4">
@@ -137,34 +139,18 @@ export default function DiscountListPage() {
               {/* Date Filter */}
               <div className="flex flex-col gap-1.5 lg:col-span-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Từ ngày</label>
-                <div className="relative">
-                  <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      setPage(0);
-                    }}
-                    className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
-                  />
-                </div>
+                <DateInput
+                  value={startDate}
+                  onChange={(v) => { setStartDate(v); setPage(0); }}
+                />
               </div>
 
               <div className="flex flex-col gap-1.5 lg:col-span-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Đến ngày</label>
-                <div className="relative">
-                  <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      setPage(0);
-                    }}
-                    className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 !text-secondary-950"
-                  />
-                </div>
+                <DateInput
+                  value={endDate}
+                  onChange={(v) => { setEndDate(v); setPage(0); }}
+                />
               </div>
 
               {/* Group Type & Status */}

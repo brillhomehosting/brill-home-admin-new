@@ -3,6 +3,7 @@ import { Header, PageWrapper } from '@/shared/components/layout';
 import { Pagination, Select } from '@/shared/components/ui';
 import { Button } from '@/shared/components/ui/Button';
 import { Modal } from '@/shared/components/ui/Modal';
+import { HolidayCalendarSection } from '../components/HolidayCalendarSection';
 import { HolidayDialog } from '../components/HolidayDialog';
 import { ROUTES } from '@/shared/constants';
 import { cn, formatCurrency } from '@/shared/utils';
@@ -104,7 +105,9 @@ export default function HolidaySettingsPage() {
       />
 
       <PageWrapper className="flex-1 space-y-6">
-        {/* Table Section */}
+        {/* --- Calendar Section --- */}
+        <HolidayCalendarSection onEdit={handleEdit} />
+
         {/* --- Filters Section --- */}
         <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
           <div className="flex flex-col gap-4">

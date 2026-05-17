@@ -7,6 +7,7 @@ export const discountKeys = {
   all: ['discounts'] as const,
   lists: () => [...discountKeys.all, 'list'] as const,
   list: (params: GetDiscountsParams) => [...discountKeys.lists(), params] as const,
+  calendar: (startIso: string, endIso: string) => [...discountKeys.all, 'calendar', startIso, endIso] as const,
 };
 
 export function useDiscounts(params: GetDiscountsParams) {
@@ -14,6 +15,21 @@ export function useDiscounts(params: GetDiscountsParams) {
     queryKey: discountKeys.list(params),
     queryFn: () => discountService.getDiscounts(params),
     placeholderData: (prev) => prev,
+  });
+}
+
+export function useDiscountsCalendar(startIso: string, endIso: string) {
+  return useQuery({
+    queryKey: discountKeys.calendar(startIso, endIso),
+    queryFn: () =>
+      discountService.getDiscounts({
+        startDate: startIso,
+        endDate: endIso,
+        size: 200,
+        page: 0,
+      }),
+    select: (data) => data?.content ?? [],
+    enabled: !!startIso && !!endIso && startIso <= endIso,
   });
 }
 
