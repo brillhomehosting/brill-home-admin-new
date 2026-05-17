@@ -11,3 +11,4 @@ export type { Column } from './Table';
 export { Pagination } from './Pagination';
 export { SearchInput } from './SearchInput';
 export { DynamicIcon } from './DynamicIcon';
+export { DateInput } from './DateInput';

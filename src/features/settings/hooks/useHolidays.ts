@@ -7,6 +7,7 @@ export const holidayKeys = {
   all: ['holidays'] as const,
   lists: () => [...holidayKeys.all, 'list'] as const,
   list: (params: GetHolidaysParams) => [...holidayKeys.lists(), params] as const,
+  allRecords: () => [...holidayKeys.all, 'all-records'] as const,
 };
 
 export function useHolidays(params: GetHolidaysParams) {
@@ -14,6 +15,16 @@ export function useHolidays(params: GetHolidaysParams) {
     queryKey: holidayKeys.list(params),
     queryFn: () => holidayService.getHolidays(params),
     placeholderData: (prev) => prev,
+  });
+}
+
+/** Fetches all holidays (no pagination) for calendar projection. */
+export function useHolidaysAll() {
+  return useQuery({
+    queryKey: holidayKeys.allRecords(),
+    queryFn: () => holidayService.getHolidays({ size: 500, page: 0 }),
+    select: (data) => data?.content ?? [],
+    staleTime: 60_000,
   });
 }
 
