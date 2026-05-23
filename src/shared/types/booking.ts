@@ -147,6 +147,8 @@ export type AdminBookingUpdateData = {
   guestPhone?: string;
   note?: string;
   gatePassword?: string;
+  nationalIdFrontUrl?: string;
+  nationalIdBackUrl?: string;
 };
 
 export type CancelBookingData = {

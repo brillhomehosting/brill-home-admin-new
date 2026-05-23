@@ -1,10 +1,14 @@
 import axios from 'axios';
 import type { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import type { ApiResponse, SignInResponse } from '@/shared/types';
 
 // ── Storage keys ──
 export const TOKEN_KEY = 'brill_access_token';
 export const REFRESH_TOKEN_KEY = 'brill_refresh_token';
 export const USER_KEY = 'brill_user';
+export const ACCESS_TOKEN_EXPIRY_KEY = 'brill_access_token_expires_at';
+export const AUTH_SESSION_EVENT = 'brill-auth-session-changed';
+let authSessionRevision = 0;
 
 /**
  * Main Axios instance — pre-configured with:
@@ -35,28 +39,111 @@ api.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error),
 );
 
-// ── Response interceptor: 401 → try refresh → fallback logout ──
-let isRefreshing = false;
-let failedQueue: Array<{
-  resolve: (token: string) => void;
-  reject: (err: unknown) => void;
-}> = [];
-
-function processQueue(error: unknown, token: string | null = null) {
-  failedQueue.forEach((p) => {
-    if (error) {
-      p.reject(error);
-    } else {
-      p.resolve(token!);
-    }
-  });
-  failedQueue = [];
+function notifyAuthSessionChanged() {
+  window.dispatchEvent(new Event(AUTH_SESSION_EVENT));
 }
 
-function handleAuthFailure() {
+export function clearStoredAuth() {
+  authSessionRevision += 1;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(ACCESS_TOKEN_EXPIRY_KEY);
+  notifyAuthSessionChanged();
+}
+
+function readAccessTokenExpiry(accessToken: string): number | null {
+  try {
+    const payload = accessToken.split('.')[1];
+    if (!payload) return null;
+
+    const unpadded = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const normalized = unpadded.padEnd(Math.ceil(unpadded.length / 4) * 4, '=');
+    const claims = JSON.parse(atob(normalized)) as { exp?: number };
+    return typeof claims.exp === 'number' ? claims.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getStoredAccessTokenExpiry(): number | null {
+  const stored = localStorage.getItem(ACCESS_TOKEN_EXPIRY_KEY);
+  if (stored) {
+    const expiry = Number(stored);
+    if (Number.isFinite(expiry)) return expiry;
+  }
+
+  const accessToken = localStorage.getItem(TOKEN_KEY);
+  return accessToken ? readAccessTokenExpiry(accessToken) : null;
+}
+
+export function isStoredAccessTokenFresh(minValidityMs = 0): boolean {
+  const expiry = getStoredAccessTokenExpiry();
+  return expiry !== null && expiry - Date.now() > minValidityMs;
+}
+
+export function storeAuthSession(session: SignInResponse) {
+  authSessionRevision += 1;
+  const { account, tokens } = session;
+  const expiry = readAccessTokenExpiry(tokens.accessToken);
+
+  localStorage.setItem(TOKEN_KEY, tokens.accessToken);
+  localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+  localStorage.setItem(USER_KEY, JSON.stringify(account));
+  if (expiry !== null) {
+    localStorage.setItem(ACCESS_TOKEN_EXPIRY_KEY, String(expiry));
+  } else {
+    localStorage.removeItem(ACCESS_TOKEN_EXPIRY_KEY);
+  }
+  notifyAuthSessionChanged();
+}
+
+export function invalidatePendingRefresh() {
+  authSessionRevision += 1;
+}
+
+let refreshPromise: Promise<SignInResponse> | null = null;
+
+export function refreshSession(
+  refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY),
+): Promise<SignInResponse> {
+  if (!refreshToken) {
+    return Promise.reject(new Error('No refresh token available'));
+  }
+
+  if (!refreshPromise) {
+    const revisionAtRequestStart = authSessionRevision;
+    refreshPromise = axios
+      .post<ApiResponse<SignInResponse>>(
+        `${import.meta.env.VITE_API_BASE_URL}/accounts/refresh-token`,
+        { refreshToken },
+        { headers: { 'Content-Type': 'application/json' } },
+      )
+      .then(({ data }) => {
+        if (
+          revisionAtRequestStart !== authSessionRevision
+          || localStorage.getItem(REFRESH_TOKEN_KEY) !== refreshToken
+        ) {
+          throw new Error('Authentication session changed while refreshing');
+        }
+        storeAuthSession(data.data);
+        return data.data;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
+}
+
+export function isTerminalRefreshFailure(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return false;
+  return [400, 401, 403].includes(error.response?.status ?? 0);
+}
+
+function handleAuthFailure() {
+  clearStoredAuth();
 
   if (window.location.pathname !== '/sign-in') {
     sessionStorage.setItem('redirectUrl', window.location.pathname);
@@ -76,49 +163,22 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-
-    if (!storedRefreshToken) {
+    if (!localStorage.getItem(REFRESH_TOKEN_KEY)) {
       handleAuthFailure();
       return Promise.reject(error);
     }
 
-    // If a refresh is already in flight, queue this request
-    if (isRefreshing) {
-      return new Promise<string>((resolve, reject) => {
-        failedQueue.push({ resolve, reject });
-      }).then((newToken) => {
-        originalRequest._retry = true;
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return api(originalRequest);
-      });
-    }
-
     originalRequest._retry = true;
-    isRefreshing = true;
 
     try {
-      // Use a plain axios call to avoid interceptor loop
-      const { data } = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/accounts/refresh-token`,
-        { refreshToken: storedRefreshToken },
-        { headers: { 'Content-Type': 'application/json' } },
-      );
-
-      const tokens = data.data.tokens;
-      localStorage.setItem(TOKEN_KEY, tokens.accessToken);
-      localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
-
-      processQueue(null, tokens.accessToken);
-
-      originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
+      const session = await refreshSession();
+      originalRequest.headers.Authorization = `Bearer ${session.tokens.accessToken}`;
       return api(originalRequest);
     } catch (refreshError) {
-      processQueue(refreshError, null);
-      handleAuthFailure();
+      if (isTerminalRefreshFailure(refreshError)) {
+        handleAuthFailure();
+      }
       return Promise.reject(refreshError);
-    } finally {
-      isRefreshing = false;
     }
   },
 );

@@ -72,8 +72,8 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate(ROUTES.SIGN_IN, { replace: true });
   };
 
@@ -82,7 +82,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     onClose?.();
   };
 
-  const displayName = user?.name || 'Admin User';
+  const displayName = user?.username || 'Admin User';
   const initials = displayName.charAt(0).toUpperCase();
 
   return (

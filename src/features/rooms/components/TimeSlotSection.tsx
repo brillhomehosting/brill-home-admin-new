@@ -13,7 +13,8 @@ import { Button, ConfirmDialog, DateInput } from '@/shared/components/ui';
 import { useToast } from '@/shared/components/feedback/Toast';
 import {
   useTimeSlotAvailability,
-  useCreateBooking,
+  useQuickAdminBooking,
+  useQuickBookingPaymentMethod,
   useDeleteBooking,
 } from '../hooks/useTimeSlotBooking';
 import type { TimeSlotAvailabilityItem } from '@/shared/types';
@@ -56,7 +57,8 @@ export function TimeSlotSection({ roomId }: TimeSlotSectionProps) {
     useTimeSlotAvailability(roomId, selectedDate);
 
   // ── Mutations ──
-  const createBooking = useCreateBooking();
+  const defaultPaymentMethod = useQuickBookingPaymentMethod();
+  const createBooking = useQuickAdminBooking();
   const deleteBooking = useDeleteBooking();
 
   // ── Confirmation dialog state ──
@@ -76,6 +78,7 @@ export function TimeSlotSection({ roomId }: TimeSlotSectionProps) {
         roomId,
         timeSlotId: item.timeSlot.id,
         date: selectedDate,
+        paymentMethod: defaultPaymentMethod,
       },
       {
         onSuccess: () => {

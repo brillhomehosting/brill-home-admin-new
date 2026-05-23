@@ -27,7 +27,8 @@ export function useBookingMutation() {
   });
 
   const resendMutation = useMutation({
-    mutationFn: (bookingId: string) => bookingService.resendConfirmation(bookingId),
+    mutationFn: ({ bookingId, email }: { bookingId: string; email: string }) =>
+      bookingService.resendConfirmation(bookingId, email),
     onSuccess: () => {
       toast('Gửi lại email thành công', 'success');
     },

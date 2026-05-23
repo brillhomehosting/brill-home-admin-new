@@ -1,6 +1,6 @@
 import api from './api';
 import { API } from '@/shared/constants';
-import type { ApiResponse, DashboardStats, DashboardBooking, RevenueTrendItem, RevenueTrendRoomItem, RoomTracker } from '@/shared/types';
+import type { ApiResponse, CleaningScheduleItem, DashboardStats, DashboardBooking, RevenueTrendItem, RevenueTrendRoomItem, RoomTracker } from '@/shared/types';
 
 /** GET /admin/dashboard/stats */
 export async function getDashboardStats() {
@@ -50,6 +50,15 @@ export async function getRevenueTrendByRoom(startDate: string, endDate: string) 
   return data.data;
 }
 
+/** GET /admin/dashboard/cleaning-schedule */
+export async function getCleaningSchedule(date: string) {
+  const { data } = await api.get<ApiResponse<CleaningScheduleItem[]>>(
+    API.DASHBOARD.CLEANING_SCHEDULE,
+    { params: { date } }
+  );
+  return data.data;
+}
+
 export const dashboardService = {
   getDashboardStats,
   getRecentBookings,
@@ -57,4 +66,5 @@ export const dashboardService = {
   getRoomTrackers,
   getRevenueTrend,
   getRevenueTrendByRoom,
+  getCleaningSchedule,
 };

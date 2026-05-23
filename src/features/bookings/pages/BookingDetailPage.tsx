@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Clock,
   Copy,
+  IdCard,
   Loader2,
   Lock,
   Mail,
@@ -22,10 +23,13 @@ import {
   RefreshCw,
   RotateCcw,
   Send,
+  Trash2,
+  Upload,
   User,
   XCircle,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { roomService } from '@/shared/services/room.service';
 import { useNavigate, useParams } from 'react-router-dom';
 import { IDCardViewer } from '../components/IDCardViewer';
 import { CancelBookingDialog } from '../components/CancelBookingDialog';
@@ -59,6 +63,13 @@ export default function BookingDetailPage() {
     guestEmail: '',
     note: '',
   });
+  const [cccdFrontFile, setCccdFrontFile] = useState<File | null>(null);
+  const [cccdBackFile, setCccdBackFile] = useState<File | null>(null);
+  const [cccdFrontPreview, setCccdFrontPreview] = useState<string | null>(null);
+  const [cccdBackPreview, setCccdBackPreview] = useState<string | null>(null);
+  const [isUploadingCccd, setIsUploadingCccd] = useState(false);
+  const frontInputRef = useRef<HTMLInputElement>(null);
+  const backInputRef = useRef<HTMLInputElement>(null);
   const [gatePassForm, setGatePassForm] = useState({
     gatePassword: '',
   });
@@ -85,6 +96,10 @@ export default function BookingDetailPage() {
       guestEmail: booking.guestEmail || '',
       note: booking.note || '',
     });
+    setCccdFrontFile(null);
+    setCccdBackFile(null);
+    setCccdFrontPreview(null);
+    setCccdBackPreview(null);
     setGatePassForm({
       gatePassword: booking.gatePassword || '',
     });
@@ -93,12 +108,58 @@ export default function BookingDetailPage() {
     });
   }, [booking, editMode]);
 
+  const handleCccdFileChange = (side: 'front' | 'back', file: File | null) => {
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    if (side === 'front') {
+      setCccdFrontFile(file);
+      setCccdFrontPreview(preview);
+    } else {
+      setCccdBackFile(file);
+      setCccdBackPreview(preview);
+    }
+  };
+
+  const clearCccd = (side: 'front' | 'back') => {
+    if (side === 'front') {
+      setCccdFrontFile(null);
+      setCccdFrontPreview(null);
+      if (frontInputRef.current) frontInputRef.current.value = '';
+    } else {
+      setCccdBackFile(null);
+      setCccdBackPreview(null);
+      if (backInputRef.current) backInputRef.current.value = '';
+    }
+  };
+
   const handleCustomerFieldChange = (field: keyof typeof customerForm, value: string) => {
     setCustomerForm((current) => ({ ...current, [field]: value }));
   };
 
   const handleSaveCustomerInfo = async () => {
     if (!bookingId || !booking) return;
+
+    let frontUrl: string | undefined;
+    let backUrl: string | undefined;
+
+    if (cccdFrontFile || cccdBackFile) {
+      setIsUploadingCccd(true);
+      try {
+        if (cccdFrontFile) {
+          const res = await roomService.uploadCredentials(cccdFrontFile);
+          frontUrl = res.url;
+        }
+        if (cccdBackFile) {
+          const res = await roomService.uploadCredentials(cccdBackFile);
+          backUrl = res.url;
+        }
+      } catch {
+        toast('Tải ảnh CCCD thất bại', 'error');
+        setIsUploadingCccd(false);
+        return;
+      }
+      setIsUploadingCccd(false);
+    }
 
     await updateBooking.mutateAsync({
       bookingId,
@@ -107,6 +168,8 @@ export default function BookingDetailPage() {
         guestPhone: customerForm.guestPhone,
         guestEmail: customerForm.guestEmail,
         note: customerForm.note,
+        ...(frontUrl !== undefined && { nationalIdFrontUrl: frontUrl }),
+        ...(backUrl !== undefined && { nationalIdBackUrl: backUrl }),
       },
     });
 
@@ -139,7 +202,7 @@ export default function BookingDetailPage() {
     setEditMode(null);
   };
 
-  const isSavingEdit = updateBooking.isPending || syncTuyaStatus.isPending;
+  const isSavingEdit = updateBooking.isPending || syncTuyaStatus.isPending || isUploadingCccd;
 
   if (isLoading) {
     return (
@@ -176,7 +239,7 @@ export default function BookingDetailPage() {
     );
   }
 
-  const displayedCode = `#BK-${booking.bookingCode}`;
+  const displayedCode = `#${booking.bookingCode}`;
 
   const statusMapping = {
     CANCELLED: { label: 'Đã hủy', classes: 'bg-danger-100 text-danger-700' },
@@ -675,6 +738,107 @@ export default function BookingDetailPage() {
             rows={4}
             disabled={isSavingEdit}
           />
+
+          {/* CCCD Upload */}
+          <div className="rounded-xl border border-border bg-secondary-50 p-4">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-secondary-700">
+              <IdCard className="h-4 w-4 text-accent-500" />
+              CCCD / Giấy tờ tùy thân
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Front */}
+              <div>
+                <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-secondary-400">Mặt trước</p>
+                <input
+                  ref={frontInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={isSavingEdit}
+                  onChange={(e) => handleCccdFileChange('front', e.target.files?.[0] ?? null)}
+                />
+                {cccdFrontPreview ? (
+                  <div className="relative">
+                    <img src={cccdFrontPreview} alt="CCCD Front" className="h-28 w-full rounded-lg object-cover border border-border" />
+                    <button
+                      type="button"
+                      onClick={() => clearCccd('front')}
+                      disabled={isSavingEdit}
+                      className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : booking?.nationalIdFrontUrl ? (
+                  <div className="relative group cursor-pointer" onClick={() => frontInputRef.current?.click()}>
+                    <img src={getCredentialImageUrl(booking.nationalIdFrontUrl)} alt="CCCD Front" className="h-28 w-full rounded-lg object-cover border border-border opacity-80 group-hover:opacity-60 transition-opacity" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="rounded-full bg-black/60 px-2 py-1 text-[10px] font-bold text-white">Thay ảnh</span>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => frontInputRef.current?.click()}
+                    disabled={isSavingEdit}
+                    className="flex h-28 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-secondary-200 bg-white text-secondary-400 transition-colors hover:border-accent-300 hover:text-accent-400"
+                  >
+                    <Upload className="h-5 w-5" />
+                    <span className="text-xs font-medium">Tải lên</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Back */}
+              <div>
+                <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-secondary-400">Mặt sau</p>
+                <input
+                  ref={backInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={isSavingEdit}
+                  onChange={(e) => handleCccdFileChange('back', e.target.files?.[0] ?? null)}
+                />
+                {cccdBackPreview ? (
+                  <div className="relative">
+                    <img src={cccdBackPreview} alt="CCCD Back" className="h-28 w-full rounded-lg object-cover border border-border" />
+                    <button
+                      type="button"
+                      onClick={() => clearCccd('back')}
+                      disabled={isSavingEdit}
+                      className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : booking?.nationalIdBackUrl ? (
+                  <div className="relative group cursor-pointer" onClick={() => backInputRef.current?.click()}>
+                    <img src={getCredentialImageUrl(booking.nationalIdBackUrl)} alt="CCCD Back" className="h-28 w-full rounded-lg object-cover border border-border opacity-80 group-hover:opacity-60 transition-opacity" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="rounded-full bg-black/60 px-2 py-1 text-[10px] font-bold text-white">Thay ảnh</span>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => backInputRef.current?.click()}
+                    disabled={isSavingEdit}
+                    className="flex h-28 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-secondary-200 bg-white text-secondary-400 transition-colors hover:border-accent-300 hover:text-accent-400"
+                  >
+                    <Upload className="h-5 w-5" />
+                    <span className="text-xs font-medium">Tải lên</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            {isUploadingCccd && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-accent-500">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Đang tải ảnh CCCD lên...
+              </div>
+            )}
+          </div>
         </div>
       </Modal>
 

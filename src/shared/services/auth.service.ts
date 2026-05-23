@@ -1,5 +1,4 @@
-import axios from 'axios';
-import api from './api';
+import api, { refreshSession } from './api';
 import { API } from '@/shared/constants';
 import type { ApiResponse, SignInPayload, SignInResponse, AuthTokens } from '@/shared/types';
 
@@ -27,12 +26,8 @@ export async function login(payload: SignInPayload): Promise<SignInResponse> {
 export async function refreshToken(
   token: string,
 ): Promise<AuthTokens> {
-  const { data } = await axios.post<ApiResponse<{ tokens: AuthTokens }>>(
-    `${import.meta.env.VITE_API_BASE_URL}${API.AUTH.REFRESH_TOKEN}`,
-    { refreshToken: token },
-    { headers: { 'Content-Type': 'application/json' } },
-  );
-  return data.data.tokens;
+  const session = await refreshSession(token);
+  return session.tokens;
 }
 
 /**

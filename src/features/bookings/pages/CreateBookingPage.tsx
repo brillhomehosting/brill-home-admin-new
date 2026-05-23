@@ -258,7 +258,7 @@ export default function CreateBookingPage() {
                     }}
                     options={[
                       { value: '', label: 'Chọn phòng...' },
-                      ...rooms.map((r) => ({ value: r.id, label: r.name })),
+                      ...[...rooms].sort((a, b) => a.name.localeCompare(b.name, 'vi')).map((r) => ({ value: r.id, label: r.name })),
                     ]}
                     loading={isLoadingRooms}
                   />
