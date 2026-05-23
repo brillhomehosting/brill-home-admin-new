@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Mail, Send, Ticket, Check } from 'lucide-react';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
@@ -28,8 +28,14 @@ export function ResendEmailDialog({
   const [email, setEmail] = useState(customerEmail);
   const { resendConfirmation } = useBookingMutation();
 
+  useEffect(() => {
+    if (open) {
+      setEmail(customerEmail);
+    }
+  }, [customerEmail, open]);
+
   const handleResend = async () => {
-    await resendConfirmation.mutateAsync(bookingId);
+    await resendConfirmation.mutateAsync({ bookingId, email: email.trim() });
     onClose();
   };
 

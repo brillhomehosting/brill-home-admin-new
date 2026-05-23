@@ -30,6 +30,7 @@ import {
 import { RecentBookingItem, UpcomingBookingItem } from '@/features/bookings/components/BookingCard';
 import { useAllRoomsAvailability, useDashboardStats, usePaymentStats, useRecentBookings, useRevenueTrend, useRevenueTrendByRoom, useRoomTrackers, useUpcomingBookings } from '../hooks/useDashboard';
 import { useRooms } from '@/features/rooms/hooks/useRooms';
+import { CleaningScheduleSection } from '../components/CleaningScheduleSection';
 
 type PaymentMethodRange = 'lastWeek' | 'week' | 'lastMonth' | 'month' | 'year' | 'custom';
 type RevenueTrendRange = 'lastWeek' | 'week' | 'lastMonth' | 'month' | 'year' | 'custom';
@@ -285,6 +286,17 @@ export default function DashboardPage() {
 
   const today = new Date().toISOString().split('T')[0];
   const { data: allAvailability } = useAllRoomsAvailability(today);
+
+  const sortedTrackers = useMemo(() => {
+    if (!trackers) return [];
+    const firstSlot = (roomId: string) =>
+      allAvailability?.find(a => a.roomId === roomId)
+        ?.timeslots[0]?.timeSlots[0]?.timeSlot?.startTime ?? '99:99';
+    return [...trackers].sort((a, b) => {
+      const cmp = firstSlot(a.roomId).localeCompare(firstSlot(b.roomId));
+      return cmp !== 0 ? cmp : a.roomName.localeCompare(b.roomName);
+    });
+  }, [trackers, allAvailability]);
 
   const defaultRange = getDefaultRange();
   const [trendRange, setTrendRange] = useState<RevenueTrendRange>('custom');
@@ -829,7 +841,7 @@ export default function DashboardPage() {
             <>
               {/* Mobile: compact list — hidden on sm+ */}
               <div className="sm:hidden divide-y divide-border">
-                {trackers.map((tracker) => {
+                {sortedTrackers.map((tracker) => {
                   const roomAvailability = allAvailability?.find(a => a.roomId === tracker.roomId);
                   const slots = roomAvailability?.timeslots[0]?.timeSlots || [];
                   return <RoomTrackerRow key={tracker.roomId} tracker={tracker} slots={slots} />;
@@ -837,7 +849,7 @@ export default function DashboardPage() {
               </div>
               {/* Desktop: card grid — hidden on mobile */}
               <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-surface-dim/30">
-                {trackers.map((tracker) => {
+                {sortedTrackers.map((tracker) => {
                   const roomAvailability = allAvailability?.find(a => a.roomId === tracker.roomId);
                   const slots = roomAvailability?.timeslots[0]?.timeSlots || [];
                   return <RoomTrackerItem key={tracker.roomId} tracker={tracker} slots={slots} />;
@@ -850,6 +862,9 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+
+        {/* --- Cleaning Schedule Section --- */}
+        <CleaningScheduleSection />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* --- Recent Bookings --- */}

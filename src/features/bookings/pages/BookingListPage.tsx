@@ -62,10 +62,10 @@ export default function BookingListPage() {
 
   const tabs = [
     { id: undefined, label: 'Tất cả', count: totalElements },
-    ...rooms.map((room) => ({
+    ...[...rooms].sort((a, b) => a.name.localeCompare(b.name, 'vi')).map((room) => ({
       id: room.id,
       label: room.name,
-      count: null, 
+      count: null,
     })),
   ];
 

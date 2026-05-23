@@ -1,6 +1,7 @@
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingService } from '@/shared/services/booking.service';
-import type { CreateBookingData } from '@/shared/types';
+import { api } from '@/shared/services/api';
+import type { CreateBookingData, PaymentMethod } from '@/shared/types';
 
 // ── Query keys ──
 export const timeSlotKeys = {
@@ -56,6 +57,63 @@ export function useCreateBooking() {
 
   return useMutation({
     mutationFn: (data: CreateBookingData) => bookingService.createBooking(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['timeSlotAvailability'] });
+    },
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ['timeSlotAvailability'] });
+    },
+  });
+}
+
+const VALID_PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'BANK_TRANSFER', 'OTHER'];
+const QUICK_BOOKING_CONFIG_KEY = 'DEFAULT_PAYMENT_METHOD_QUICK_BOOKING';
+
+/**
+ * Fetches the default payment method for quick bookings from the admin system config.
+ * Falls back to BANK_TRANSFER if the config is missing or contains an invalid value.
+ */
+export function useQuickBookingPaymentMethod(): PaymentMethod {
+  const { data } = useQuery({
+    queryKey: ['admin-system-config', QUICK_BOOKING_CONFIG_KEY],
+    queryFn: async () => {
+      try {
+        const res = await api.get<{ data: { configValue: string } }>(
+          `/admin/system-configs/key/${QUICK_BOOKING_CONFIG_KEY}`,
+        );
+        return res.data.data.configValue;
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const value = data as string | null | undefined;
+  return VALID_PAYMENT_METHODS.includes(value as PaymentMethod)
+    ? (value as PaymentMethod)
+    : 'BANK_TRANSFER';
+}
+
+/**
+ * Quick-book a single time slot for admin — no guest info, no confirmation email.
+ */
+export function useQuickAdminBooking() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ roomId, timeSlotId, date, paymentMethod }: {
+      roomId: string;
+      timeSlotId: string;
+      date: string;
+      paymentMethod: PaymentMethod;
+    }) =>
+      bookingService.adminCreateBooking({
+        roomId,
+        slots: [{ date, timeSlotIds: [timeSlotId] }],
+        paymentMethod,
+        sendConfirmationEmail: false,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['timeSlotAvailability'] });
     },

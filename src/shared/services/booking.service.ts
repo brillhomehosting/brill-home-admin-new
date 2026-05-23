@@ -128,8 +128,8 @@ export async function cancelBooking(bookingId: string, payload: CancelBookingDat
 }
 
 /** POST /admin/bookings/:id/resend-confirmation */
-export async function resendConfirmation(bookingId: string) {
-  await api.post(API.BOOKINGS.RESEND_CONFIRMATION(bookingId));
+export async function resendConfirmation(bookingId: string, email: string) {
+  await api.post(API.BOOKINGS.RESEND_CONFIRMATION(bookingId), { email });
 }
 
 /** POST /admin/bookings/:id/resend-cancellation */

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Header, PageWrapper } from '@/shared/components/layout';
-import { Pagination, Select } from '@/shared/components/ui';
+import { DateInput, Pagination, Select } from '@/shared/components/ui';
 import { cn, formatCurrency, formatDate } from '@/shared/utils';
 import {
   Search,
@@ -160,6 +160,8 @@ export default function PaymentListPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState<PaymentStatus | undefined>(undefined);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | undefined>(undefined);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
   useEffect(() => {
@@ -176,6 +178,8 @@ export default function PaymentListPage() {
     search: debouncedSearch,
     status,
     paymentMethod,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
   });
 
   const payments = response?.content || [];
@@ -195,50 +199,72 @@ export default function PaymentListPage() {
       <PageWrapper className="flex-1 space-y-6">
         <div className="flex flex-col rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
           {/* Filters */}
-          <div className="flex flex-col gap-4 border-b border-border p-4 sm:p-5 bg-surface/50">
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-              <Select
-                value={status || ''}
-                onChange={(e) => {
-                  setStatus((e.target.value as PaymentStatus) || undefined);
-                  setPage(0);
-                }}
-                options={[
-                  { value: '', label: 'Trạng thái' },
-                  { value: 'PAID', label: 'Đã thanh toán' },
-                  { value: 'REFUNDED', label: 'Đã hoàn tiền' },
-                ]}
-                className="h-10"
-              />
-              <Select
-                value={paymentMethod || ''}
-                onChange={(e) => {
-                  setPaymentMethod((e.target.value as PaymentMethod) || undefined);
-                  setPage(0);
-                }}
-                options={[
-                  { value: '', label: 'Phương thức' },
-                  { value: 'CASH', label: 'Tiền mặt' },
-                  { value: 'BANK_TRANSFER', label: 'Chuyển khoản' },
-                  { value: 'OTHER', label: 'Khác' },
-                ]}
-                className="h-10"
-              />
-              <div className="relative sm:col-span-2">
+          <div className="flex flex-col gap-3 border-b border-border p-4 sm:p-5 bg-surface/50">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-400" />
                 <input
                   type="text"
                   placeholder="Mã giao dịch, mã booking..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full h-10 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+                  className="w-full h-9 rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-base sm:text-sm outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
                 />
               </div>
+              <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider whitespace-nowrap">
+                Tổng số: {totalElements}
+              </span>
             </div>
-            <div className="flex items-center justify-between sm:justify-end gap-3 px-1 sm:px-0">
-               <span className="text-[11px] font-bold text-secondary-400 uppercase tracking-wider">
-                 Tổng số: {totalElements}
-               </span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Trạng thái</label>
+                <Select
+                  value={status || ''}
+                  onChange={(e) => {
+                    setStatus((e.target.value as PaymentStatus) || undefined);
+                    setPage(0);
+                  }}
+                  options={[
+                    { value: '', label: 'Tất cả' },
+                    { value: 'PAID', label: 'Đã thanh toán' },
+                    { value: 'REFUNDED', label: 'Đã hoàn tiền' },
+                  ]}
+                  className="h-9 text-xs sm:text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Phương thức</label>
+                <Select
+                  value={paymentMethod || ''}
+                  onChange={(e) => {
+                    setPaymentMethod((e.target.value as PaymentMethod) || undefined);
+                    setPage(0);
+                  }}
+                  options={[
+                    { value: '', label: 'Tất cả' },
+                    { value: 'CASH', label: 'Tiền mặt' },
+                    { value: 'BANK_TRANSFER', label: 'Chuyển khoản' },
+                    { value: 'OTHER', label: 'Khác' },
+                  ]}
+                  className="h-9 text-xs sm:text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Từ ngày</label>
+                <DateInput
+                  value={startDate}
+                  onChange={(value) => { setStartDate(value); setPage(0); }}
+                  className="h-9 rounded-lg text-xs sm:text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-secondary-400">Đến ngày</label>
+                <DateInput
+                  value={endDate}
+                  onChange={(value) => { setEndDate(value); setPage(0); }}
+                  className="h-9 rounded-lg text-xs sm:text-sm"
+                />
+              </div>
             </div>
           </div>
 

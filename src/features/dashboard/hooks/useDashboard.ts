@@ -63,3 +63,12 @@ export function useRevenueTrendByRoom(startDate: string, endDate: string, enable
     enabled: enabled && !!startDate && !!endDate,
   });
 }
+
+export function useCleaningSchedule(date: string) {
+  return useQuery({
+    queryKey: ['dashboard', 'cleaning-schedule', date],
+    queryFn: () => dashboardService.getCleaningSchedule(date),
+    staleTime: 30_000,
+    enabled: !!date,
+  });
+}

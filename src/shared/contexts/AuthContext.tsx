@@ -8,32 +8,39 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY } from '@/shared/services/api';
+import {
+  ACCESS_TOKEN_EXPIRY_KEY,
+  AUTH_SESSION_EVENT,
+  REFRESH_TOKEN_KEY,
+  TOKEN_KEY,
+  USER_KEY,
+  clearStoredAuth,
+  getStoredAccessTokenExpiry,
+  invalidatePendingRefresh,
+  isStoredAccessTokenFresh,
+  isTerminalRefreshFailure,
+  refreshSession,
+  storeAuthSession,
+} from '@/shared/services/api';
 import { authService } from '@/shared/services/auth.service';
 import type { User } from '@/shared/types';
-
-// ================================================================
-// Auth Context
-// Provides: user, isAuthenticated, login, logout, isLoading
-// Handles proactive token refresh.
-// ================================================================
 
 type AuthState = {
   user: User | null;
   isAuthenticated: boolean;
-  /** true while checking stored tokens on first mount */
   isLoading: boolean;
 };
 
 type AuthContextValue = AuthState & {
   login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   logoutAllDevices: () => Promise<void>;
 };
 
+const REFRESH_LEAD_MS = 60_000;
+const REFRESH_RETRY_MS = 30_000;
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-// ── Helpers ──
 function readStoredUser(): User | null {
   try {
     const raw = localStorage.getItem(USER_KEY);
@@ -43,157 +50,176 @@ function readStoredUser(): User | null {
   }
 }
 
-// ── Provider ──
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(() => {
     const token = localStorage.getItem(TOKEN_KEY);
-    const user = readStoredUser();
     return {
-      user: token ? user : null,
+      user: token ? readStoredUser() : null,
       isAuthenticated: !!token,
-      isLoading: !!token, // need to validate if token exists
+      isLoading: !!token,
     };
   });
 
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  // Tracks whether this component instance is still mounted.
-  // Used to prevent zombie timer reschedules after unmount.
   const isMountedRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      clearTimeout(refreshTimerRef.current);
     };
   }, []);
 
-  // ── Schedule proactive refresh ──
-  const scheduleRefresh = useCallback((expiresInSeconds: number) => {
+  const clearAuthState = useCallback(() => {
     clearTimeout(refreshTimerRef.current);
+    clearStoredAuth();
+    setState({ user: null, isAuthenticated: false, isLoading: false });
+  }, []);
 
-    // Guard: don't schedule if expiresIn is missing or invalid.
-    // Without this, Math.max(NaN, 10_000) = 10_000 causes a 10-second
-    // infinite loop when the server omits expiresIn.
-    if (!expiresInSeconds || !isFinite(expiresInSeconds) || expiresInSeconds <= 0) {
+  const scheduleRefresh = useCallback((expiresAt: number | null) => {
+    clearTimeout(refreshTimerRef.current);
+    if (!expiresAt) return;
+
+    const refresh = async () => {
+      try {
+        await refreshSession();
+      } catch (error) {
+        if (!isMountedRef.current) return;
+        if (isTerminalRefreshFailure(error)) {
+          clearStoredAuth();
+          return;
+        }
+
+        refreshTimerRef.current = setTimeout(refresh, REFRESH_RETRY_MS);
+      }
+    };
+
+    const delay = Math.max(expiresAt - Date.now() - REFRESH_LEAD_MS, 0);
+    refreshTimerRef.current = setTimeout(refresh, delay);
+  }, []);
+
+  const syncSessionFromStorage = useCallback(() => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+
+    if (!token || !refreshToken) {
+      invalidatePendingRefresh();
+      clearTimeout(refreshTimerRef.current);
+      setState({ user: null, isAuthenticated: false, isLoading: false });
       return;
     }
 
-    // Refresh at 80% of the token lifetime (at least 10s before expiry)
-    const delay = Math.max((expiresInSeconds * 0.8) * 1000, 10_000);
+    setState({
+      user: readStoredUser(),
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    scheduleRefresh(getStoredAccessTokenExpiry());
+  }, [scheduleRefresh]);
 
-    refreshTimerRef.current = setTimeout(async () => {
-      const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-      if (!storedRefreshToken) return;
-
-      try {
-        const tokens = await authService.refreshToken(storedRefreshToken);
-        // Guard: if the component unmounted while the async call was in-flight,
-        // don't reschedule — this prevents an orphaned timer cycle.
-        if (!isMountedRef.current) return;
-        localStorage.setItem(TOKEN_KEY, tokens.accessToken);
-        localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
-        scheduleRefresh(tokens.expiresIn);
-      } catch {
-        // Refresh failed — the 401 interceptor will handle the redirect
-      }
-    }, delay);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Validate stored session on mount ──
   useEffect(() => {
-    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    const handleAuthSessionEvent = () => syncSessionFromStorage();
+    const handleStorage = (event: StorageEvent) => {
+      if (
+        event.key === TOKEN_KEY
+        || event.key === REFRESH_TOKEN_KEY
+        || event.key === USER_KEY
+        || event.key === ACCESS_TOKEN_EXPIRY_KEY
+      ) {
+        syncSessionFromStorage();
+      }
+    };
+
+    window.addEventListener(AUTH_SESSION_EVENT, handleAuthSessionEvent);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener(AUTH_SESSION_EVENT, handleAuthSessionEvent);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [syncSessionFromStorage]);
+
+  useEffect(() => {
     const storedAccessToken = localStorage.getItem(TOKEN_KEY);
+    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    const storedUser = readStoredUser();
+    let cancelled = false;
 
     if (!storedAccessToken || !storedRefreshToken) {
       setState({ user: null, isAuthenticated: false, isLoading: false });
       return;
     }
 
-    // cancelled prevents the async callbacks from running if this effect
-    // instance is cleaned up before the promise resolves (e.g. React
-    // StrictMode double-invoke). Without this, the first mount's .then()
-    // fires after cleanup and creates a zombie scheduleRefresh cycle that
-    // runs alongside the live one, causing constant refresh-token calls.
-    let cancelled = false;
+    if (storedUser?.username && isStoredAccessTokenFresh(REFRESH_LEAD_MS)) {
+      syncSessionFromStorage();
+      return;
+    }
 
-    authService
-      .refreshToken(storedRefreshToken)
-      .then((tokens) => {
+    refreshSession()
+      .then((session) => {
         if (cancelled) return;
-        localStorage.setItem(TOKEN_KEY, tokens.accessToken);
-        localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
-        scheduleRefresh(tokens.expiresIn);
-        setState((prev) => ({
-          ...prev,
+        setState({
+          user: session.account,
           isAuthenticated: true,
           isLoading: false,
-        }));
+        });
+        scheduleRefresh(getStoredAccessTokenExpiry());
       })
-      .catch(() => {
+      .catch((error) => {
         if (cancelled) return;
-        // Token invalid — clear everything
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
-        setState({ user: null, isAuthenticated: false, isLoading: false });
+        if (isTerminalRefreshFailure(error)) {
+          clearAuthState();
+        } else {
+          setState({
+            user: readStoredUser(),
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
       });
 
     return () => {
       cancelled = true;
-      clearTimeout(refreshTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [clearAuthState, scheduleRefresh, syncSessionFromStorage]);
 
-  // ── Login ──
   const login = useCallback(
     async (username: string, password: string) => {
       const result = await authService.login({ username, password });
-
-      localStorage.setItem(TOKEN_KEY, result.tokens.accessToken);
-      localStorage.setItem(REFRESH_TOKEN_KEY, result.tokens.refreshToken);
-      localStorage.setItem(USER_KEY, JSON.stringify(result.user));
-
+      storeAuthSession(result);
       setState({
-        user: result.user,
+        user: result.account,
         isAuthenticated: true,
         isLoading: false,
       });
-
-      scheduleRefresh(result.tokens.expiresIn);
+      scheduleRefresh(getStoredAccessTokenExpiry());
     },
     [scheduleRefresh],
   );
 
-  // ── Shared local cleanup ──
-  const clearAuthState = useCallback(() => {
-    clearTimeout(refreshTimerRef.current);
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    setState({ user: null, isAuthenticated: false, isLoading: false });
-  }, []);
-
-  // ── Logout (current device) ──
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-    if (storedRefreshToken) {
-      authService.logout(storedRefreshToken).catch(() => {});
+    try {
+      if (storedRefreshToken) {
+        await authService.logout(storedRefreshToken);
+      }
+    } catch {
+      // Local logout still completes if the revoke request cannot be delivered.
+    } finally {
+      clearAuthState();
     }
-    clearAuthState();
   }, [clearAuthState]);
 
-  // ── Logout all devices ──
   const logoutAllDevices = useCallback(async () => {
     try {
       await authService.logoutAllDevices();
     } catch {
-      // ignore backend errors — clear locally regardless
+      // Local logout still completes if the revoke request cannot be delivered.
+    } finally {
+      clearAuthState();
     }
-    clearAuthState();
   }, [clearAuthState]);
 
-  // ── Memoised value ──
   const value = useMemo<AuthContextValue>(
     () => ({ ...state, login, logout, logoutAllDevices }),
     [state, login, logout, logoutAllDevices],
@@ -202,7 +228,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// ── Hook ──
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) {

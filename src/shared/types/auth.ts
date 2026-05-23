@@ -4,8 +4,8 @@
 
 export type User = {
   id: string;
-  name: string;
-  role: string[] | string;
+  username: string;
+  role: string;
   gender?: string;
   photoURL?: string;
   email?: string;
@@ -26,10 +26,10 @@ export type SignUpPayload = {
 export type AuthTokens = {
   accessToken: string;
   refreshToken: string;
-  expiresIn: number;
+  expireTime: string;
 };
 
 export type SignInResponse = {
-  user: User;
+  account: User;
   tokens: AuthTokens;
 };

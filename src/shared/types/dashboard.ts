@@ -52,3 +52,15 @@ export type RoomTracker = {
   currentBooking: RoomTrackerBooking | null;
   nextBooking: RoomTrackerBooking | null;
 };
+
+export type CleaningScheduleItem = {
+  date: string;
+  startTime: string;
+  endTime: string;
+  roomId: string;
+  roomName: string;
+  isBooked: boolean;
+  isOvernight: boolean;
+  isConsecutive: boolean;
+  isLastConsecutiveSlot: boolean;
+};
