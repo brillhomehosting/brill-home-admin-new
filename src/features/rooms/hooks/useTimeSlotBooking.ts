@@ -3,6 +3,8 @@ import { bookingService } from '@/shared/services/booking.service';
 import { api } from '@/shared/services/api';
 import type { CreateBookingData, PaymentMethod } from '@/shared/types';
 
+const ADMIN_CANCEL_REASON = 'Huỷ thủ công bởi admin';
+
 // ── Query keys ──
 export const timeSlotKeys = {
   availability: (roomId: string, date: string) =>
@@ -124,13 +126,17 @@ export function useQuickAdminBooking() {
 }
 
 /**
- * Delete a booking (unbook a time slot).
+ * Cancel a booking (unbook a time slot) using the admin cancel endpoint.
  */
 export function useDeleteBooking() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (bookingId: string) => bookingService.deleteBooking(bookingId),
+    mutationFn: (bookingId: string) =>
+      bookingService.cancelBooking(bookingId, {
+        cancellationReason: ADMIN_CANCEL_REASON,
+        sendCancellationEmail: false,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['timeSlotAvailability'] });
     },
