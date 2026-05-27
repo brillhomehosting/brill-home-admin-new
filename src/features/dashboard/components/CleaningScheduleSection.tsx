@@ -30,11 +30,6 @@ function formatDisplayDate(isoDate: string): string {
   return `${d}/${m}/${y}`;
 }
 
-function overnightLabel(item: CleaningScheduleItem, selectedDate: string): string {
-  // item.date < selectedDate → started yesterday, checks out on selectedDate → "Hôm qua"
-  // item.date >= selectedDate → starts today, checks out tomorrow → "Ngày mai"
-  return item.date < selectedDate ? 'Hôm qua' : 'Ngày mai';
-}
 
 function isRedRow(item: CleaningScheduleItem): boolean {
   // Red only when the slot is mid-chain: guest continues → do NOT clean yet.
@@ -354,11 +349,6 @@ export function CleaningScheduleSection() {
                         Khung liên tiếp
                       </span>
                     )}
-                    {item.isOvernight && !isRed && (
-                      <span className="ml-1 rounded bg-yellow-200 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-700">
-                        {overnightLabel(item, selectedDate)}
-                      </span>
-                    )}
                   </div>
                 </div>
               );
@@ -393,14 +383,7 @@ export function CleaningScheduleSection() {
                     <td className="px-4 py-2 text-secondary-700">{formatDisplayDate(item.date)}</td>
                     <td className="px-4 py-2 font-medium text-secondary-800">{item.startTime}</td>
                     <td className="px-4 py-2 font-medium text-secondary-800">{item.endTime}</td>
-                    <td className="px-4 py-2 font-semibold text-secondary-900">
-                      <span>{item.roomName}</span>
-                      {item.isOvernight && !isRedRow(item) && (
-                        <span className="ml-1.5 rounded bg-yellow-200 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-700 align-middle">
-                          {overnightLabel(item, selectedDate)}
-                        </span>
-                      )}
-                    </td>
+                    <td className="px-4 py-2 font-semibold text-secondary-900">{item.roomName}</td>
                     <td className="px-4 py-2 text-center">
                       {item.isBooked && (
                         <span className={cn(
