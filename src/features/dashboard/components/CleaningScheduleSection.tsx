@@ -6,21 +6,22 @@ import { cn } from '@/shared/utils';
 import { useCleaningSchedule } from '../hooks/useDashboard';
 import type { CleaningScheduleItem } from '@/shared/types';
 
+const VN_TIMEZONE = 'Asia/Ho_Chi_Minh';
+
 function todayIso(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  // Always use Vietnam timezone (UTC+7) to match the backend's processing timezone,
+  // regardless of the admin's local machine timezone. (Fix H-2)
+  return new Date().toLocaleDateString('en-CA', { timeZone: VN_TIMEZONE });
 }
 
 function shiftDate(isoDate: string, days: number): string {
+  // Use UTC arithmetic to avoid DST issues when running in non-VN environments. (Fix L-8)
   const [y, mo, da] = isoDate.split('-').map(Number);
-  const d = new Date(y, mo - 1, da);
-  d.setDate(d.getDate() + days);
-  const ny = d.getFullYear();
-  const nm = String(d.getMonth() + 1).padStart(2, '0');
-  const nd = String(d.getDate()).padStart(2, '0');
+  const utcMs = Date.UTC(y, mo - 1, da) + days * 86_400_000;
+  const shifted = new Date(utcMs);
+  const ny = shifted.getUTCFullYear();
+  const nm = String(shifted.getUTCMonth() + 1).padStart(2, '0');
+  const nd = String(shifted.getUTCDate()).padStart(2, '0');
   return `${ny}-${nm}-${nd}`;
 }
 
@@ -29,8 +30,20 @@ function formatDisplayDate(isoDate: string): string {
   return `${d}/${m}/${y}`;
 }
 
+function overnightLabel(item: CleaningScheduleItem, selectedDate: string): string {
+  // item.date < selectedDate → started yesterday, checks out on selectedDate → "Hôm qua"
+  // item.date >= selectedDate → starts today, checks out tomorrow → "Ngày mai"
+  return item.date < selectedDate ? 'Hôm qua' : 'Ngày mai';
+}
+
+function isRedRow(item: CleaningScheduleItem): boolean {
+  // Red only when the slot is mid-chain: guest continues → do NOT clean yet.
+  // The last slot of a consecutive chain (isLastConsecutiveSlot=true) must show WHITE — clean after checkout.
+  return !!item.isConsecutive && !item.isLastConsecutiveSlot;
+}
+
 function rowBg(item: CleaningScheduleItem): string {
-  if (item.isConsecutive && !item.isLastConsecutiveSlot) return '#fee2e2'; // red-100
+  if (isRedRow(item)) return '#fee2e2'; // red-100
   if (item.isOvernight) return '#fef9c3'; // yellow-100
   return '#ffffff';
 }
@@ -38,20 +51,20 @@ function rowBg(item: CleaningScheduleItem): string {
 /** Capture-ready table rendered with inline styles — avoids oklch parsing issues */
 function CaptureTable({ items, date }: { items: CleaningScheduleItem[]; date: string }) {
   const thStyle: React.CSSProperties = {
-    padding: '8px 14px',
+    padding: '8px 0px',
     textAlign: 'left',
-    fontSize: '13px',
+    fontSize: '14px',
     fontWeight: 900,
     textTransform: 'uppercase',
-    letterSpacing: '0.05em',
+    letterSpacing: '0.03em',
     color: '#374151',
     borderBottom: '2px solid #d1d5db',
     background: '#f3f4f6',
     whiteSpace: 'nowrap',
   };
   const tdStyle: React.CSSProperties = {
-    padding: '7px 14px',
-    fontSize: '15px',
+    padding: '7px 0px',
+    fontSize: '17px',
     fontWeight: 600,
     color: '#111827',
     borderBottom: '1px solid #e5e7eb',
@@ -62,43 +75,43 @@ function CaptureTable({ items, date }: { items: CleaningScheduleItem[]; date: st
     <div style={{ background: '#ffffff', padding: '12px 0', fontFamily: 'Arial, sans-serif' }}>
       {/* Title + date */}
       <div style={{ padding: '4px 14px 10px', display: 'flex', alignItems: 'baseline', gap: 10 }}>
-        <span style={{ fontWeight: 900, fontSize: 17, color: '#111827' }}>Lịch Dọn Phòng</span>
-        <span style={{ fontSize: 13, color: '#6b7280' }}>{formatDisplayDate(date)}</span>
+        <span style={{ fontWeight: 900, fontSize: 18, color: '#111827' }}>Lịch Dọn Phòng</span>
+        <span style={{ fontSize: 14, color: '#6b7280' }}>{formatDisplayDate(date)}</span>
       </div>
       {/* Legend */}
-      <div style={{ padding: '0 14px 8px', display: 'flex', gap: 16, fontSize: 11, color: '#6b7280' }}>
+      <div style={{ padding: '0 14px 8px', display: 'flex', gap: 16, fontSize: 12, color: '#6b7280' }}>
         <span>
           <span style={{ display: 'inline-block', width: 10, height: 10, background: '#fef9c3', border: '1px solid #ca8a04', marginRight: 4 }} />
-          Hôm qua
+          Qua đêm
         </span>
         <span>
           <span style={{ display: 'inline-block', width: 10, height: 10, background: '#fee2e2', border: '1px solid #dc2626', marginRight: 4 }} />
-          Khung đôi/liên tiếp
+          Khung liên tiếp
         </span>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
-            <th style={thStyle}>Ngày</th>
+            <th style={{ ...thStyle, paddingLeft: 48 }}>Ngày</th>
             <th style={thStyle}>Giờ bắt đầu</th>
             <th style={thStyle}>Giờ kết thúc</th>
             <th style={thStyle}>Phòng</th>
-            <th style={{ ...thStyle, textAlign: 'center' }}>Đã đặt</th>
+            <th style={{ ...thStyle, textAlign: 'center', paddingRight: 28 }}>Đã đặt</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item, idx) => (
             <tr key={idx} style={{ background: rowBg(item) }}>
-              <td style={tdStyle}>{formatDisplayDate(item.date)}</td>
+              <td style={{ ...tdStyle, paddingLeft: 48 }}>{formatDisplayDate(item.date)}</td>
               <td style={{ ...tdStyle, fontWeight: 600 }}>{item.startTime}</td>
               <td style={{ ...tdStyle, fontWeight: 600 }}>{item.endTime}</td>
               <td style={{ ...tdStyle, fontWeight: 900, color: '#000000' }}>{item.roomName}</td>
-              <td style={{ ...tdStyle, textAlign: 'center' }}>
+              <td style={{ ...tdStyle, textAlign: 'center', paddingRight: 28 }}>
                 {item.isBooked
                   ? <span style={{
                       display: 'inline-block',
-                      background: '#16a34a',
-                      color: '#ffffff',
+                      background: isRedRow(item) ? '#fecaca' : '#dcfce7',
+                      color: isRedRow(item) ? '#b91c1c' : '#15803d',
                       borderRadius: 5,
                       padding: '3px 10px',
                       fontWeight: 800,
@@ -281,11 +294,11 @@ export function CleaningScheduleSection() {
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-2 sm:px-5 text-xs text-secondary-500">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded-sm bg-yellow-100 border border-yellow-300" />
-          Hôm qua (cần dọn trước)
+          Qua đêm (hôm qua / ngày mai)
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded-sm bg-red-100 border border-red-300" />
-          Khung đôi / liên tiếp (không dọn giữa)
+          Khung liên tiếp (không dọn giữa)
         </span>
       </div>
 
@@ -308,7 +321,7 @@ export function CleaningScheduleSection() {
           {/* Mobile card list */}
           <div className="sm:hidden divide-y divide-secondary-100">
             {items.map((item, idx) => {
-              const isRed = item.isConsecutive && !item.isLastConsecutiveSlot;
+              const isRed = isRedRow(item);
               return (
                 <div
                   key={`${item.roomId}-${item.startTime}-${idx}`}
@@ -323,17 +336,14 @@ export function CleaningScheduleSection() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-semibold text-secondary-900 truncate">{item.roomName}</span>
-                    <input
-                      type="checkbox"
-                      checked={item.isBooked}
-                      disabled={isRed}
-                      readOnly
-                      className={cn(
-                        'h-5 w-5 shrink-0 rounded border-secondary-300 accent-primary-600',
-                        isRed ? 'cursor-not-allowed opacity-60' : 'cursor-default'
-                      )}
-                      onChange={() => {}}
-                    />
+                    {item.isBooked && (
+                      <span className={cn(
+                        'shrink-0 rounded px-2 py-0.5 text-xs font-bold',
+                        isRed ? 'bg-red-200 text-red-700' : 'bg-green-100 text-green-700'
+                      )}>
+                        ✓ Đã đặt
+                      </span>
+                    )}
                   </div>
                   <div className="mt-1 flex items-center gap-1.5 text-xs text-secondary-500">
                     <span>{formatDisplayDate(item.date)}</span>
@@ -341,12 +351,12 @@ export function CleaningScheduleSection() {
                     <span className="font-medium text-secondary-700">{item.startTime} – {item.endTime}</span>
                     {isRed && (
                       <span className="ml-1 rounded bg-red-200 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
-                        Khung đôi
+                        Khung liên tiếp
                       </span>
                     )}
                     {item.isOvernight && !isRed && (
                       <span className="ml-1 rounded bg-yellow-200 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-700">
-                        Hôm qua
+                        {overnightLabel(item, selectedDate)}
                       </span>
                     )}
                   </div>
@@ -373,7 +383,7 @@ export function CleaningScheduleSection() {
                     key={`${item.roomId}-${item.startTime}-${idx}`}
                     className={cn(
                       'border-b border-secondary-100 transition-colors',
-                      item.isConsecutive && !item.isLastConsecutiveSlot
+                      isRedRow(item)
                         ? 'bg-red-50 hover:bg-red-100'
                         : item.isOvernight
                           ? 'bg-yellow-50 hover:bg-yellow-100'
@@ -383,19 +393,25 @@ export function CleaningScheduleSection() {
                     <td className="px-4 py-2 text-secondary-700">{formatDisplayDate(item.date)}</td>
                     <td className="px-4 py-2 font-medium text-secondary-800">{item.startTime}</td>
                     <td className="px-4 py-2 font-medium text-secondary-800">{item.endTime}</td>
-                    <td className="px-4 py-2 font-semibold text-secondary-900">{item.roomName}</td>
+                    <td className="px-4 py-2 font-semibold text-secondary-900">
+                      <span>{item.roomName}</span>
+                      {item.isOvernight && !isRedRow(item) && (
+                        <span className="ml-1.5 rounded bg-yellow-200 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-700 align-middle">
+                          {overnightLabel(item, selectedDate)}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2 text-center">
-                      <input
-                        type="checkbox"
-                        checked={item.isBooked}
-                        disabled={item.isConsecutive && !item.isLastConsecutiveSlot}
-                        readOnly
-                        className={cn(
-                          'h-4 w-4 rounded border-secondary-300 accent-primary-600',
-                          item.isConsecutive && !item.isLastConsecutiveSlot ? 'cursor-not-allowed opacity-60' : 'cursor-default'
-                        )}
-                        onChange={() => {}}
-                      />
+                      {item.isBooked && (
+                        <span className={cn(
+                          'inline-block rounded px-2 py-0.5 text-xs font-bold',
+                          isRedRow(item)
+                            ? 'bg-red-200 text-red-700'
+                            : 'bg-green-100 text-green-700'
+                        )}>
+                          ✓ Đã đặt
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
