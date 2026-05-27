@@ -68,7 +68,7 @@ export function useCleaningSchedule(date: string) {
   return useQuery({
     queryKey: ['dashboard', 'cleaning-schedule', date],
     queryFn: () => dashboardService.getCleaningSchedule(date),
-    staleTime: 30_000,
+    staleTime: 0,
     enabled: !!date,
   });
 }
