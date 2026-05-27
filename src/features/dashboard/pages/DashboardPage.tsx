@@ -1095,6 +1095,15 @@ function RoomTrackerRow({ tracker, slots }: { tracker: RoomTracker; slots: Booki
         </div>
       </div>
 
+      {/* Same customer notice */}
+      {tracker.currentBooking && tracker.nextBooking &&
+       tracker.currentBooking.bookingId === tracker.nextBooking.bookingId && (
+        <div className="flex items-center gap-1.5 rounded-lg bg-blue-50 border border-blue-200 px-2 py-1.5 text-[10px] font-semibold text-blue-700">
+          <span>🔁</span>
+          <span>Cùng khách — không đổi khách, không cần dọn phòng giữa 2 booking</span>
+        </div>
+      )}
+
       {/* Row 3: time slots (compact chips) */}
       {slots.length > 0 && (
         <div className="mt-2 flex items-center gap-1.5 flex-wrap">
@@ -1185,6 +1194,15 @@ function RoomTrackerItem({ tracker, slots }: { tracker: RoomTracker; slots: Book
         ) : (
           <div className="border-t border-border pt-2 mt-1 flex items-center h-[55px]">
             <p className="text-secondary-400 italic text-[9px]">Chưa có khách tiếp theo</p>
+          </div>
+        )}
+
+        {/* Same customer notice */}
+        {tracker.currentBooking && tracker.nextBooking &&
+         tracker.currentBooking.bookingId === tracker.nextBooking.bookingId && (
+          <div className="flex items-center gap-1.5 rounded-lg bg-blue-50 border border-blue-200 px-2 py-1.5 text-[10px] font-semibold text-blue-700">
+            <span>🔁</span>
+            <span>Cùng khách — không đổi khách, không cần dọn phòng giữa 2 booking</span>
           </div>
         )}
 
