@@ -47,13 +47,14 @@ function rowBg(item: CleaningScheduleItem): string {
 function CaptureTable({ items, date }: { items: CleaningScheduleItem[]; date: string }) {
   const thStyle: React.CSSProperties = {
     padding: '8px 0px',
-    textAlign: 'left',
+    textAlign: 'center',
+    verticalAlign: 'middle',
     fontSize: '14px',
     fontWeight: 900,
     textTransform: 'uppercase',
     letterSpacing: '0.03em',
     color: '#374151',
-    borderBottom: '2px solid #d1d5db',
+    border: '3px solid #4b5563',
     background: '#f3f4f6',
     whiteSpace: 'nowrap',
   };
@@ -62,7 +63,9 @@ function CaptureTable({ items, date }: { items: CleaningScheduleItem[]; date: st
     fontSize: '17px',
     fontWeight: 600,
     color: '#111827',
-    borderBottom: '1px solid #e5e7eb',
+    textAlign: 'center',
+    verticalAlign: 'middle',
+    border: '3px solid #6b7280',
     whiteSpace: 'nowrap',
   };
 
@@ -84,24 +87,24 @@ function CaptureTable({ items, date }: { items: CleaningScheduleItem[]; date: st
           Khung liên tiếp
         </span>
       </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, border: '3px solid #4b5563' }}>
         <thead>
           <tr>
-            <th style={{ ...thStyle, paddingLeft: 48 }}>Ngày</th>
-            <th style={thStyle}>Giờ bắt đầu</th>
-            <th style={thStyle}>Giờ kết thúc</th>
+            <th style={thStyle}>Ngày</th>
+            <th style={thStyle}>Bắt đầu</th>
+            <th style={thStyle}>Kết thúc</th>
             <th style={thStyle}>Phòng</th>
-            <th style={{ ...thStyle, textAlign: 'center', paddingRight: 28 }}>Đã đặt</th>
+            <th style={thStyle}>Đã đặt</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item, idx) => (
             <tr key={idx} style={{ background: rowBg(item) }}>
-              <td style={{ ...tdStyle, paddingLeft: 48 }}>{formatDisplayDate(item.date)}</td>
-              <td style={{ ...tdStyle, fontWeight: 600 }}>{item.startTime}</td>
-              <td style={{ ...tdStyle, fontWeight: 600 }}>{item.endTime}</td>
+              <td style={tdStyle}>{formatDisplayDate(item.date)}</td>
+              <td style={tdStyle}>{item.startTime}</td>
+              <td style={tdStyle}>{item.endTime}</td>
               <td style={{ ...tdStyle, fontWeight: 900, color: '#000000' }}>{item.roomName}</td>
-              <td style={{ ...tdStyle, textAlign: 'center', paddingRight: 28 }}>
+              <td style={tdStyle}>
                 {item.isBooked
                   ? <span style={{
                       display: 'inline-block',
@@ -140,7 +143,7 @@ export function CleaningScheduleSection() {
 
   const captureImage = async (): Promise<string> => {
     if (!captureRef.current) throw new Error('no ref');
-    return toPng(captureRef.current, { pixelRatio: 4, cacheBust: true });
+    return toPng(captureRef.current, { pixelRatio: 2, cacheBust: true });
   };
 
   const handleCopy = async () => {
@@ -411,7 +414,7 @@ export function CleaningScheduleSection() {
           left: '-9999px',
           top: 0,
           pointerEvents: 'none',
-          width: 800,
+          width: 500,
         }}
       >
         <div ref={captureRef}>
