@@ -46,74 +46,71 @@ function rowBg(item: CleaningScheduleItem): string {
 /** Capture-ready table rendered with inline styles — avoids oklch parsing issues */
 function CaptureTable({ items, date }: { items: CleaningScheduleItem[]; date: string }) {
   const thStyle: React.CSSProperties = {
-    padding: '8px 0px',
-    textAlign: 'center',
-    verticalAlign: 'middle',
-    fontSize: '14px',
+    padding: '4px 4px',
+    textAlign: 'left',
+    fontSize: '11px',
     fontWeight: 900,
     textTransform: 'uppercase',
-    letterSpacing: '0.03em',
+    letterSpacing: '0.04em',
     color: '#374151',
-    border: '3px solid #4b5563',
+    border: '1px solid #d1d5db',
     background: '#f3f4f6',
     whiteSpace: 'nowrap',
   };
   const tdStyle: React.CSSProperties = {
-    padding: '7px 0px',
-    fontSize: '17px',
-    fontWeight: 600,
+    padding: '3px 4px',
+    fontSize: '14px',
+    fontWeight: 700,
     color: '#111827',
-    textAlign: 'center',
-    verticalAlign: 'middle',
-    border: '3px solid #6b7280',
+    border: '1px solid #d1d5db',
     whiteSpace: 'nowrap',
   };
 
   return (
-    <div style={{ background: '#ffffff', padding: '12px 0', fontFamily: 'Arial, sans-serif' }}>
+    <div style={{ background: '#ffffff', padding: '8px 0', fontFamily: 'Arial, sans-serif' }}>
       {/* Title + date */}
-      <div style={{ padding: '4px 14px 10px', display: 'flex', alignItems: 'baseline', gap: 10 }}>
-        <span style={{ fontWeight: 900, fontSize: 18, color: '#111827' }}>Lịch Dọn Phòng</span>
-        <span style={{ fontSize: 14, color: '#6b7280' }}>{formatDisplayDate(date)}</span>
+      <div style={{ padding: '4px 10px 8px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontWeight: 900, fontSize: 14, color: '#111827' }}>Lịch Dọn Phòng</span>
+        <span style={{ fontSize: 11, color: '#6b7280' }}>{formatDisplayDate(date)}</span>
       </div>
       {/* Legend */}
-      <div style={{ padding: '0 14px 8px', display: 'flex', gap: 16, fontSize: 12, color: '#6b7280' }}>
+      <div style={{ padding: '0 10px 6px', display: 'flex', gap: 14, fontSize: 10, color: '#6b7280' }}>
         <span>
-          <span style={{ display: 'inline-block', width: 10, height: 10, background: '#fef9c3', border: '1px solid #ca8a04', marginRight: 4 }} />
-          Qua đêm
+          <span style={{ display: 'inline-block', width: 9, height: 9, background: '#fef9c3', border: '1px solid #ca8a04', marginRight: 3 }} />
+          Hôm qua
         </span>
         <span>
-          <span style={{ display: 'inline-block', width: 10, height: 10, background: '#fee2e2', border: '1px solid #dc2626', marginRight: 4 }} />
-          Khung liên tiếp
+          <span style={{ display: 'inline-block', width: 9, height: 9, background: '#fee2e2', border: '1px solid #dc2626', marginRight: 3 }} />
+          Khung đôi/liên tiếp
         </span>
       </div>
-      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, border: '3px solid #4b5563' }}>
+      <table style={{ width: 'auto', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
-            <th style={thStyle}>Ngày</th>
-            <th style={thStyle}>Bắt đầu</th>
-            <th style={thStyle}>Kết thúc</th>
-            <th style={thStyle}>Phòng</th>
-            <th style={thStyle}>Đã đặt</th>
+            <th style={{ ...thStyle, minWidth: 120 }}>Ngày</th>
+            <th style={{ ...thStyle, textAlign: 'center' }}>Bắt đầu</th>
+            <th style={{ ...thStyle, textAlign: 'center' }}>Kết thúc</th>
+            <th style={{ ...thStyle, textAlign: 'center' }}>Phòng</th>
+            <th style={{ ...thStyle, textAlign: 'center' }}>Đã đặt</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item, idx) => (
             <tr key={idx} style={{ background: rowBg(item) }}>
               <td style={tdStyle}>{formatDisplayDate(item.date)}</td>
-              <td style={tdStyle}>{item.startTime}</td>
-              <td style={tdStyle}>{item.endTime}</td>
-              <td style={{ ...tdStyle, fontWeight: 900, color: '#000000' }}>{item.roomName}</td>
-              <td style={tdStyle}>
+              <td style={{ ...tdStyle, textAlign: 'center' }}>{item.startTime}</td>
+              <td style={{ ...tdStyle, textAlign: 'center' }}>{item.endTime}</td>
+              <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 700 }}>{item.roomName}</td>
+              <td style={{ ...tdStyle, textAlign: 'center' }}>
                 {item.isBooked
                   ? <span style={{
                       display: 'inline-block',
-                      background: isRedRow(item) ? '#fecaca' : '#dcfce7',
-                      color: isRedRow(item) ? '#b91c1c' : '#15803d',
-                      borderRadius: 5,
-                      padding: '3px 10px',
+                      background: '#16a34a',
+                      color: '#ffffff',
+                      borderRadius: 4,
+                      padding: '1px 4px',
                       fontWeight: 800,
-                      fontSize: 14,
+                      fontSize: 9,
                       letterSpacing: '0.03em',
                     }}>✓ Đã đặt</span>
                   : ''}
@@ -414,7 +411,7 @@ export function CleaningScheduleSection() {
           left: '-9999px',
           top: 0,
           pointerEvents: 'none',
-          width: 500,
+          width: 'fit-content',
         }}
       >
         <div ref={captureRef}>
