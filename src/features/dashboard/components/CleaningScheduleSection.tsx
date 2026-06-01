@@ -5,6 +5,7 @@ import { DateInput } from '@/shared/components/ui';
 import { cn } from '@/shared/utils';
 import { useCleaningSchedule } from '../hooks/useDashboard';
 import type { CleaningScheduleItem } from '@/shared/types';
+import { CleaningSchedulePng } from './CleaningSchedulePng';
 
 const VN_TIMEZONE = 'Asia/Ho_Chi_Minh';
 
@@ -37,91 +38,6 @@ function isRedRow(item: CleaningScheduleItem): boolean {
   return !!item.isConsecutive && !item.isLastConsecutiveSlot;
 }
 
-function rowBg(item: CleaningScheduleItem): string {
-  if (isRedRow(item)) return '#fee2e2'; // red-100
-  if (item.isOvernight) return '#fef9c3'; // yellow-100
-  return '#ffffff';
-}
-
-/** Capture-ready table rendered with inline styles — avoids oklch parsing issues */
-function CaptureTable({ items, date }: { items: CleaningScheduleItem[]; date: string }) {
-  const thStyle: React.CSSProperties = {
-    padding: '4px 4px',
-    textAlign: 'left',
-    fontSize: '11px',
-    fontWeight: 900,
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-    color: '#374151',
-    border: '1px solid #d1d5db',
-    background: '#f3f4f6',
-    whiteSpace: 'nowrap',
-  };
-  const tdStyle: React.CSSProperties = {
-    padding: '3px 4px',
-    fontSize: '14px',
-    fontWeight: 700,
-    color: '#111827',
-    border: '1px solid #d1d5db',
-    whiteSpace: 'nowrap',
-  };
-
-  return (
-    <div style={{ background: '#ffffff', padding: '8px 0', fontFamily: 'Arial, sans-serif' }}>
-      {/* Title + date */}
-      <div style={{ padding: '4px 10px 8px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontWeight: 900, fontSize: 14, color: '#111827' }}>Lịch Dọn Phòng</span>
-        <span style={{ fontSize: 11, color: '#6b7280' }}>{formatDisplayDate(date)}</span>
-      </div>
-      {/* Legend */}
-      <div style={{ padding: '0 10px 6px', display: 'flex', gap: 14, fontSize: 10, color: '#6b7280' }}>
-        <span>
-          <span style={{ display: 'inline-block', width: 9, height: 9, background: '#fef9c3', border: '1px solid #ca8a04', marginRight: 3 }} />
-          Hôm qua
-        </span>
-        <span>
-          <span style={{ display: 'inline-block', width: 9, height: 9, background: '#fee2e2', border: '1px solid #dc2626', marginRight: 3 }} />
-          Khung đôi/liên tiếp
-        </span>
-      </div>
-      <table style={{ width: 'auto', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th style={{ ...thStyle, minWidth: 120 }}>Ngày</th>
-            <th style={{ ...thStyle, textAlign: 'center' }}>Bắt đầu</th>
-            <th style={{ ...thStyle, textAlign: 'center' }}>Kết thúc</th>
-            <th style={{ ...thStyle, textAlign: 'center' }}>Phòng</th>
-            <th style={{ ...thStyle, textAlign: 'center' }}>Đã đặt</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, idx) => (
-            <tr key={idx} style={{ background: rowBg(item) }}>
-              <td style={tdStyle}>{formatDisplayDate(item.date)}</td>
-              <td style={{ ...tdStyle, textAlign: 'center' }}>{item.startTime}</td>
-              <td style={{ ...tdStyle, textAlign: 'center' }}>{item.endTime}</td>
-              <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 700 }}>{item.roomName}</td>
-              <td style={{ ...tdStyle, textAlign: 'center' }}>
-                {item.isBooked
-                  ? <span style={{
-                      display: 'inline-block',
-                      background: '#16a34a',
-                      color: '#ffffff',
-                      borderRadius: 4,
-                      padding: '1px 4px',
-                      fontWeight: 800,
-                      fontSize: 9,
-                      letterSpacing: '0.03em',
-                    }}>✓ Đã đặt</span>
-                  : ''}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 export function CleaningScheduleSection() {
   const [selectedDate, setSelectedDate] = useState(todayIso);
@@ -416,7 +332,7 @@ export function CleaningScheduleSection() {
       >
         <div ref={captureRef}>
           {captureItems.length > 0 && (
-            <CaptureTable items={captureItems} date={selectedDate} />
+            <CleaningSchedulePng items={captureItems} date={selectedDate} />
           )}
         </div>
       </div>
