@@ -462,7 +462,8 @@ export function EditBookingDialog({
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   options={[
                     { value: 'CASH', label: 'Tiền mặt' },
-                    { value: 'BANK_TRANSFER', label: 'Chuyển khoản' },
+                    { value: 'BANK_TRANSFER_VP', label: 'Chuyển khoản VPBank' },
+                    { value: 'BANK_TRANSFER_TECH', label: 'Chuyển khoản TechcomBank' },
                     { value: 'OTHER', label: 'Khác' },
                   ]}
                 />

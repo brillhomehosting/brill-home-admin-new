@@ -3,6 +3,7 @@ import type { PaymentMethod } from './booking';
 export type PaymentStatus = 'PAID' | 'REFUNDED';
 
 export type Payment = {
+  paymentId: string;
   paymentCode: string;
   bookingCode: string;
   paymentStatus: PaymentStatus;
@@ -13,6 +14,11 @@ export type Payment = {
   rawCallbackData?: string;
   createdAt: string;
   paidAt?: string;
+};
+
+export type PaymentUpdateData = {
+  paymentMethod?: PaymentMethod;
+  transactionNo?: string;
 };
 
 export type GetPaymentsParams = {

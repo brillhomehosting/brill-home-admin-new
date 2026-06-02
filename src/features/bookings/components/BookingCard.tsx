@@ -191,7 +191,8 @@ type BookingListCardProps = {
 
 const METHOD_LABEL: Record<string, string> = {
   CASH: 'Tiền mặt',
-  BANK_TRANSFER: 'Chuyển khoản',
+  BANK_TRANSFER_VP: 'Chuyển khoản VPBank',
+  BANK_TRANSFER_TECH: 'Chuyển khoản TechcomBank',
   OTHER: 'Khác',
   MOMO: 'MoMo',
   VNPAY: 'VNPay',

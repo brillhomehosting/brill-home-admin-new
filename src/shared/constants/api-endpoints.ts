@@ -73,6 +73,7 @@ export const API = {
     ADMIN_LIST: '/admin/payments',
     STATS: '/admin/payments/stats',
     GET_METHODS: '/payments/methods',
+    UPDATE: (id: string) => `/admin/payments/${id}` as const,
   },
 
   // ── Amenities ──

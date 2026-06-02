@@ -1,6 +1,6 @@
 import api from './api';
 import { API } from '@/shared/constants';
-import type { PagedApiResponse, Payment, GetPaymentsParams, PaymentStatsParams, PaymentStats, ApiResponse } from '@/shared/types';
+import type { PagedApiResponse, Payment, GetPaymentsParams, PaymentStatsParams, PaymentStats, ApiResponse, PaymentUpdateData, BookingPayment } from '@/shared/types';
 
 /** GET /admin/payments */
 export async function getPayments(params: GetPaymentsParams) {
@@ -20,7 +20,17 @@ export async function getPaymentStats(params: PaymentStatsParams = {}) {
   return data.data;
 }
 
+/** PATCH /admin/payments/:id */
+export async function updatePayment(paymentId: string, data: PaymentUpdateData) {
+  const { data: res } = await api.patch<ApiResponse<BookingPayment>>(
+    API.PAYMENTS.UPDATE(paymentId),
+    data
+  );
+  return res.data;
+}
+
 export const paymentService = {
   getPayments,
   getPaymentStats,
+  updatePayment,
 };
