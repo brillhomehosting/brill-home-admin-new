@@ -8,7 +8,7 @@ export type BookingStatus =
   | 'CONFIRMED'
   | 'CANCELLED';
 
-export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'OTHER';
+export type PaymentMethod = 'CASH' | 'BANK_TRANSFER_VP' | 'BANK_TRANSFER_TECH' | 'OTHER';
 
 export type AdminBooking = {
   bookingId: string;

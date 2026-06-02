@@ -7,6 +7,8 @@ import { Select } from '@/shared/components/ui/Select';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { ROUTES } from '@/shared/constants';
 import { cn, formatCurrency, formatDate, getCredentialImageUrl } from '@/shared/utils';
+import { usePaymentMutation } from '@/features/payments/hooks/usePaymentMutation';
+import type { PaymentMethod } from '@/shared/types';
 import {
   AlertCircle,
   BedDouble,
@@ -47,7 +49,21 @@ const tuyaStatusOptions = [
   { value: 'DELETE_FAILED', label: 'Xoá mật khẩu lỗi' },
 ];
 
-type EditMode = 'customer' | 'gatePass' | 'tuya' | null;
+type EditMode = 'customer' | 'gatePass' | 'tuya' | 'payment' | null;
+
+const PAYMENT_METHOD_OPTIONS = [
+  { value: 'CASH', label: 'Tiền mặt' },
+  { value: 'BANK_TRANSFER_VP', label: 'Chuyển khoản VPBank' },
+  { value: 'BANK_TRANSFER_TECH', label: 'Chuyển khoản TechcomBank' },
+  { value: 'OTHER', label: 'Khác' },
+] as const;
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  CASH: 'Tiền mặt',
+  BANK_TRANSFER_VP: 'Chuyển khoản VPBank',
+  BANK_TRANSFER_TECH: 'Chuyển khoản TechcomBank',
+  OTHER: 'Khác',
+};
 
 export default function BookingDetailPage() {
   const { bookingId } = useParams();
@@ -78,12 +94,18 @@ export default function BookingDetailPage() {
   });
   const { toast } = useToast();
 
+  const [paymentForm, setPaymentForm] = useState({
+    paymentMethod: '' as PaymentMethod,
+    transactionNo: '',
+  });
+
   const { data: booking, isLoading, error } = useBookingDetail(bookingId);
-  const { 
+  const {
     updateBooking,
     retryTuya,
     syncTuyaStatus
   } = useBookingMutation();
+  const { updatePayment } = usePaymentMutation();
 
   const { data: bufferConfig } = useSystemConfig('GATE_PASSWORD_BUFFER_MINUTES');
   const bufferMinutes = parseInt(bufferConfig?.data?.configValue || '15', 10) || 15;
@@ -105,6 +127,10 @@ export default function BookingDetailPage() {
     });
     setTuyaForm({
       tuyaSyncStatus: booking.tuyaSyncStatus || 'PENDING',
+    });
+    setPaymentForm({
+      paymentMethod: (booking.payment?.paymentMethod as PaymentMethod) || 'CASH',
+      transactionNo: booking.payment?.transactionNo || '',
     });
   }, [booking, editMode]);
 
@@ -587,11 +613,23 @@ export default function BookingDetailPage() {
           <div className="flex flex-col gap-6 lg:col-span-4">
             {/* Payment Summary */}
             <div className="rounded-xl border-t-4 border-t-accent-400 border border-border bg-surface shadow-sm overflow-hidden">
-              <div className="flex items-center border-b border-border bg-surface-dim px-5 py-4 text-sm font-semibold text-secondary-700">
-                <ReceiptText className="mr-2 h-5 w-5 text-accent-500" />
-                Chi tiết thanh toán
+              <div className="flex items-center justify-between border-b border-border bg-surface-dim px-5 py-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-secondary-700">
+                  <ReceiptText className="h-5 w-5 text-accent-500" />
+                  Chi tiết thanh toán
+                </div>
+                {booking.payment && editMode !== 'payment' && (
+                  <button
+                    onClick={() => setEditMode('payment')}
+                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-accent-600 hover:bg-accent-50 transition-colors"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Sửa
+                  </button>
+                )}
               </div>
               <div className="p-5 flex flex-col gap-4">
+                {/* Amount breakdown */}
                 <div className="flex justify-between text-sm">
                   <span className="text-secondary-500 font-medium">Giá gốc</span>
                   <span className="font-semibold text-foreground">{formatCurrency(booking.originalAmount)}</span>
@@ -613,6 +651,89 @@ export default function BookingDetailPage() {
                   <span className="text-base font-bold text-foreground">Tổng cộng</span>
                   <span className="text-2xl font-bold text-accent-500 tracking-tight">{formatCurrency(booking.finalAmount)}</span>
                 </div>
+
+                {/* Payment record */}
+                {booking.payment && (
+                  <>
+                    <div className="border-t border-border border-dashed" />
+                    {editMode === 'payment' ? (
+                      <div className="flex flex-col gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Phương thức</label>
+                          <Select
+                            value={paymentForm.paymentMethod}
+                            onChange={(e) => setPaymentForm((f) => ({ ...f, paymentMethod: e.target.value as PaymentMethod }))}
+                            options={PAYMENT_METHOD_OPTIONS as unknown as { value: string; label: string }[]}
+                            className="h-9 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Mã giao dịch</label>
+                          <Input
+                            value={paymentForm.transactionNo}
+                            onChange={(e) => setPaymentForm((f) => ({ ...f, transactionNo: e.target.value }))}
+                            placeholder="Nhập mã giao dịch..."
+                            className="h-9 text-sm"
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            disabled={updatePayment.isPending}
+                            onClick={async () => {
+                              if (!booking.payment?.paymentId) return;
+                              await updatePayment.mutateAsync({
+                                paymentId: booking.payment.paymentId,
+                                data: {
+                                  paymentMethod: paymentForm.paymentMethod,
+                                  transactionNo: paymentForm.transactionNo || undefined,
+                                },
+                              });
+                              setEditMode(null);
+                            }}
+                            className="flex-1"
+                          >
+                            {updatePayment.isPending ? 'Đang lưu...' : 'Lưu'}
+                          </Button>
+                          <Button size="sm" variant="secondary" onClick={() => setEditMode(null)} className="flex-1 border-secondary-300 shadow-sm">
+                            Huỷ
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2.5">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-secondary-500 font-medium">Phương thức</span>
+                          <span className="font-semibold text-foreground">
+                            {PAYMENT_METHOD_LABEL[booking.payment.paymentMethod] || booking.payment.paymentMethod}
+                          </span>
+                        </div>
+                        {booking.payment.transactionNo && (
+                          <div className="flex justify-between text-sm gap-4">
+                            <span className="text-secondary-500 font-medium shrink-0">Mã GD</span>
+                            <span className="font-mono text-xs font-semibold text-foreground text-right break-all">{booking.payment.transactionNo}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm">
+                          <span className="text-secondary-500 font-medium">Trạng thái</span>
+                          <span className={cn(
+                            'rounded-full px-2 py-0.5 text-[11px] font-bold',
+                            booking.payment.paymentStatus === 'PAID' ? 'bg-success-100 text-success-700' : 'bg-warning-100 text-warning-700'
+                          )}>
+                            {booking.payment.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Đã hoàn tiền'}
+                          </span>
+                        </div>
+                        {booking.payment.paidAt && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-secondary-500 font-medium">Ngày TT</span>
+                            <span className="text-foreground font-medium">{formatDate(booking.payment.paidAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
