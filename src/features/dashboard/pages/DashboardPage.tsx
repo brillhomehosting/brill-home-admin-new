@@ -98,7 +98,8 @@ const REVENUE_TREND_RANGE_OPTIONS: { value: RevenueTrendRange; label: string }[]
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   CASH: 'Tiền mặt',
-  BANK_TRANSFER: 'Chuyển khoản',
+  BANK_TRANSFER_VP: 'Chuyển khoản VPBank',
+  BANK_TRANSFER_TECH: 'Chuyển khoản TechcomBank',
   CREDIT_CARD: 'Thẻ tín dụng',
   MOMO: 'Ví MoMo',
   VNPAY: 'VNPay',

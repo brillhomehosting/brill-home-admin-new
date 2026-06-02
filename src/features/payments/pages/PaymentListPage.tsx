@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Header, PageWrapper } from '@/shared/components/layout';
 import { DateInput, Pagination, Select } from '@/shared/components/ui';
+import { Input } from '@/shared/components/ui/Input';
+import { Button } from '@/shared/components/ui/Button';
 import { cn, formatCurrency, formatDate } from '@/shared/utils';
 import {
   Search,
@@ -11,130 +13,235 @@ import {
   MapPin,
   X,
   Receipt,
+  Pencil,
+  Hash,
+  Clock,
+  CheckCircle2,
+  RotateCcw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/shared/constants';
 import { usePayments } from '../hooks/usePayments';
+import { usePaymentMutation } from '../hooks/usePaymentMutation';
 import { useBookingByCode } from '@/features/bookings/hooks/useBookings';
 import type { Payment, PaymentMethod, PaymentStatus } from '@/shared/types';
 
-// --- Slide-over Detail Panel (overlays on the RIGHT) ---
+// --- Payment Detail Slide-over Panel ---
 
-function BookingDetailPanel({ bookingCode, onClose }: { bookingCode: string; onClose: () => void }) {
-  const { data: booking, isLoading } = useBookingByCode(bookingCode);
+const PAYMENT_METHOD_OPTIONS = [
+  { value: 'CASH', label: 'Tiền mặt' },
+  { value: 'BANK_TRANSFER_VP', label: 'Chuyển khoản VPBank' },
+  { value: 'BANK_TRANSFER_TECH', label: 'Chuyển khoản TechcomBank' },
+  { value: 'OTHER', label: 'Khác' },
+];
 
-  // Lock body scroll when open
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  CASH: 'Tiền mặt',
+  BANK_TRANSFER_VP: 'Chuyển khoản VPBank',
+  BANK_TRANSFER_TECH: 'Chuyển khoản TechcomBank',
+  OTHER: 'Khác',
+};
+
+function PaymentDetailPanel({ payment, onClose, onUpdated }: { payment: Payment; onClose: () => void; onUpdated: (p: Payment) => void }) {
+  const { data: booking, isLoading: bookingLoading } = useBookingByCode(payment.bookingCode);
+  const { updatePayment } = usePaymentMutation();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editMethod, setEditMethod] = useState<PaymentMethod>(payment.paymentMethod);
+  const [editTxNo, setEditTxNo] = useState(payment.transactionNo || '');
+
+  useEffect(() => {
+    setEditMethod(payment.paymentMethod);
+    setEditTxNo(payment.transactionNo || '');
+    setIsEditing(false);
+  }, [payment.paymentCode]);
+
+  // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
 
+  const handleSave = async () => {
+    const updated = await updatePayment.mutateAsync({
+      paymentId: payment.paymentId,
+      data: { paymentMethod: editMethod, transactionNo: editTxNo || undefined },
+    });
+    onUpdated({ ...payment, paymentMethod: updated.paymentMethod, transactionNo: updated.transactionNo });
+    setIsEditing(false);
+  };
+
+  const pmStatus = payment.paymentStatus === 'PAID'
+    ? { label: 'Đã thanh toán', classes: 'bg-success-100 text-success-700', Icon: CheckCircle2 }
+    : { label: 'Đã hoàn tiền', classes: 'bg-warning-100 text-warning-700', Icon: RotateCcw };
+
   return (
     <>
-      {/* Backdrop */}
       <div className="fixed inset-0 z-overlay bg-black/30 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Panel */}
       <div className="fixed inset-y-0 right-0 z-modal w-full max-w-sm flex flex-col bg-surface shadow-xl border-l border-border animate-slide-in-right">
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border bg-surface-dim px-5 py-4">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-foreground">Chi tiết Booking</h3>
-            <span className="rounded-full bg-accent-50 px-2 py-0.5 text-[10px] font-bold text-accent-600">
-              #{bookingCode}
-            </span>
+            <Receipt className="h-4 w-4 text-accent-500" />
+            <h3 className="text-sm font-bold text-foreground">Chi tiết thanh toán</h3>
           </div>
           <button onClick={onClose} className="rounded-full p-1.5 text-secondary-400 hover:bg-secondary-100 transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Content */}
-        {isLoading ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-            <p className="text-sm text-secondary-500">Đang tải...</p>
-          </div>
-        ) : !booking ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3">
-            <X className="h-8 w-8 text-danger-400" />
-            <p className="text-sm text-secondary-500">Không tìm thấy booking</p>
-          </div>
-        ) : (
-          <>
-            <div className="flex-1 overflow-y-auto p-5 space-y-6">
-              {/* Guest */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-secondary-400">
-                  <User className="h-3.5 w-3.5" />
-                  Khách hàng
-                </div>
-                <div className="rounded-lg border border-border bg-secondary-50/30 p-3">
-                  <p className="font-medium text-sm text-foreground">{booking.guestName}</p>
-                  <p className="mt-0.5 text-xs text-secondary-500">{booking.guestPhone}</p>
-                </div>
+        <div className="flex-1 overflow-y-auto">
+
+          {/* Payment info block */}
+          <div className="p-5 space-y-4">
+            {/* Amount + status */}
+            <div className="rounded-xl border border-border bg-accent-50/40 p-4 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-secondary-400 mb-1">Số tiền</p>
+                <p className="text-2xl font-black text-accent-600 tracking-tight">{formatCurrency(payment.amount)}</p>
+              </div>
+              <span className={cn('flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold', pmStatus.classes)}>
+                <pmStatus.Icon className="h-3.5 w-3.5" />
+                {pmStatus.label}
+              </span>
+            </div>
+
+            {/* Payment method + transactionNo */}
+            <div className="rounded-xl border border-border bg-surface overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-dim">
+                <span className="text-xs font-bold uppercase tracking-wider text-secondary-500">Thông tin thanh toán</span>
+                {!isEditing && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-1 text-xs font-semibold text-accent-600 hover:text-accent-700 transition-colors"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Chỉnh sửa
+                  </button>
+                )}
               </div>
 
-              {/* Room */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-secondary-400">
-                  <MapPin className="h-3.5 w-3.5" />
-                  Phòng & Thời gian
-                </div>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-secondary-400">Tên phòng</p>
-                    <p className="text-sm font-medium text-foreground">{booking.roomName}</p>
+              {isEditing ? (
+                <div className="p-4 space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Phương thức</label>
+                    <Select
+                      value={editMethod}
+                      onChange={(e) => setEditMethod(e.target.value as PaymentMethod)}
+                      options={PAYMENT_METHOD_OPTIONS}
+                      className="h-9 text-sm"
+                    />
                   </div>
-                  <div className="flex gap-4">
-                    <div>
-                      <p className="text-xs text-secondary-400">Ngày đặt</p>
-                      <p className="text-sm font-medium text-foreground">{formatDate(booking.date)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-secondary-400">Check-in</p>
-                      <p className="text-sm font-medium text-foreground">{formatDate(booking.checkInAt, { hour: '2-digit', minute: '2-digit' })}</p>
-                    </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold uppercase tracking-wider text-secondary-400">Mã giao dịch</label>
+                    <Input
+                      value={editTxNo}
+                      onChange={(e) => setEditTxNo(e.target.value)}
+                      placeholder="Nhập mã giao dịch..."
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" variant="primary" disabled={updatePayment.isPending} onClick={handleSave} className="flex-1">
+                      {updatePayment.isPending ? 'Đang lưu...' : 'Lưu'}
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => setIsEditing(false)} className="flex-1 border-secondary-300 shadow-sm">
+                      Huỷ
+                    </Button>
                   </div>
                 </div>
-              </div>
-
-              {/* Payment */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-secondary-400">
-                  <Banknote className="h-3.5 w-3.5" />
-                  Thanh toán
-                </div>
-                <div className="rounded-lg border border-border p-3 space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-secondary-500">Tổng cộng</span>
-                    <span className="font-semibold text-foreground">{formatCurrency(booking.finalAmount)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-secondary-500">Trạng thái</span>
-                    <span className={cn(
-                      "rounded-full px-2 py-0.5 font-semibold text-[10px]",
-                      booking.status === 'CONFIRMED' ? 'bg-primary-100 text-primary-700' : 'bg-danger-100 text-danger-700'
-                    )}>
-                      {booking.status === 'CONFIRMED' ? 'Đã xác nhận' : 'Đã hủy'}
+              ) : (
+                <div className="divide-y divide-border">
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="flex items-center gap-2 text-xs text-secondary-500">
+                      <Banknote className="h-3.5 w-3.5" />
+                      Phương thức
+                    </span>
+                    <span className="text-xs font-semibold text-foreground">
+                      {PAYMENT_METHOD_LABEL[payment.paymentMethod] || payment.paymentMethod}
                     </span>
                   </div>
+                  <div className="flex items-start justify-between px-4 py-3 gap-4">
+                    <span className="flex items-center gap-2 text-xs text-secondary-500 shrink-0">
+                      <Hash className="h-3.5 w-3.5" />
+                      Mã GD
+                    </span>
+                    <span className="text-xs font-mono font-semibold text-foreground text-right break-all">
+                      {payment.transactionNo || <span className="text-secondary-400 italic font-sans font-normal">Chưa có</span>}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="flex items-center gap-2 text-xs text-secondary-500">
+                      <Receipt className="h-3.5 w-3.5" />
+                      Mã thanh toán
+                    </span>
+                    <span className="text-xs font-mono text-secondary-600">{payment.paymentCode}</span>
+                  </div>
+                  {payment.paidAt && (
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <span className="flex items-center gap-2 text-xs text-secondary-500">
+                        <Clock className="h-3.5 w-3.5" />
+                        Ngày thanh toán
+                      </span>
+                      <span className="text-xs font-medium text-foreground">
+                        {formatDate(payment.paidAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Footer */}
-            <div className="border-t border-border p-4 bg-surface-dim">
-              <Link 
-                to={`/apps/bookings/${booking.bookingId}`} 
-                className="flex items-center justify-center gap-2 w-full rounded-lg bg-surface py-2.5 text-xs font-medium text-accent-500 border border-accent-200 hover:bg-accent-50 transition-colors"
-              >
-                Xem chi tiết đầy đủ
-                <ExternalLink className="h-3 w-3" />
-              </Link>
+            {/* Booking info */}
+            <div className="rounded-xl border border-border bg-surface overflow-hidden">
+              <div className="px-4 py-3 border-b border-border bg-surface-dim">
+                <span className="text-xs font-bold uppercase tracking-wider text-secondary-500">Thông tin booking</span>
+              </div>
+              {bookingLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary-500" />
+                </div>
+              ) : !booking ? (
+                <div className="px-4 py-4 text-xs text-secondary-400 text-center">Không tải được thông tin booking</div>
+              ) : (
+                <div className="divide-y divide-border">
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="flex items-center gap-2 text-xs text-secondary-500">
+                      <User className="h-3.5 w-3.5" />
+                      Khách
+                    </span>
+                    <div className="text-right">
+                      <p className="text-xs font-semibold text-foreground">{booking.guestName || '—'}</p>
+                      {booking.guestPhone && <p className="text-[10px] text-secondary-400">{booking.guestPhone}</p>}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="flex items-center gap-2 text-xs text-secondary-500">
+                      <MapPin className="h-3.5 w-3.5" />
+                      Phòng
+                    </span>
+                    <span className="text-xs font-semibold text-foreground">{booking.roomName}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="text-xs text-secondary-500">Ngày</span>
+                    <span className="text-xs font-medium text-foreground">{formatDate(booking.date)}</span>
+                  </div>
+                </div>
+              )}
             </div>
-          </>
-        )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-border p-4 bg-surface-dim">
+          <Link
+            to={`/apps/bookings/${booking?.bookingId ?? ''}`}
+            className="flex items-center justify-center gap-2 w-full rounded-lg bg-surface py-2.5 text-xs font-medium text-accent-500 border border-accent-200 hover:bg-accent-50 transition-colors"
+          >
+            Xem chi tiết booking
+            <ExternalLink className="h-3 w-3" />
+          </Link>
+        </div>
       </div>
     </>
   );
@@ -149,7 +256,8 @@ const statusMapping: Record<string, { label: string; classes: string }> = {
 
 const methodMapping: Record<PaymentMethod, string> = {
   CASH: 'Tiền mặt',
-  BANK_TRANSFER: 'Chuyển khoản',
+  BANK_TRANSFER_VP: 'Chuyển khoản VPBank',
+  BANK_TRANSFER_TECH: 'Chuyển khoản TechcomBank',
   OTHER: 'Khác',
 };
 
@@ -243,7 +351,8 @@ export default function PaymentListPage() {
                   options={[
                     { value: '', label: 'Tất cả' },
                     { value: 'CASH', label: 'Tiền mặt' },
-                    { value: 'BANK_TRANSFER', label: 'Chuyển khoản' },
+                    { value: 'BANK_TRANSFER_VP', label: 'Chuyển khoản VPBank' },
+                    { value: 'BANK_TRANSFER_TECH', label: 'Chuyển khoản TechcomBank' },
                     { value: 'OTHER', label: 'Khác' },
                   ]}
                   className="h-9 text-xs sm:text-sm"
@@ -420,9 +529,10 @@ export default function PaymentListPage() {
 
       {/* Slide-over panel — overlays on top, doesn't push content */}
       {selectedPayment && (
-        <BookingDetailPanel 
-          bookingCode={selectedPayment.bookingCode} 
-          onClose={() => setSelectedPayment(null)} 
+        <PaymentDetailPanel
+          payment={selectedPayment}
+          onClose={() => setSelectedPayment(null)}
+          onUpdated={(updated) => setSelectedPayment(updated)}
         />
       )}
     </div>

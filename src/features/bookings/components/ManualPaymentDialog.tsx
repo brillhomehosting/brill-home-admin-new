@@ -34,7 +34,7 @@ export function ManualPaymentDialog({
   customerName,
   totalAmount,
 }: ManualPaymentDialogProps) {
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('BANK_TRANSFER');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('BANK_TRANSFER_VP');
   const [amountStr, setAmountStr] = useState('');
   const [transactionCode, setTransactionCode] = useState('');
   const [note, setNote] = useState('');
@@ -47,7 +47,7 @@ export function ManualPaymentDialog({
   useEffect(() => {
     if (open) {
       setAmountStr(totalAmount.toLocaleString('vi-VN'));
-      setPaymentMethod('BANK_TRANSFER');
+      setPaymentMethod('BANK_TRANSFER_VP');
       setTransactionCode('');
       setNote('');
       setImages([]);
@@ -108,7 +108,7 @@ export function ManualPaymentDialog({
     onClose();
   };
 
-  const isBankTransfer = paymentMethod === 'BANK_TRANSFER';
+  const isBankTransfer = paymentMethod === 'BANK_TRANSFER_VP' || paymentMethod === 'BANK_TRANSFER_TECH';
   const isValid = !isBankTransfer || images.length > 0;
 
   return (
@@ -191,7 +191,8 @@ export function ManualPaymentDialog({
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
                     options={[
-                      { value: 'BANK_TRANSFER', label: 'Chuyển khoản ngân hàng' },
+                      { value: 'BANK_TRANSFER_VP', label: 'Chuyển khoản VPBank' },
+                      { value: 'BANK_TRANSFER_TECH', label: 'Chuyển khoản TechcomBank' },
                       { value: 'CASH', label: 'Tiền mặt' },
                       { value: 'OTHER', label: 'Khác' },
                     ]}

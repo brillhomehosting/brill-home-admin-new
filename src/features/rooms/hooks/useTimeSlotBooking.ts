@@ -68,12 +68,12 @@ export function useCreateBooking() {
   });
 }
 
-const VALID_PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'BANK_TRANSFER', 'OTHER'];
+const VALID_PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'BANK_TRANSFER_VP', 'BANK_TRANSFER_TECH', 'OTHER'];
 const QUICK_BOOKING_CONFIG_KEY = 'DEFAULT_PAYMENT_METHOD_QUICK_BOOKING';
 
 /**
  * Fetches the default payment method for quick bookings from the admin system config.
- * Falls back to BANK_TRANSFER if the config is missing or contains an invalid value.
+ * Falls back to BANK_TRANSFER_VP if the config is missing or contains an invalid value.
  */
 export function useQuickBookingPaymentMethod(): PaymentMethod {
   const { data } = useQuery({
@@ -94,7 +94,7 @@ export function useQuickBookingPaymentMethod(): PaymentMethod {
   const value = data as string | null | undefined;
   return VALID_PAYMENT_METHODS.includes(value as PaymentMethod)
     ? (value as PaymentMethod)
-    : 'BANK_TRANSFER';
+    : 'BANK_TRANSFER_VP';
 }
 
 /**
