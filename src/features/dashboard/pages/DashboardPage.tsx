@@ -167,7 +167,7 @@ function getDefaultRange() {
 }
 
 function fillMissingDates(
-  data: { date: string; revenue: number; bookingCount: number }[],
+  data: { date: string; revenue: number; bookingCount: number; bookingSlotCount: number }[],
   startDate: string,
   endDate: string
 ) {
@@ -177,7 +177,7 @@ function fillMissingDates(
   const end = new Date(endDate);
   while (cursor <= end) {
     const key = cursor.toISOString().split('T')[0];
-    result.push(byDate.get(key) ?? { date: key, revenue: 0, bookingCount: 0 });
+    result.push(byDate.get(key) ?? { date: key, revenue: 0, bookingCount: 0, bookingSlotCount: 0 });
     cursor.setDate(cursor.getDate() + 1);
   }
   return result;
@@ -334,6 +334,7 @@ export default function DashboardPage() {
   const aggregateTrendChartData = trendData ? fillMissingDates(trendData, trendStart, trendEnd) : [];
   const trendTotalRevenue = aggregateTrendChartData.reduce((sum, d) => sum + d.revenue, 0);
   const trendTotalBookings = aggregateTrendChartData.reduce((sum, d) => sum + d.bookingCount, 0);
+  const trendTotalBookingSlots = aggregateTrendChartData.reduce((sum, d) => sum + (d.bookingSlotCount ?? 0), 0);
   const roomTrendChartData = roomTrendData
     ? fillMissingRoomRevenueDates(roomTrendData, visibleLineRooms, trendStart, trendEnd)
     : [];
@@ -603,7 +604,7 @@ export default function DashboardPage() {
         {/* --- Stats Row --- */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard
-            title="Booking đã xác nhận"
+            title="Booking slot đã xác nhận"
             value={stats?.confirmedBookingsToday ?? 0}
             icon={CalendarCheck}
             color="primary"
@@ -649,6 +650,11 @@ export default function DashboardPage() {
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold uppercase tracking-tight text-secondary-400">Tổng booking</span>
                     <span className="text-sm font-bold text-foreground">{trendTotalBookings}</span>
+                  </div>
+                  <div className="h-8 w-px bg-border" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold uppercase tracking-tight text-secondary-400">Tổng slot</span>
+                    <span className="text-sm font-bold text-foreground">{trendTotalBookingSlots}</span>
                   </div>
                 </div>
               )}
@@ -780,8 +786,8 @@ export default function DashboardPage() {
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   <Bar
                     yAxisId="bookings"
-                    dataKey="bookingCount"
-                    name="Booking"
+                    dataKey="bookingSlotCount"
+                    name="Slot booking"
                     fill="#c7d2fe"
                     radius={[3, 3, 0, 0]}
                     maxBarSize={24}
