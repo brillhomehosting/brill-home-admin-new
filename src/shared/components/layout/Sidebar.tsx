@@ -14,6 +14,7 @@ import {
   User,
   KeyRound,
   MonitorCog,
+  GitCompareArrows,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/shared/utils';
@@ -41,6 +42,7 @@ const navigation: NavGroup[] = [
       { label: 'Đặt phòng', path: ROUTES.BOOKINGS.LIST, icon: CalendarCheck },
       { label: 'Tuya Passwords', path: '/apps/tuya-passwords', icon: KeyRound },
       { label: 'Hóa đơn', path: ROUTES.INVOICES, icon: Receipt },
+      { label: 'So sánh doanh thu', path: ROUTES.REVENUE_COMPARISON, icon: GitCompareArrows },
       { label: 'Giảm giá', path: ROUTES.DISCOUNTS, icon: Tag },
       { label: 'Ngày lễ', path: ROUTES.HOLIDAYS, icon: CalendarRange },
     ],
