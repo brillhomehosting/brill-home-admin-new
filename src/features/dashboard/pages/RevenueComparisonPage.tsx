@@ -146,7 +146,7 @@ function formatShortDate(dateStr: string) {
 export default function RevenueComparisonPage() {
   const [periods, setPeriods] = useState<PeriodConfig[]>(loadFromStorage);
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
-  const [chartMetric, setChartMetric] = useState<'revenue' | 'bookings'>('revenue');
+  const [chartMetric, setChartMetric] = useState<'revenue' | 'bookings' | 'bookingSlots'>('revenue');
   const [roomExpanded, setRoomExpanded] = useState(false);
   const [results, setResults] = useState<RevenueComparisonPeriodResult[] | null>(null);
   const [isPending, setIsPending] = useState(false);
@@ -238,7 +238,7 @@ export default function RevenueComparisonPage() {
     const row: Record<string, number | string> = { day: `N${i + 1}` };
     visibleResults?.forEach((r, pi) => {
       const d = r.dailyData[i];
-      row[`p${pi}`] = d ? (chartMetric === 'revenue' ? d.revenue : d.bookings) : 0;
+      row[`p${pi}`] = d ? (chartMetric === 'revenue' ? d.revenue : chartMetric === 'bookings' ? d.bookings : d.bookingSlots) : 0;
     });
     return row;
   });
@@ -415,12 +415,14 @@ export default function RevenueComparisonPage() {
 
                     <p className="text-lg font-bold text-foreground">{formatCurrency(r.totalRevenue)}</p>
                     <p className="text-xs text-secondary-500">{r.totalBookings} booking</p>
+                    <p className="text-xs text-secondary-500">{r.totalBookingSlots} slot</p>
 
                     {idx > 0 && base && (
                       <div className="mt-2 space-y-0.5">
                         {(() => {
                           const dr = deltaLabel(base.totalRevenue, r.totalRevenue);
                           const db = deltaLabel(base.totalBookings, r.totalBookings);
+                          const ds = deltaLabel(base.totalBookingSlots, r.totalBookingSlots);
                           return (
                             <>
                               <p className={cn('text-[11px] font-semibold', dr.zero ? 'text-secondary-400' : dr.positive ? 'text-green-600' : 'text-red-500')}>
@@ -428,6 +430,9 @@ export default function RevenueComparisonPage() {
                               </p>
                               <p className={cn('text-[11px] font-semibold', db.zero ? 'text-secondary-400' : db.positive ? 'text-green-600' : 'text-red-500')}>
                                 Booking: {db.text}
+                              </p>
+                              <p className={cn('text-[11px] font-semibold', ds.zero ? 'text-secondary-400' : ds.positive ? 'text-green-600' : 'text-red-500')}>
+                                Slot: {ds.text}
                               </p>
                             </>
                           );
@@ -533,6 +538,13 @@ export default function RevenueComparisonPage() {
                       periodCount={visibleResults!.length}
                       colors={visibleColors}
                     />
+                    <CompareRow
+                      label="Slot booking"
+                      rawValues={visibleResults!.map((r) => r.totalBookingSlots)}
+                      format={(v) => `${v}`}
+                      periodCount={visibleResults!.length}
+                      colors={visibleColors}
+                    />
 
                     {/* ── Room breakdown section ── */}
                     {roomExpanded && (() => {
@@ -574,7 +586,7 @@ export default function RevenueComparisonPage() {
                 <h3 className="text-sm font-bold uppercase tracking-wider text-secondary-500">Biểu đồ chi tiết theo ngày</h3>
                 <div className="flex items-center gap-2">
                   <div className="flex rounded-lg border border-border bg-white text-xs font-bold overflow-hidden">
-                    {(['revenue', 'bookings'] as const).map((m) => (
+                    {(['revenue', 'bookings', 'bookingSlots'] as const).map((m) => (
                       <button
                         key={m}
                         type="button"
@@ -584,7 +596,7 @@ export default function RevenueComparisonPage() {
                           chartMetric === m ? 'bg-primary-600 text-white' : 'text-secondary-600 hover:bg-secondary-50'
                         )}
                       >
-                        {m === 'revenue' ? 'Doanh thu' : 'Booking'}
+                        {m === 'revenue' ? 'Doanh thu' : m === 'bookings' ? 'Booking' : 'Slot'}
                       </button>
                     ))}
                   </div>
@@ -790,6 +802,7 @@ function RoomRows({
 }) {
   const revenueValues = results.map((r) => r.byRoom.find((b) => b.roomId === roomId)?.revenue ?? 0);
   const bookingValues = results.map((r) => r.byRoom.find((b) => b.roomId === roomId)?.bookings ?? 0);
+  const bookingSlotValues = results.map((r) => r.byRoom.find((b) => b.roomId === roomId)?.bookingSlots ?? 0);
   const colSpan = 1 + results.length + (results.length - 1);
   return (
     <>
@@ -818,6 +831,14 @@ function RoomRows({
       <CompareRow
         label="Booking"
         rawValues={bookingValues}
+        format={(v) => `${v}`}
+        indent
+        periodCount={results.length}
+        colors={colors}
+      />
+      <CompareRow
+        label="Slot booking"
+        rawValues={bookingSlotValues}
         format={(v) => `${v}`}
         indent
         periodCount={results.length}

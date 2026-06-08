@@ -10,6 +10,7 @@ export type RevenueTrendItem = {
   date: string;
   revenue: number;
   bookingCount: number;
+  bookingSlotCount: number;
 };
 
 export type RevenueTrendRoomItem = {
@@ -18,6 +19,7 @@ export type RevenueTrendRoomItem = {
   roomName: string;
   revenue: number;
   bookingCount: number;
+  bookingSlotCount: number;
 };
 
 export type DashboardBooking = {
@@ -64,6 +66,7 @@ export type RevenueComparisonDailyItem = {
   dayIndex: number;
   revenue: number;
   bookings: number;
+  bookingSlots: number;
 };
 
 export type RevenueComparisonRoomItem = {
@@ -71,6 +74,7 @@ export type RevenueComparisonRoomItem = {
   roomName: string;
   revenue: number;
   bookings: number;
+  bookingSlots: number;
 };
 
 export type RevenueComparisonPeriodResult = {
@@ -79,6 +83,7 @@ export type RevenueComparisonPeriodResult = {
   endDate: string;
   totalRevenue: number;
   totalBookings: number;
+  totalBookingSlots: number;
   byRoom: RevenueComparisonRoomItem[];
   dailyData: RevenueComparisonDailyItem[];
 };
