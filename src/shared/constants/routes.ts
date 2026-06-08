@@ -47,6 +47,9 @@ export const ROUTES = {
   // ── Password Generator ──
   RANDOM_GENERATOR: '/apps/random-generator',
 
+  // ── Analytics ──
+  REVENUE_COMPARISON: '/apps/revenue-comparison',
+
   // ── Developer ──
   MONITOR: '/developer/monitor',
 

@@ -1,8 +1,9 @@
+import { useMutation } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardService } from '@/shared/services/dashboard.service';
 import { paymentService } from '@/shared/services/payment.service';
 import { bookingService } from '@/shared/services/booking.service';
-import type { PaymentStatsParams } from '@/shared/types';
+import type { PaymentStatsParams, PeriodRange } from '@/shared/types';
 
 export function useDashboardStats() {
   return useQuery({
@@ -61,6 +62,12 @@ export function useRevenueTrendByRoom(startDate: string, endDate: string, enable
     queryKey: ['dashboard', 'revenue-trend-by-room', startDate, endDate],
     queryFn: () => dashboardService.getRevenueTrendByRoom(startDate, endDate),
     enabled: enabled && !!startDate && !!endDate,
+  });
+}
+
+export function useRevenueComparison() {
+  return useMutation({
+    mutationFn: (periods: PeriodRange[]) => dashboardService.getRevenueComparison(periods),
   });
 }
 

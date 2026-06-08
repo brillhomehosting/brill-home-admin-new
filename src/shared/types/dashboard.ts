@@ -53,6 +53,36 @@ export type RoomTracker = {
   nextBooking: RoomTrackerBooking | null;
 };
 
+export type PeriodRange = {
+  startDate: string;
+  endDate: string;
+  label?: string;
+};
+
+export type RevenueComparisonDailyItem = {
+  date: string;
+  dayIndex: number;
+  revenue: number;
+  bookings: number;
+};
+
+export type RevenueComparisonRoomItem = {
+  roomId: string;
+  roomName: string;
+  revenue: number;
+  bookings: number;
+};
+
+export type RevenueComparisonPeriodResult = {
+  label: string;
+  startDate: string;
+  endDate: string;
+  totalRevenue: number;
+  totalBookings: number;
+  byRoom: RevenueComparisonRoomItem[];
+  dailyData: RevenueComparisonDailyItem[];
+};
+
 export type CleaningScheduleItem = {
   date: string;
   startTime: string;

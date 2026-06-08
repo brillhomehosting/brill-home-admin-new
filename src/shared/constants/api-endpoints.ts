@@ -110,6 +110,7 @@ export const API = {
     UPCOMING_BOOKINGS: '/admin/dashboard/upcoming-bookings',
     REVENUE_TREND: '/admin/dashboard/revenue-trend',
     CLEANING_SCHEDULE: '/admin/dashboard/cleaning-schedule',
+    REVENUE_COMPARISON: '/admin/dashboard/revenue-comparison',
   },
 
   // ── Monitor ──
