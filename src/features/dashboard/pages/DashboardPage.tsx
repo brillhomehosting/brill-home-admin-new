@@ -18,7 +18,9 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+    Bar,
     CartesianGrid,
+    ComposedChart,
     Legend,
     Line,
     LineChart,
@@ -330,6 +332,8 @@ export default function DashboardPage() {
     ? rooms.filter((room) => visibleRoomLineIds.includes(room.id))
     : rooms;
   const aggregateTrendChartData = trendData ? fillMissingDates(trendData, trendStart, trendEnd) : [];
+  const trendTotalRevenue = aggregateTrendChartData.reduce((sum, d) => sum + d.revenue, 0);
+  const trendTotalBookings = aggregateTrendChartData.reduce((sum, d) => sum + d.bookingCount, 0);
   const roomTrendChartData = roomTrendData
     ? fillMissingRoomRevenueDates(roomTrendData, visibleLineRooms, trendStart, trendEnd)
     : [];
@@ -572,13 +576,23 @@ export default function DashboardPage() {
               )}
 
               <div className="mt-auto p-4 rounded-xl bg-surface-dim/50 border border-border border-dashed">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <div className="p-2 rounded-lg bg-white shadow-sm">
                      <Percent className="h-4 w-4 text-primary-500" />
                   </div>
-                  <div>
-                     <p className="text-[10px] text-secondary-400 font-bold uppercase tracking-tight">Giá trị trung bình</p>
-                     <p className="text-sm font-bold text-foreground">{formatCurrency(paymentMethodStats?.avgPaidAmount ?? 0)}</p>
+                  <div className="flex items-center gap-6 flex-wrap">
+                    <div>
+                      <p className="text-[10px] text-secondary-400 font-bold uppercase tracking-tight">Tổng booking</p>
+                      <p className="text-sm font-bold text-foreground">{paymentMethodStats?.paidCount ?? 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-secondary-400 font-bold uppercase tracking-tight">Tổng doanh thu</p>
+                      <p className="text-sm font-bold text-foreground">{formatCurrency(paymentMethodStats?.totalPaidAmount ?? 0)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-secondary-400 font-bold uppercase tracking-tight">Giá trị trung bình</p>
+                      <p className="text-sm font-bold text-foreground">{formatCurrency(paymentMethodStats?.avgPaidAmount ?? 0)}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -625,6 +639,19 @@ export default function DashboardPage() {
                 <TrendingUp className="h-4 w-4 text-primary-500" />
                 <h3 className="font-bold text-foreground text-sm uppercase tracking-wider">Xu hướng doanh thu</h3>
               </div>
+              {!showAllRoomLines && (
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold uppercase tracking-tight text-secondary-400">Tổng doanh thu</span>
+                    <span className="text-sm font-bold text-foreground">{formatCurrency(trendTotalRevenue)}</span>
+                  </div>
+                  <div className="h-8 w-px bg-border" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold uppercase tracking-tight text-secondary-400">Tổng booking</span>
+                    <span className="text-sm font-bold text-foreground">{trendTotalBookings}</span>
+                  </div>
+                </div>
+              )}
               <select
                 value={trendRoomId}
                 onChange={(e) => setTrendRoomId(e.target.value)}
@@ -715,7 +742,7 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             ) : trendData ? (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={aggregateTrendChartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                <ComposedChart data={aggregateTrendChartData} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis
                     dataKey="date"
@@ -725,18 +752,42 @@ export default function DashboardPage() {
                     axisLine={false}
                   />
                   <YAxis
+                    yAxisId="revenue"
                     tick={{ fontSize: 10, fill: '#94a3b8' }}
                     tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
                     tickLine={false}
                     axisLine={false}
                     width={40}
                   />
+                  <YAxis
+                    yAxisId="bookings"
+                    orientation="right"
+                    tick={{ fontSize: 10, fill: '#94a3b8' }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={30}
+                    allowDecimals={false}
+                  />
                   <Tooltip
-                    formatter={(value) => [formatCurrency(Number(value)), 'Doanh thu']}
+                    formatter={(value, name) =>
+                      name === 'Doanh thu'
+                        ? [formatCurrency(Number(value)), name]
+                        : [value, name]
+                    }
                     labelFormatter={(label) => `Ngày ${formatShortDateLabel(label)}`}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}
                   />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar
+                    yAxisId="bookings"
+                    dataKey="bookingCount"
+                    name="Booking"
+                    fill="#c7d2fe"
+                    radius={[3, 3, 0, 0]}
+                    maxBarSize={24}
+                  />
                   <Line
+                    yAxisId="revenue"
                     type="monotone"
                     dataKey="revenue"
                     name="Doanh thu"
@@ -745,7 +796,7 @@ export default function DashboardPage() {
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
-                </LineChart>
+                </ComposedChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full items-center justify-center">
