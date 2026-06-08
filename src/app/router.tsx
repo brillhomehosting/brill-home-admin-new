@@ -12,6 +12,7 @@ import RoomDetailPage from '@/features/rooms/pages/RoomDetailPage';
 import RoomEditPage from '@/features/rooms/pages/RoomEditPage';
 import RoomListPage from '@/features/rooms/pages/RoomListPage';
 import DashboardPage from '@/features/dashboard/pages/DashboardPage';
+import RevenueComparisonPage from '@/features/dashboard/pages/RevenueComparisonPage';
 import CacheManagerPage from '@/features/settings/pages/CacheManagerPage';
 import SystemConfigPage from '@/features/settings/pages/SystemConfigPage';
 import ComboConfigPage from '@/features/settings/pages/ComboConfigPage';
@@ -142,6 +143,11 @@ export const router = createBrowserRouter([
       {
         path: 'apps/discounts',
         element: <DiscountListPage />,
+      },
+      // Revenue Comparison
+      {
+        path: 'apps/revenue-comparison',
+        element: <RevenueComparisonPage />,
       },
       // Settings
       {
