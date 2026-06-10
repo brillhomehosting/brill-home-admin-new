@@ -47,6 +47,7 @@ const tuyaStatusOptions = [
   { value: 'DELETE_PENDING', label: 'Chờ xoá mật khẩu' },
   { value: 'DELETED', label: 'Đã xoá mật khẩu' },
   { value: 'DELETE_FAILED', label: 'Xoá mật khẩu lỗi' },
+  { value: 'SKIPPED', label: 'Bỏ qua (booking quá khứ)' },
 ];
 
 type EditMode = 'customer' | 'gatePass' | 'tuya' | 'payment' | null;
@@ -563,20 +564,24 @@ export default function BookingDetailPage() {
                   <Lock className="h-5 w-5 text-accent-500" />
                   Tuya Smart Lock
                 </div>
-                <span className={cn('flex h-2.5 w-2.5 rounded-full relative', booking.tuyaSyncStatus === 'SYNCED' ? 'bg-success-500' : 'bg-warning-500')}>
-                  {booking.tuyaSyncStatus !== 'SYNCED' && (
+                <span className={cn('flex h-2.5 w-2.5 rounded-full relative', booking.tuyaSyncStatus === 'SYNCED' || booking.tuyaSyncStatus === 'SKIPPED' ? 'bg-success-500' : 'bg-warning-500')}>
+                  {booking.tuyaSyncStatus !== 'SYNCED' && booking.tuyaSyncStatus !== 'SKIPPED' && (
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning-400 opacity-75" />
                   )}
                 </span>
               </div>
               <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
-                  <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-full', booking.tuyaSyncStatus === 'SYNCED' ? 'bg-success-50 text-success-500' : 'bg-warning-50 text-warning-500')}>
-                    {booking.tuyaSyncStatus === 'SYNCED' ? <CheckCircle className="h-6 w-6" /> : <RotateCcw className="h-6 w-6" />}
+                  <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-full', booking.tuyaSyncStatus === 'SYNCED' || booking.tuyaSyncStatus === 'SKIPPED' ? 'bg-success-50 text-success-500' : 'bg-warning-50 text-warning-500')}>
+                    {booking.tuyaSyncStatus === 'SYNCED' || booking.tuyaSyncStatus === 'SKIPPED' ? <CheckCircle className="h-6 w-6" /> : <RotateCcw className="h-6 w-6" />}
                   </div>
                   <div>
                     <p className="font-bold text-foreground text-sm sm:text-base">
-                      {booking.tuyaSyncStatus === 'SYNCED' ? 'Đã đồng bộ thành công' : 'Đang xử lý đồng bộ'}
+                      {booking.tuyaSyncStatus === 'SYNCED'
+                        ? 'Đã đồng bộ thành công'
+                        : booking.tuyaSyncStatus === 'SKIPPED'
+                          ? 'Bỏ qua (booking quá khứ)'
+                          : 'Đang xử lý đồng bộ'}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <p className="text-xs text-secondary-400 font-medium uppercase tracking-tighter">Status: {booking.tuyaSyncStatus}</p>
@@ -596,12 +601,12 @@ export default function BookingDetailPage() {
                     <Pencil className="h-4 w-4" />
                     Sửa trạng thái
                   </button>
-                  <button 
+                  <button
                     onClick={() => retryTuya.mutate(bookingId!)}
-                    disabled={booking.tuyaSyncStatus === 'PENDING' || retryTuya.isPending}
+                    disabled={booking.tuyaSyncStatus !== 'FAILED' || retryTuya.isPending}
                     className="flex items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-bold text-secondary-700 transition-colors hover:bg-secondary-50 disabled:opacity-50"
                   >
-                    <RefreshCw className={cn('h-4 w-4', (booking.tuyaSyncStatus === 'PENDING' || retryTuya.isPending) && 'animate-spin')} />
+                    <RefreshCw className={cn('h-4 w-4', retryTuya.isPending && 'animate-spin')} />
                     Thử lại
                   </button>
                 </div>

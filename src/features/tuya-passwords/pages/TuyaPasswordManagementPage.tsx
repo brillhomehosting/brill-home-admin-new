@@ -26,6 +26,7 @@ const statusMap: Record<TuyaSyncStatus, { label: string; className: string }> = 
   DELETE_PENDING: { label: 'Chờ xóa', className: 'bg-warning-100 text-warning-700' },
   DELETED: { label: 'Đã xóa', className: 'bg-secondary-100 text-secondary-700' },
   DELETE_FAILED: { label: 'Xóa lỗi', className: 'bg-danger-100 text-danger-700' },
+  SKIPPED: { label: 'Bỏ qua (quá khứ)', className: 'bg-secondary-100 text-secondary-700' },
 };
 
 export default function TuyaPasswordManagementPage() {
