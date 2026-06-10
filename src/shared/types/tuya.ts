@@ -4,7 +4,8 @@ export type TuyaSyncStatus =
   | 'FAILED'
   | 'DELETE_PENDING'
   | 'DELETED'
-  | 'DELETE_FAILED';
+  | 'DELETE_FAILED'
+  | 'SKIPPED';
 
 export type TuyaPasswordItem = {
   bookingId: string;
