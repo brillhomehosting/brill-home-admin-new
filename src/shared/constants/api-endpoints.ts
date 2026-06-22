@@ -123,6 +123,8 @@ export const API = {
     OVERVIEW: '/admin/tuya-passwords/overview',
     DEVICE_PASSWORDS: '/admin/tuya-passwords/device-passwords',
     SYNC: (bookingId: string) => `/admin/tuya-passwords/${bookingId}/sync` as const,
+    SYNC_ALL_FAILED: '/admin/tuya-passwords/sync-all-failed',
+    SYNC_ALL_STATUS: (syncId: string) => `/admin/tuya-passwords/sync-all-failed/${syncId}/status` as const,
   },
 
   // ── Uploads ──

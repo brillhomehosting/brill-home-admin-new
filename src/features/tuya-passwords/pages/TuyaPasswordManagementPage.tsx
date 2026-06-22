@@ -2,19 +2,21 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Header, PageWrapper } from '@/shared/components/layout';
 import { Button } from '@/shared/components/ui';
 import { cn, formatDate } from '@/shared/utils';
-import type { TuyaPasswordItem, TuyaSyncStatus } from '@/shared/types';
+import type { TuyaPasswordItem, TuyaSyncStatus, TuyaSyncStatusResult } from '@/shared/types';
 import {
   AlertTriangle,
+  CheckCircle2,
   Clock,
   ExternalLink,
   KeyRound,
   Loader2,
   RefreshCw,
   Trash2,
+  XCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useSyncTuyaPassword, useTuyaDevicePasswords, useTuyaPasswordOverview } from '../hooks/useTuyaPasswords';
+import { useSyncAllFailedPasswords, useSyncTuyaPassword, useTuyaDevicePasswords, useTuyaPasswordOverview } from '../hooks/useTuyaPasswords';
 
 const LIMIT = 20;
 type PasswordTab = 'alreadySet' | 'failed' | 'pendingRemove';
@@ -33,6 +35,7 @@ export default function TuyaPasswordManagementPage() {
   const { data, isLoading } = useTuyaPasswordOverview(LIMIT);
   const { data: devicePasswords, isLoading: devicePasswordsLoading } = useTuyaDevicePasswords();
   const syncPassword = useSyncTuyaPassword(LIMIT);
+  const syncAllFailed = useSyncAllFailedPasswords(LIMIT);
   const [activeTab, setActiveTab] = useState<PasswordTab>('alreadySet');
 
   return (
@@ -43,6 +46,18 @@ export default function TuyaPasswordManagementPage() {
           { label: 'Dashboard', path: '/' },
           { label: 'Tuya Passwords' },
         ]}
+        actions={
+          <Button
+            size="sm"
+            variant="danger"
+            icon={RefreshCw}
+            loading={syncAllFailed.isStarting || syncAllFailed.isPolling}
+            disabled={syncAllFailed.isStarting || syncAllFailed.isPolling}
+            onClick={() => syncAllFailed.start()}
+          >
+            {syncAllFailed.isPolling ? 'Đang đồng bộ...' : 'Sync All Failed'}
+          </Button>
+        }
       />
 
       <PageWrapper className="flex-1 space-y-6 pt-4 pb-10 px-4 sm:pt-6 sm:px-6">
@@ -66,6 +81,10 @@ export default function TuyaPasswordManagementPage() {
             tone="warning"
           />
         </div>
+
+        {syncAllFailed.isPolling && syncAllFailed.status && (
+          <SyncProgressBanner status={syncAllFailed.status} />
+        )}
 
         <DevicePasswordSection
           deviceId={devicePasswords?.deviceId}
@@ -124,9 +143,9 @@ function DevicePasswordSection({
         </span>
       </div>
 
-      <div className="hidden overflow-x-auto lg:block">
+      <div className="hidden max-h-[800px] overflow-auto lg:block">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-border bg-secondary-50/60 text-xs font-semibold uppercase tracking-wider text-secondary-500">
+          <thead className="sticky top-0 z-10 border-b border-border bg-secondary-50/60 text-xs font-semibold uppercase tracking-wider text-secondary-500">
             <tr>
               <th className="px-5 py-3">Tuya Password ID</th>
               <th className="px-5 py-3">Device Password</th>
@@ -198,7 +217,7 @@ function DevicePasswordSection({
         </table>
       </div>
 
-      <div className="bg-surface-dim/40 p-3 lg:hidden">
+      <div className="max-h-[800px] overflow-y-auto bg-surface-dim/40 p-3 lg:hidden">
         {loading ? (
           <div className="flex items-center justify-center gap-2 px-5 py-8 text-sm text-secondary-500">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -326,30 +345,33 @@ function DatabasePasswordTabs({
             <h2 className="text-sm font-bold text-foreground">Database Passwords</h2>
             <p className="text-xs text-secondary-400">{current.description}</p>
           </div>
-          <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-surface p-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => onTabChange(tab.key)}
-                className={cn(
-                  'shrink-0 rounded-md px-3 py-1.5 text-xs font-bold transition-colors',
-                  activeTab === tab.key
-                    ? 'bg-primary-600 text-white shadow-sm'
-                    : 'text-secondary-500 hover:bg-secondary-50 hover:text-secondary-700',
-                )}
-              >
-                {tab.label}
-                <span className={cn(
-                  'ml-1.5 rounded-full px-1.5 py-0.5 text-[10px]',
-                  activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-secondary-100 text-secondary-500',
-                )}>
-                  {tab.count}
-                </span>
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-surface p-1">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => onTabChange(tab.key)}
+                  className={cn(
+                    'shrink-0 rounded-md px-3 py-1.5 text-xs font-bold transition-colors',
+                    activeTab === tab.key
+                      ? 'bg-primary-600 text-white shadow-sm'
+                      : 'text-secondary-500 hover:bg-secondary-50 hover:text-secondary-700',
+                  )}
+                >
+                  {tab.label}
+                  <span className={cn(
+                    'ml-1.5 rounded-full px-1.5 py-0.5 text-[10px]',
+                    activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-secondary-100 text-secondary-500',
+                  )}>
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+
       </div>
 
       <DatabasePasswordTable
@@ -371,6 +393,42 @@ function DatabasePasswordTabs({
           : undefined}
       />
     </section>
+  );
+}
+
+function SyncProgressBanner({ status }: { status: TuyaSyncStatusResult }) {
+  const percent = status.total > 0 ? Math.round((status.processed / status.total) * 100) : 0;
+
+  return (
+    <div className="mt-3 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-primary-600" />
+          <span className="text-sm font-bold text-primary-700">
+            Đang đồng bộ... {status.processed}/{status.total} mật khẩu
+          </span>
+        </div>
+        <span className="text-xs font-bold text-primary-600">{percent}%</span>
+      </div>
+
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-primary-200">
+        <div
+          className="h-full rounded-full bg-primary-600 transition-all duration-500"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+
+      <div className="mt-2 flex gap-4 text-xs text-primary-700">
+        <span className="flex items-center gap-1">
+          <CheckCircle2 className="h-3.5 w-3.5 text-success-500" />
+          <span className="font-bold text-success-600">{status.synced}</span> thành công
+        </span>
+        <span className="flex items-center gap-1">
+          <XCircle className="h-3.5 w-3.5 text-danger-500" />
+          <span className="font-bold text-danger-600">{status.failed}</span> thất bại
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -418,9 +476,9 @@ function DatabasePasswordTable({
 }) {
   return (
     <>
-      <div className="hidden overflow-x-auto lg:block">
+      <div className="hidden max-h-[800px] overflow-auto lg:block">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-border bg-secondary-50/60 text-xs font-semibold uppercase tracking-wider text-secondary-500">
+          <thead className="sticky top-0 z-10 border-b border-border bg-secondary-50/60 text-xs font-semibold uppercase tracking-wider text-secondary-500">
             <tr>
               <th className="px-5 py-3">Password</th>
               <th className="px-5 py-3">Validity</th>
@@ -489,7 +547,7 @@ function DatabasePasswordTable({
         </table>
       </div>
 
-      <div className="bg-surface-dim/40 p-3 lg:hidden">
+      <div className="max-h-[800px] overflow-y-auto bg-surface-dim/40 p-3 lg:hidden">
         {loading ? (
           <div className="flex items-center justify-center gap-2 px-5 py-8 text-sm text-secondary-500">
             <Loader2 className="h-5 w-5 animate-spin" />
