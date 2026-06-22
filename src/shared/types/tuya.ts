@@ -43,3 +43,22 @@ export type TuyaDevicePasswordList = {
   deviceId: string;
   passwords: unknown;
 };
+
+export type TuyaSyncJobStatus = 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+
+export type TuyaSyncAllStartResult = {
+  syncId: string;
+};
+
+export type TuyaSyncStatusResult = {
+  syncId: string;
+  status: TuyaSyncJobStatus;
+  total: number;
+  processed: number;
+  synced: number;
+  failed: number;
+  startedAt: string;
+  completedAt: string | null;
+  error: string | null;
+  results: TuyaPasswordItem[];
+};
