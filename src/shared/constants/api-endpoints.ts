@@ -66,6 +66,9 @@ export const API = {
     DELETE: (bookingId: string) => `/bookings/${bookingId}` as const,
     TUYA_SYNC_STATUS: (bookingId: string) => `/admin/bookings/${bookingId}/tuya-sync-status` as const,
     RETRY_TUYA: (bookingId: string) => `/admin/bookings/${bookingId}/retry-tuya` as const,
+    EXPORT_START: '/admin/bookings/export',
+    EXPORT_STATUS: (exportId: string) => `/admin/bookings/export/${exportId}/status` as const,
+    EXPORT_DOWNLOAD: (exportId: string) => `/admin/bookings/export/${exportId}/download` as const,
   },
 
   // ── Payments ──
