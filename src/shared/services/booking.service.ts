@@ -17,6 +17,8 @@ import type {
   BookingAvailabilityResponse,
   BookingAvailabilitySlot,
   TuyaSyncResponse,
+  BookingExportStartResult,
+  BookingExportStatusResult,
 } from '@/shared/types';
 
 // ================================================================
@@ -192,6 +194,49 @@ export async function calculatePrice(payload: {
   return data.data;
 }
 
+/** POST /admin/bookings/export — start async export job */
+export async function startExport(
+  params: Omit<GetBookingsParams, 'page' | 'size'>,
+  includeSummary = true,
+  includePaymentColumn = true,
+) {
+  const clean: Record<string, any> = { includeSummary, includePaymentColumn };
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      clean[key === 'status' ? 'statuses' : key] = String(value);
+    }
+  });
+  const { data } = await api.post<ApiResponse<BookingExportStartResult>>(
+    API.BOOKINGS.EXPORT_START,
+    null,
+    { params: clean },
+  );
+  return data.data;
+}
+
+/** GET /admin/bookings/export/:exportId/download — download the generated Excel blob */
+export async function downloadExport(exportId: string, filename: string) {
+  const response = await api.get(API.BOOKINGS.EXPORT_DOWNLOAD(exportId), {
+    responseType: 'blob',
+  });
+  const url = URL.createObjectURL(response.data as Blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/** GET /admin/bookings/export/:exportId/status — poll export job status */
+export async function getExportStatus(exportId: string) {
+  const { data } = await api.get<ApiResponse<BookingExportStatusResult>>(
+    API.BOOKINGS.EXPORT_STATUS(exportId),
+  );
+  return data.data;
+}
+
 export const bookingService = {
   getBookingAvailability,
   getRoomsAvailability,
@@ -210,4 +255,7 @@ export const bookingService = {
   syncTuyaStatus,
   retryTuya,
   calculatePrice,
+  startExport,
+  getExportStatus,
+  downloadExport,
 };

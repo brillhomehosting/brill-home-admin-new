@@ -181,3 +181,28 @@ export type BookingAvailabilityResponse = {
   roomId: string;
   timeslots: BookingAvailabilityDateGroup[];
 };
+
+export type BookingExportRow = {
+  stt: number;
+  date: string;
+  room: string;
+  paymentMethod: string;
+  amount: number;
+};
+
+export type BookingExportStartResult = {
+  exportId: string;
+  filename: string;
+};
+
+export type BookingExportJobStatus = 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+
+export type BookingExportStatusResult = {
+  exportId: string;
+  status: BookingExportJobStatus;
+  filename: string;
+  downloadReady: boolean;
+  error: string | null;
+  startedAt: string;
+  completedAt: string | null;
+};
