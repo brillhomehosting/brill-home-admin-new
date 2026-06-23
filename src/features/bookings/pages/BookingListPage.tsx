@@ -9,10 +9,14 @@ import {
   Search,
   Loader2,
   Hourglass,
+  FileDown,
+  ChevronDown,
+  LayoutList,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useBookings } from '../hooks/useBookings';
+import { useExportBookings } from '../hooks/useExportBookings';
 import { useRooms } from '@/features/rooms/hooks/useRooms';
 import { useDashboardStats } from '@/features/dashboard/hooks/useDashboard';
 import type { BookingStatus } from '@/shared/types';
@@ -33,6 +37,20 @@ export default function BookingListPage() {
 
   const { data: roomsResponse } = useRooms({ limit: 100 });
   const rooms = roomsResponse?.data.content || [];
+  const { startExport, isExporting } = useExportBookings();
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [includePaymentColumn, setIncludePaymentColumn] = useState(true);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Debounce search input
   useEffect(() => {
@@ -78,14 +96,65 @@ export default function BookingListPage() {
           { label: 'Đặt phòng' },
         ]}
         actions={
-          <Link to={ROUTES.BOOKINGS.NEW}>
-            <Button
-              className="bg-accent-400 hover:bg-accent-500"
-              icon={Plus}
-            >
-              Tạo booking
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <div className="relative" ref={exportMenuRef}>
+              <Button
+                variant="secondary"
+                loading={isExporting}
+                disabled={isExporting}
+                onClick={() => !isExporting && setExportMenuOpen((o) => !o)}
+              >
+                <div className="flex items-center gap-1.5">
+                  <FileDown className="h-4 w-4" />
+                  <span>Xuất Excel</span>
+                  <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-150', exportMenuOpen && 'rotate-180')} />
+                </div>
+              </Button>
+              {exportMenuOpen && (
+                <div className="absolute right-0 top-full mt-1.5 z-20 w-64 overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
+                  <label className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium hover:bg-secondary-50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={includePaymentColumn}
+                      onChange={(e) => setIncludePaymentColumn(e.target.checked)}
+                      className="h-4 w-4 rounded border-border text-primary-500 focus:ring-primary-500"
+                    />
+                    Hiện thị cột phương thức thanh toán
+                  </label>
+                  <div className="border-t border-border" />
+                  <button
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium hover:bg-secondary-50 transition-colors"
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      startExport({ search: debouncedSearch, status: status ?? 'CONFIRMED', startDate, endDate, roomId: selectedRoomId }, true, includePaymentColumn);
+                    }}
+                  >
+                    <LayoutList className="h-4 w-4 text-primary-500 shrink-0" />
+                    Xuất với tóm tắt
+                  </button>
+                  <div className="border-t border-border" />
+                  <button
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium hover:bg-secondary-50 transition-colors"
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      startExport({ search: debouncedSearch, status: status ?? 'CONFIRMED', startDate, endDate, roomId: selectedRoomId }, false, includePaymentColumn);
+                    }}
+                  >
+                    <FileDown className="h-4 w-4 text-secondary-400 shrink-0" />
+                    Xuất không có tóm tắt
+                  </button>
+                </div>
+              )}
+            </div>
+            <Link to={ROUTES.BOOKINGS.NEW}>
+              <Button
+                className="bg-accent-400 hover:bg-accent-500"
+                icon={Plus}
+              >
+                Tạo booking
+              </Button>
+            </Link>
+          </div>
         }
       />
 
