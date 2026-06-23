@@ -19,7 +19,7 @@ import { useBookings } from '../hooks/useBookings';
 import { useExportBookings } from '../hooks/useExportBookings';
 import { useRooms } from '@/features/rooms/hooks/useRooms';
 import { useDashboardStats } from '@/features/dashboard/hooks/useDashboard';
-import type { BookingStatus } from '@/shared/types';
+import type { BookingStatus, PaymentMethod } from '@/shared/types';
 import { Button } from '@/shared/components/ui/Button';
 import { BookingListCard } from '../components/BookingCard';
 
@@ -31,6 +31,7 @@ export default function BookingListPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState<BookingStatus | undefined>(undefined);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | undefined>(undefined);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedRoomId, setSelectedRoomId] = useState<string | undefined>(undefined);
@@ -69,6 +70,7 @@ export default function BookingListPage() {
     size,
     search: debouncedSearch,
     status,
+    paymentMethod,
     startDate,
     endDate,
     roomId: selectedRoomId,
@@ -126,7 +128,7 @@ export default function BookingListPage() {
                     className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium hover:bg-secondary-50 transition-colors"
                     onClick={() => {
                       setExportMenuOpen(false);
-                      startExport({ search: debouncedSearch, status: status ?? 'CONFIRMED', startDate, endDate, roomId: selectedRoomId }, true, includePaymentColumn);
+                      startExport({ search: debouncedSearch, status: status ?? 'CONFIRMED', paymentMethod, startDate, endDate, roomId: selectedRoomId }, true, includePaymentColumn);
                     }}
                   >
                     <LayoutList className="h-4 w-4 text-primary-500 shrink-0" />
@@ -137,7 +139,7 @@ export default function BookingListPage() {
                     className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium hover:bg-secondary-50 transition-colors"
                     onClick={() => {
                       setExportMenuOpen(false);
-                      startExport({ search: debouncedSearch, status: status ?? 'CONFIRMED', startDate, endDate, roomId: selectedRoomId }, false, includePaymentColumn);
+                      startExport({ search: debouncedSearch, status: status ?? 'CONFIRMED', paymentMethod, startDate, endDate, roomId: selectedRoomId }, false, includePaymentColumn);
                     }}
                   >
                     <FileDown className="h-4 w-4 text-secondary-400 shrink-0" />
@@ -228,7 +230,7 @@ export default function BookingListPage() {
 
         {/* --- Filters Section --- */}
         <div className="rounded-2xl border border-border bg-surface p-4 sm:p-5 shadow-sm transition-shadow hover:shadow-md">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-5">
             {/* Date from */}
             <div className="flex flex-col gap-1">
               <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-secondary-400">Từ ngày</label>
@@ -259,6 +261,23 @@ export default function BookingListPage() {
                   { value: '', label: 'Tất cả' },
                   { value: 'CONFIRMED', label: 'Đã xác nhận' },
                   { value: 'CANCELLED', label: 'Đã hủy' },
+                ]}
+                className="h-9 !text-secondary-950 text-xs sm:text-sm"
+              />
+            </div>
+
+            {/* Payment method */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-secondary-400">Phương thức thanh toán</label>
+              <Select
+                value={paymentMethod || ''}
+                onChange={(e) => { setPaymentMethod((e.target.value as PaymentMethod) || undefined); setPage(0); }}
+                options={[
+                  { value: '', label: 'Tất cả' },
+                  { value: 'CASH', label: 'Tiền mặt' },
+                  { value: 'BANK_TRANSFER_VP', label: 'Chuyển khoản VPBank' },
+                  { value: 'BANK_TRANSFER_TECH', label: 'Chuyển khoản TechcomBank' },
+                  { value: 'OTHER', label: 'Khác' },
                 ]}
                 className="h-9 !text-secondary-950 text-xs sm:text-sm"
               />

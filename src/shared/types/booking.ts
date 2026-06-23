@@ -46,6 +46,7 @@ export type GetBookingsParams = {
   page?: number;
   size?: number;
   status?: BookingStatus;
+  paymentMethod?: PaymentMethod;
   search?: string;
   startDate?: string;
   endDate?: string;
