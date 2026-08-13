@@ -162,7 +162,7 @@ export function DateInput({ value, onChange, className, min, max }: DateInputPro
       {open && popupPosition ? createPortal(
         <div
           ref={popupRef}
-          className="fixed z-[1000] max-h-[calc(100vh-24px)] w-[min(20rem,calc(100vw-24px))] overflow-auto rounded-xl border border-border bg-white p-3 shadow-xl"
+          className="fixed z-popover max-h-[calc(100vh-24px)] w-[min(20rem,calc(100vw-24px))] overflow-auto rounded-xl border border-border bg-white p-3 shadow-xl"
           style={{
             left: popupPosition.left,
             top: popupPosition.top,
