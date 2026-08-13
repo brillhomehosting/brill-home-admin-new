@@ -724,7 +724,7 @@ export default function DashboardPage() {
                   />
                   <Tooltip
                     formatter={(value, name) => [formatCurrency(Number(value)), name]}
-                    labelFormatter={(label) => `Ngày ${formatShortDateLabel(label)}`}
+                    labelFormatter={(label) => `Ngày ${formatShortDateLabel(String(label))}`}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -780,7 +780,7 @@ export default function DashboardPage() {
                         ? [formatCurrency(Number(value)), name]
                         : [value, name]
                     }
-                    labelFormatter={(label) => `Ngày ${formatShortDateLabel(label)}`}
+                    labelFormatter={(label) => `Ngày ${formatShortDateLabel(String(label))}`}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
