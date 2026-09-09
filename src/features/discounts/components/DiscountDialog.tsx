@@ -286,8 +286,8 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                   <input
                     type="radio"
                     name="weekDay"
-                    checked={!form.targetWeekDay}
-                    onChange={() => setForm({ ...form, targetWeekDay: false })}
+                    checked={form.targetWeekDay}
+                    onChange={() => setForm({ ...form, targetWeekDay: true })}
                     className="text-primary-600 focus:ring-primary-500"
                   />
                   Ngày thường (T2–T6)
@@ -296,8 +296,8 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                   <input
                     type="radio"
                     name="weekDay"
-                    checked={form.targetWeekDay}
-                    onChange={() => setForm({ ...form, targetWeekDay: true })}
+                    checked={!form.targetWeekDay}
+                    onChange={() => setForm({ ...form, targetWeekDay: false })}
                     className="text-primary-600 focus:ring-primary-500"
                   />
                   Cuối tuần (T7–CN)
