@@ -1,3 +1,4 @@
+import { discountScope } from '../discountLabels';
 import { Header, PageWrapper } from '@/shared/components/layout';
 import { DateInput, Pagination, Select } from '@/shared/components/ui';
 import { Button } from '@/shared/components/ui/Button';
@@ -26,6 +27,7 @@ import { useDiscountMutations, useDiscounts } from '../hooks/useDiscounts';
 // --- Styles mapping ---
 
 const typeStyles: Record<DiscountTargetType, string> = {
+  ROOM_WEEK_DAY: 'bg-rose-50 text-rose-700 border border-rose-200',
   ALL: 'bg-info-50 text-indigo-700 border border-info-200 font-medium',
   WEEK_DAY: 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium',
   SLOT_TYPE: 'bg-amber-50 text-amber-700 border border-amber-200 font-medium',
@@ -168,6 +170,7 @@ export default function DiscountListPage() {
                       { value: 'ALL', label: 'Tất cả' },
                       { value: 'WEEK_DAY', label: 'Ngày tuần' },
                       { value: 'SLOT_TYPE', label: 'Khung giờ' },
+                      { value: 'ROOM_WEEK_DAY', label: 'Phòng + ngày thường/cuối tuần' },
                       { value: 'ROOM_TYPE', label: 'Loại phòng' },
                       { value: 'ROOM', label: 'Phòng' },
                     ]}
@@ -265,7 +268,7 @@ export default function DiscountListPage() {
                       </td>
                       <td className="px-5 py-4">
                         <span className={cn('rounded px-2 py-0.5 text-[10px] font-semibold uppercase', typeStyles[item.type])}>
-                          {item.type}
+                          {item.type === 'ROOM_WEEK_DAY' ? 'Phòng + ngày' : item.type}
                         </span>
                       </td>
                       <td className="px-5 py-4">
@@ -277,7 +280,7 @@ export default function DiscountListPage() {
                       </td>
                       <td className="px-5 py-4">
                         <span className="text-sm text-secondary-600">
-                          {item.targetRoomName || 'Toàn hệ thống'}
+                          {discountScope(item)}
                         </span>
                       </td>
                       <td className="px-5 py-4">
@@ -353,7 +356,7 @@ export default function DiscountListPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                      <p className="font-bold text-foreground text-sm truncate">{item.name}</p>
+                      <p className="font-bold text-foreground text-sm truncate" title={discountScope(item)}>{item.name}</p>
                       <span className={cn(
                         'rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase shrink-0',
                         item.status === 'ACTIVE' ? 'bg-success-100 text-success-700' : 'bg-secondary-100 text-secondary-600'
@@ -361,9 +364,10 @@ export default function DiscountListPage() {
                         {item.status === 'ACTIVE' ? 'Bật' : 'Tắt'}
                       </span>
                     </div>
+                    <p className="text-[11px] text-secondary-500">{discountScope(item)}</p>
                     <div className="flex items-center gap-1.5 text-[11px] text-secondary-500">
                       <span className={cn('rounded px-1 py-0.5 text-[9px] font-bold uppercase', typeStyles[item.type])}>
-                        {item.type}
+                        {item.type === 'ROOM_WEEK_DAY' ? 'Phòng + ngày' : item.type}
                       </span>
                       <span className="font-bold text-accent-600">
                         {item.discountType === 'PERCENTAGE' ? `${item.discountValue}%` : formatCurrency(item.discountValue)}

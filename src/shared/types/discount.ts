@@ -1,6 +1,6 @@
 import type { BaseDTO } from './api';
 
-export type DiscountTargetType = 'ROOM' | 'WEEK_DAY' | 'ROOM_TYPE' | 'SLOT_TYPE' | 'ALL';
+export type DiscountTargetType = 'ROOM_WEEK_DAY' | 'ROOM' | 'WEEK_DAY' | 'ROOM_TYPE' | 'SLOT_TYPE' | 'ALL';
 export type DiscountValueType = 'PERCENTAGE' | 'FIXED_AMOUNT';
 export type DiscountStatus = 'ACTIVE' | 'INACTIVE';
 
@@ -12,11 +12,11 @@ export type DiscountCampaign = BaseDTO & {
   startDate: string;
   endDate: string;
   status: DiscountStatus;
-  targetWeekDay: boolean;
-  targetOvernightSlot: boolean;
-  targetRoomType: string;
-  targetRoomId: string;
-  targetRoomName: string;
+  targetWeekDay: boolean | null;
+  targetOvernightSlot: boolean | null;
+  targetRoomType: string | null;
+  targetRoomId: string | null;
+  targetRoomName: string | null;
 };
 
 export type GetDiscountsParams = {

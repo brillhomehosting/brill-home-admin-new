@@ -1,3 +1,4 @@
+import { discountScope } from '../discountLabels';
 import { DateInput } from '@/shared/components/ui/DateInput';
 import type { DiscountCampaign, DiscountTargetType } from '@/shared/types';
 import { cn, formatCurrency, formatDate } from '@/shared/utils';
@@ -12,6 +13,7 @@ import { useState } from 'react';
 import { useDiscountsCalendar } from '../hooks/useDiscounts';
 
 const typeColors: Record<DiscountTargetType, string> = {
+  ROOM_WEEK_DAY: 'bg-rose-50 text-rose-700 border border-rose-200',
   ALL: 'bg-info-50 text-indigo-700 border border-info-200',
   WEEK_DAY: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   SLOT_TYPE: 'bg-amber-50 text-amber-700 border border-amber-200',
@@ -20,6 +22,7 @@ const typeColors: Record<DiscountTargetType, string> = {
 };
 
 const typeBarColors: Record<DiscountTargetType, string> = {
+  ROOM_WEEK_DAY: 'bg-rose-500 hover:bg-rose-600',
   ALL: 'bg-indigo-500 hover:bg-indigo-600',
   WEEK_DAY: 'bg-emerald-500 hover:bg-emerald-600',
   SLOT_TYPE: 'bg-amber-500 hover:bg-amber-600',
@@ -301,7 +304,7 @@ export function DiscountCalendarSection({ onEdit }: Props) {
                           {geo && (
                             <button
                               onClick={() => onEdit(campaign)}
-                              title={`${campaign.name}\n${formatDate(campaign.startDate)} – ${formatDate(campaign.endDate)}\n${discountLabel}`}
+                              title={`${campaign.name}\n${discountScope(campaign)}\n${formatDate(campaign.startDate)} – ${formatDate(campaign.endDate)}\n${discountLabel}`}
                               className={cn(
                                 'absolute top-1/2 -translate-y-1/2 h-7 rounded-md text-white text-[10px] font-bold flex items-center px-2 gap-1 shadow-sm truncate transition-all cursor-pointer',
                                 typeBarColors[campaign.type],
@@ -329,7 +332,7 @@ export function DiscountCalendarSection({ onEdit }: Props) {
                   {(Object.entries(typeColors) as [DiscountTargetType, string][]).map(([type, cls]) => (
                     <div key={type} className="flex items-center gap-1">
                       <span className={cn('text-[9px] font-bold uppercase px-1.5 py-0.5 rounded', cls)}>
-                        {type}
+                        {type === 'ROOM_WEEK_DAY' ? 'Phòng + ngày' : type}
                       </span>
                     </div>
                   ))}
