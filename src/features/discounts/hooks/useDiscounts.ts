@@ -41,7 +41,7 @@ export function useDiscountMutations() {
     mutationFn: ({ id, status }: { id: string; status: string }) => 
       discountService.updateDiscountStatus(id, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: discountKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: discountKeys.all });
       toast('Đã cập nhật trạng thái chiến dịch', 'success');
     },
     onError: () => {
@@ -52,7 +52,7 @@ export function useDiscountMutations() {
   const remove = useMutation({
     mutationFn: (id: string) => discountService.deleteDiscount(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: discountKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: discountKeys.all });
       toast('Đã xóa chiến dịch giảm giá', 'success');
     },
     onError: () => {
@@ -63,7 +63,7 @@ export function useDiscountMutations() {
   const create = useMutation({
     mutationFn: (payload: Partial<DiscountCampaign>) => discountService.createDiscount(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: discountKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: discountKeys.all });
       toast('Đã tạo chiến dịch giảm giá mới', 'success');
     },
     onError: () => {
@@ -75,7 +75,7 @@ export function useDiscountMutations() {
     mutationFn: ({ id, payload }: { id: string; payload: Partial<DiscountCampaign> }) => 
       discountService.updateDiscount(id, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: discountKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: discountKeys.all });
       toast('Đã cập nhật chiến dịch', 'success');
     },
     onError: () => {

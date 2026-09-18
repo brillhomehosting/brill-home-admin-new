@@ -67,10 +67,10 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
           startDate: initialData.startDate,
           endDate: initialData.endDate,
           type: initialData.type,
-          targetWeekDay: initialData.targetWeekDay,
-          targetOvernightSlot: initialData.targetOvernightSlot,
-          targetRoomType: initialData.targetRoomType,
-          targetRoomId: initialData.targetRoomId,
+          targetWeekDay: initialData.targetWeekDay ?? false,
+          targetOvernightSlot: initialData.targetOvernightSlot ?? false,
+          targetRoomType: initialData.targetRoomType ?? 'NORMAL',
+          targetRoomId: initialData.targetRoomId ?? '',
           status: initialData.status,
         });
       } else {
@@ -85,7 +85,7 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
       return;
     }
 
-    if (form.type === 'ROOM' && !form.targetRoomId) {
+    if ((form.type === 'ROOM' || form.type === 'ROOM_WEEK_DAY') && !form.targetRoomId) {
       toast('Vui lòng chọn phòng áp dụng.', 'error');
       return;
     }
@@ -104,6 +104,10 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
     let payload: Record<string, any> = { ...base };
 
     switch (form.type) {
+      case 'ROOM_WEEK_DAY':
+        payload.targetRoomId = form.targetRoomId;
+        payload.targetWeekDay = form.targetWeekDay;
+        break;
       case 'WEEK_DAY':
         payload.targetWeekDay = form.targetWeekDay;
         break;
@@ -181,6 +185,7 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                 Tên chương trình <span className="text-danger-500">*</span>
               </label>
               <Input
+                aria-label="Tên chương trình"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="VD: Flash Sale 20/11..."
@@ -208,6 +213,7 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                 <div className="relative">
                   <Input
                     type="number"
+                    aria-label="Giá trị giảm"
                     value={form.discountValue}
                     onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
                     placeholder={form.discountType === 'PERCENTAGE' ? 'VD: 10' : 'VD: 50.000'}
@@ -254,6 +260,7 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
               Loại điều kiện
             </label>
             <Select
+              aria-label="Loại điều kiện"
               value={form.type}
               onChange={(e) => setForm({ 
                 ...form, 
@@ -266,6 +273,7 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
               className="mb-4"
               options={[
                 { value: 'ALL', label: 'Tất cả booking' },
+                { value: 'ROOM_WEEK_DAY', label: 'Theo phòng cụ thể + ngày thường/cuối tuần' },
                 { value: 'WEEK_DAY', label: 'Theo Ngày (Thường/Cuối tuần)' },
                 { value: 'SLOT_TYPE', label: 'Theo Khung giờ (Ngày/Đêm)' },
                 { value: 'ROOM_TYPE', label: 'Theo Loại phòng' },
@@ -280,7 +288,7 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
               </div>
             )}
 
-            {form.type === 'WEEK_DAY' && (
+            {(form.type === 'WEEK_DAY' || form.type === 'ROOM_WEEK_DAY') && (
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
                   <input
@@ -348,12 +356,13 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
               </div>
             )}
 
-            {form.type === 'ROOM' && (
+            {(form.type === 'ROOM' || form.type === 'ROOM_WEEK_DAY') && (
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
                   Chọn Phòng
                 </label>
                 <Select
+                  aria-label="Chọn Phòng"
                   value={form.targetRoomId}
                   onChange={(e) => setForm({ ...form, targetRoomId: e.target.value })}
                   options={[
