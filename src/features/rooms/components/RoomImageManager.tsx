@@ -157,7 +157,7 @@ export function RoomImageManager({ roomId, images }: RoomImageManagerProps) {
   const handleConfirmDelete = useCallback(() => {
     if (!deleteTarget) return;
     deleteMutation.mutate(
-      { roomId, imageId: deleteTarget.id, imageUrl: deleteTarget.url },
+      { roomId, imageId: deleteTarget.id },
       {
         onSuccess: () => {
           setDeleteTarget(null);

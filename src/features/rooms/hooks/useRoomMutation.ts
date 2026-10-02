@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { roomService } from '@/shared/services/room.service';
 import { roomKeys } from './queryKeys';
-import type { RoomCreateRequest, RoomUpdateRequest } from '@/shared/types';
+import type { Room, RoomCreateRequest, RoomUpdateRequest } from '@/shared/types';
 
 // ================================================================
 // Room mutations — create, update, delete, images, amenities
@@ -107,22 +107,25 @@ export function useDeleteRoomImage() {
     mutationFn: async ({
       roomId,
       imageId,
-      imageUrl,
     }: {
       roomId: string;
       imageId: string;
-      imageUrl: string;
     }) => {
       await roomService.deleteRoomImage(roomId, imageId);
-      // Best-effort storage cleanup
-      try {
-        await roomService.deleteUploadByUrl(imageUrl);
-      } catch {
-        // non-critical
-      }
     },
-    onSuccess: (_r, { roomId }) => {
-      qc.invalidateQueries({ queryKey: roomKeys.detail(roomId) });
+    onSuccess: (_r, { roomId, imageId }) => {
+      qc.setQueryData<Room>(roomKeys.detail(roomId), (room) => {
+        if (!room?.images) return room;
+        return {
+          ...room,
+          images: room.images.filter((image) => image.id !== imageId),
+        };
+      });
+
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: roomKeys.detail(roomId) }),
+        qc.invalidateQueries({ queryKey: roomKeys.lists() }),
+      ]);
     },
   });
 }
