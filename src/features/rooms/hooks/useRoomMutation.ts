@@ -104,26 +104,31 @@ export function useDeleteRoomImage() {
   const qc = useQueryClient();
 
   return useMutation({
+    onMutate: async ({ roomId }) => {
+      await qc.cancelQueries({ queryKey: roomKeys.detail(roomId) });
+    },
     mutationFn: async ({
       roomId,
       imageId,
     }: {
       roomId: string;
       imageId: string;
-    }) => {
-      await roomService.deleteRoomImage(roomId, imageId);
-    },
-    onSuccess: (_r, { roomId, imageId }) => {
-      qc.setQueryData<Room>(roomKeys.detail(roomId), (room) => {
-        if (!room?.images) return room;
+    }) => roomService.deleteRoomImage(roomId, imageId),
+    onSuccess: (updatedRoom, { roomId, imageId }) => {
+      qc.setQueryData<Room>(roomKeys.detail(roomId), (cachedRoom) => {
+        const room = updatedRoom ?? cachedRoom;
+        if (!room) return cachedRoom;
         return {
           ...room,
-          images: room.images.filter((image) => image.id !== imageId),
+          images: room.images?.filter((image) => image.id !== imageId),
         };
       });
 
       void Promise.all([
-        qc.invalidateQueries({ queryKey: roomKeys.detail(roomId) }),
+        qc.invalidateQueries({
+          queryKey: roomKeys.detail(roomId),
+          refetchType: 'none',
+        }),
         qc.invalidateQueries({ queryKey: roomKeys.lists() }),
       ]);
     },

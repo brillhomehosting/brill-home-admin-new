@@ -65,7 +65,10 @@ export async function addRoomImages(roomId: string, urls: string[]) {
 
 /** DELETE /rooms/:id/images/:imageId */
 export async function deleteRoomImage(roomId: string, imageId: string) {
-  await api.delete(API.ROOMS.DELETE_IMAGE(roomId, imageId));
+  const { data } = await api.delete<ApiResponse<Room>>(
+    API.ROOMS.DELETE_IMAGE(roomId, imageId),
+  );
+  return data.data;
 }
 
 // ── Room amenities ──
