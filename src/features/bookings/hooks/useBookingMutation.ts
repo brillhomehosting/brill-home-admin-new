@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingService } from '@/shared/services/booking.service';
 import { bookingKeys } from './queryKeys';
 import { useToast } from '@/shared/components/feedback/Toast';
+import { getTuyaSyncFeedback } from '@/shared/utils';
 import type { ConfirmPaymentData, AdminCreateBookingData, AdminBookingUpdateData, CancelBookingData } from '@/shared/types';
 
 /**
@@ -88,7 +89,8 @@ export function useBookingMutation() {
   const syncTuyaMutation = useMutation({
     mutationFn: (bookingId: string) => bookingService.retryTuya(bookingId),
     onSuccess: (data, bookingId) => {
-      toast('Đồng bộ Tuya thành công', 'success');
+      const feedback = getTuyaSyncFeedback(data.tuyaSyncStatus, data.tuyaSyncError);
+      toast(feedback.message, feedback.variant);
       // Update the cache with new data
       queryClient.setQueryData(bookingKeys.detail(bookingId), (old: any) => {
         if (!old) return old;
