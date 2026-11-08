@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/shared/components/feedback/Toast';
 import { tuyaPasswordService } from '@/shared/services/tuya-password.service';
+import { getTuyaSyncFeedback } from '@/shared/utils';
 
 export const tuyaPasswordKeys = {
   all: ['tuyaPasswords'] as const,
@@ -29,8 +30,9 @@ export function useSyncTuyaPassword(limit = 20) {
 
   return useMutation({
     mutationFn: (bookingId: string) => tuyaPasswordService.syncTuyaPassword(bookingId),
-    onSuccess: () => {
-      toast('Đã đồng bộ lại mật khẩu Tuya', 'success');
+    onSuccess: (data) => {
+      const feedback = getTuyaSyncFeedback(data.tuyaSyncStatus, data.tuyaSyncError);
+      toast(feedback.message, feedback.variant);
       queryClient.invalidateQueries({ queryKey: tuyaPasswordKeys.overview(limit) });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
