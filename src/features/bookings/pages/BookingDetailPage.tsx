@@ -52,6 +52,25 @@ const tuyaStatusOptions = [
 
 type EditMode = 'customer' | 'gatePass' | 'tuya' | 'payment' | null;
 
+type TuyaCardTone = 'success' | 'warning' | 'danger';
+
+const TUYA_CARD_STATUS: Record<string, { label: string; tone: TuyaCardTone }> = {
+  SYNCED: { label: 'Đã đồng bộ thành công', tone: 'success' },
+  SKIPPED: { label: 'Bỏ qua (booking quá khứ)', tone: 'success' },
+  FAILED: { label: 'Đồng bộ thất bại', tone: 'danger' },
+  DELETE_PENDING: { label: 'Đang xoá mật khẩu', tone: 'warning' },
+  DELETED: { label: 'Đã xoá mật khẩu', tone: 'success' },
+  DELETE_FAILED: { label: 'Xoá mật khẩu thất bại', tone: 'danger' },
+};
+
+const TUYA_CARD_PENDING = { label: 'Đang xử lý đồng bộ', tone: 'warning' as const };
+
+const TUYA_CARD_TONE_CLASSES: Record<TuyaCardTone, { dot: string; icon: string }> = {
+  success: { dot: 'bg-success-500', icon: 'bg-success-50 text-success-500' },
+  warning: { dot: 'bg-warning-500', icon: 'bg-warning-50 text-warning-500' },
+  danger: { dot: 'bg-danger-500', icon: 'bg-danger-50 text-danger-500' },
+};
+
 const PAYMENT_METHOD_OPTIONS = [
   { value: 'CASH', label: 'Tiền mặt' },
   { value: 'BANK_TRANSFER_VP', label: 'Chuyển khoản VPBank' },
@@ -277,6 +296,9 @@ export default function BookingDetailPage() {
     label: booking.status,
     classes: 'bg-secondary-100 text-secondary-700',
   };
+
+  const tuyaCard = TUYA_CARD_STATUS[booking.tuyaSyncStatus] ?? TUYA_CARD_PENDING;
+  const tuyaToneClasses = TUYA_CARD_TONE_CLASSES[tuyaCard.tone];
 
   return (
     <div className="flex h-full flex-col">
@@ -564,25 +586,21 @@ export default function BookingDetailPage() {
                   <Lock className="h-5 w-5 text-accent-500" />
                   Tuya Smart Lock
                 </div>
-                <span className={cn('flex h-2.5 w-2.5 rounded-full relative', booking.tuyaSyncStatus === 'SYNCED' || booking.tuyaSyncStatus === 'SKIPPED' ? 'bg-success-500' : 'bg-warning-500')}>
-                  {booking.tuyaSyncStatus !== 'SYNCED' && booking.tuyaSyncStatus !== 'SKIPPED' && (
+                <span className={cn('flex h-2.5 w-2.5 rounded-full relative', tuyaToneClasses.dot)}>
+                  {tuyaCard.tone === 'warning' && (
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning-400 opacity-75" />
                   )}
                 </span>
               </div>
               <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
-                  <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-full', booking.tuyaSyncStatus === 'SYNCED' || booking.tuyaSyncStatus === 'SKIPPED' ? 'bg-success-50 text-success-500' : 'bg-warning-50 text-warning-500')}>
-                    {booking.tuyaSyncStatus === 'SYNCED' || booking.tuyaSyncStatus === 'SKIPPED' ? <CheckCircle className="h-6 w-6" /> : <RotateCcw className="h-6 w-6" />}
+                  <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-full', tuyaToneClasses.icon)}>
+                    {tuyaCard.tone === 'success' && <CheckCircle className="h-6 w-6" />}
+                    {tuyaCard.tone === 'warning' && <RotateCcw className="h-6 w-6" />}
+                    {tuyaCard.tone === 'danger' && <XCircle className="h-6 w-6" />}
                   </div>
                   <div>
-                    <p className="font-bold text-foreground text-sm sm:text-base">
-                      {booking.tuyaSyncStatus === 'SYNCED'
-                        ? 'Đã đồng bộ thành công'
-                        : booking.tuyaSyncStatus === 'SKIPPED'
-                          ? 'Bỏ qua (booking quá khứ)'
-                          : 'Đang xử lý đồng bộ'}
-                    </p>
+                    <p className="font-bold text-foreground text-sm sm:text-base">{tuyaCard.label}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <p className="text-xs text-secondary-400 font-medium uppercase tracking-tighter">Status: {booking.tuyaSyncStatus}</p>
                       {booking.tuyaPasswordCreated && (

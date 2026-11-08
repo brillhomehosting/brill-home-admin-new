@@ -110,6 +110,7 @@ export type TuyaSyncResponse = {
   copyMessage: string;
   tuyaPasswordCreated: boolean;
   tuyaSyncStatus: string;
+  tuyaSyncError?: string | null;
   gatePassword: string;
 };
 
