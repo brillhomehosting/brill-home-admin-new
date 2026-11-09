@@ -16,6 +16,48 @@ import type {
 } from '@/shared/types';
 import { useToast } from '@/shared/components/feedback/Toast';
 
+type SlotScope = 'ALL' | 'DAY' | 'NIGHT';
+
+// ISO weekdays, as the API stores them for WEEKDAY_SLOT campaigns.
+const WEEK_DAYS = [
+  { value: 1, label: 'T2' },
+  { value: 2, label: 'T3' },
+  { value: 3, label: 'T4' },
+  { value: 4, label: 'T5' },
+  { value: 5, label: 'T6' },
+  { value: 6, label: 'T7' },
+  { value: 7, label: 'CN' },
+];
+
+const WEEK_DAY_PRESETS = [
+  { label: 'T2–T6', days: [1, 2, 3, 4, 5] },
+  { label: 'T7–CN', days: [6, 7] },
+  { label: 'Cả tuần', days: [1, 2, 3, 4, 5, 6, 7] },
+];
+
+const SLOT_SCOPES: { value: SlotScope; label: string }[] = [
+  { value: 'ALL', label: 'Tất cả khung' },
+  { value: 'DAY', label: 'Ban ngày' },
+  { value: 'NIGHT', label: 'Qua đêm' },
+];
+
+function toSlotScope(targetOvernightSlot: boolean | null | undefined): SlotScope {
+  if (targetOvernightSlot === true) return 'NIGHT';
+  if (targetOvernightSlot === false) return 'DAY';
+  return 'ALL';
+}
+
+function toTargetOvernightSlot(scope: SlotScope): boolean | null {
+  if (scope === 'ALL') return null;
+  return scope === 'NIGHT';
+}
+
+function chipClass(pressed: boolean): string {
+  return pressed
+    ? 'rounded-full border border-primary-500 bg-primary-500 px-3 py-1 text-xs font-semibold text-white'
+    : 'rounded-full border border-border bg-white px-3 py-1 text-xs font-semibold text-secondary-600 hover:border-primary-300';
+}
+
 type DiscountFormValues = {
   name: string;
   discountType: DiscountValueType;
@@ -27,6 +69,9 @@ type DiscountFormValues = {
   targetOvernightSlot: boolean;
   targetRoomType: string;
   targetRoomId: string;
+  targetWeekDays: number[];
+  targetRoomIds: string[];
+  slotScope: SlotScope;
   status: DiscountStatus;
 };
 
@@ -41,6 +86,9 @@ const DEFAULT_VALUES: DiscountFormValues = {
   targetOvernightSlot: false,
   targetRoomType: 'NORMAL',
   targetRoomId: '',
+  targetWeekDays: [],
+  targetRoomIds: [],
+  slotScope: 'ALL',
   status: 'ACTIVE',
 };
 
@@ -71,6 +119,9 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
           targetOvernightSlot: initialData.targetOvernightSlot ?? false,
           targetRoomType: initialData.targetRoomType ?? 'NORMAL',
           targetRoomId: initialData.targetRoomId ?? '',
+          targetWeekDays: initialData.targetWeekDays ?? [],
+          targetRoomIds: initialData.targetRoomIds ?? [],
+          slotScope: initialData.type === 'WEEKDAY_SLOT' ? toSlotScope(initialData.targetOvernightSlot) : 'ALL',
           status: initialData.status,
         });
       } else {
@@ -89,6 +140,11 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
       toast('Vui lòng chọn phòng áp dụng.', 'error');
       return;
     }
+
+    if (form.type === 'WEEKDAY_SLOT' && form.targetWeekDays.length === 0) {
+      toast('Vui lòng chọn ít nhất một thứ.', 'error');
+      return;
+    }
     
     // Build payload with only relevant target fields based on type
     const base = {
@@ -104,6 +160,11 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
     let payload: Record<string, any> = { ...base };
 
     switch (form.type) {
+      case 'WEEKDAY_SLOT':
+        payload.targetWeekDays = [...form.targetWeekDays].sort((a, b) => a - b);
+        payload.targetRoomIds = form.targetRoomIds;
+        payload.targetOvernightSlot = toTargetOvernightSlot(form.slotScope);
+        break;
       case 'ROOM_WEEK_DAY':
         payload.targetRoomId = form.targetRoomId;
         payload.targetWeekDay = form.targetWeekDay;
@@ -137,6 +198,23 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
   };
 
   const isEdit = !!initialData;
+
+  const toggleWeekDay = (day: number) => setForm({
+    ...form,
+    targetWeekDays: form.targetWeekDays.includes(day)
+      ? form.targetWeekDays.filter((d) => d !== day)
+      : [...form.targetWeekDays, day],
+  });
+
+  const toggleRoom = (roomId: string) => setForm({
+    ...form,
+    targetRoomIds: form.targetRoomIds.includes(roomId)
+      ? form.targetRoomIds.filter((id) => id !== roomId)
+      : [...form.targetRoomIds, roomId],
+  });
+
+  // Inactive rooms are rejected by the API, but keep any already saved so they can be removed.
+  const selectableRooms = rooms.filter((r: Room) => r.isActive !== false || form.targetRoomIds.includes(r.id));
 
 
   return (
@@ -269,10 +347,14 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
                 targetRoomId: '',
                 targetWeekDay: false,
                 targetOvernightSlot: false,
+                targetWeekDays: [],
+                targetRoomIds: [],
+                slotScope: 'ALL',
               })}
               className="mb-4"
               options={[
                 { value: 'ALL', label: 'Tất cả booking' },
+                { value: 'WEEKDAY_SLOT', label: 'Theo thứ + khung giờ (chọn phòng)' },
                 { value: 'ROOM_WEEK_DAY', label: 'Theo phòng cụ thể + ngày thường/cuối tuần' },
                 { value: 'WEEK_DAY', label: 'Theo Ngày (Thường/Cuối tuần)' },
                 { value: 'SLOT_TYPE', label: 'Theo Khung giờ (Ngày/Đêm)' },
@@ -285,6 +367,89 @@ export function DiscountDialog({ open, onClose, initialData }: DiscountDialogPro
             {form.type === 'ALL' && (
               <div className="rounded-lg bg-secondary-50 p-3 text-sm text-secondary-600 text-center border border-border">
                 Chương trình sẽ áp dụng cho tất cả các booking trong thời hạn.
+              </div>
+            )}
+
+            {form.type === 'WEEKDAY_SLOT' && (
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-secondary-500">
+                    Thứ áp dụng <span className="text-danger-500">*</span>
+                  </label>
+                  <div className="flex flex-wrap gap-1.5" role="group" aria-label="Thứ áp dụng">
+                    {WEEK_DAYS.map(({ value, label }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={form.targetWeekDays.includes(value)}
+                        className={chipClass(form.targetWeekDays.includes(value))}
+                        onClick={() => toggleWeekDay(value)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    {WEEK_DAY_PRESETS.map(({ label, days }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        className="text-xs font-semibold text-primary-600 hover:underline"
+                        onClick={() => setForm({ ...form, targetWeekDays: days })}
+                      >
+                        Chọn {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-secondary-500">Khung giờ</label>
+                  <div className="flex flex-wrap items-center gap-4">
+                    {SLOT_SCOPES.map(({ value, label }) => (
+                      <label key={value} className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
+                        <input
+                          type="radio"
+                          name="slotScope"
+                          checked={form.slotScope === value}
+                          onChange={() => setForm({ ...form, slotScope: value })}
+                          className="text-primary-600 focus:ring-primary-500"
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-secondary-500">Phòng áp dụng</label>
+                  <div className="flex flex-wrap gap-1.5" role="group" aria-label="Phòng áp dụng">
+                    <button
+                      type="button"
+                      aria-pressed={form.targetRoomIds.length === 0}
+                      className={chipClass(form.targetRoomIds.length === 0)}
+                      onClick={() => setForm({ ...form, targetRoomIds: [] })}
+                    >
+                      Tất cả phòng
+                    </button>
+                    {selectableRooms.map((r: Room) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        aria-pressed={form.targetRoomIds.includes(r.id)}
+                        className={chipClass(form.targetRoomIds.includes(r.id))}
+                        onClick={() => toggleRoom(r.id)}
+                      >
+                        {r.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="rounded-lg border border-border bg-secondary-50 p-3 text-xs text-secondary-600">
+                  Loại này được ưu tiên hơn các loại khác ở những khung nó áp dụng. Ở khung nó không áp dụng
+                  (ví dụ đêm T6), chương trình cũ trùng ngày vẫn có thể giảm, nên hãy tắt chương trình cũ đó.
+                </p>
               </div>
             )}
 

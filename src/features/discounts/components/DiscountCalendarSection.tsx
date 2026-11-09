@@ -1,4 +1,4 @@
-import { discountScope } from '../discountLabels';
+import { discountScope, discountTypeLabel } from '../discountLabels';
 import { DateInput } from '@/shared/components/ui/DateInput';
 import type { DiscountCampaign, DiscountTargetType } from '@/shared/types';
 import { cn, formatCurrency, formatDate } from '@/shared/utils';
@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { useDiscountsCalendar } from '../hooks/useDiscounts';
 
 const typeColors: Record<DiscountTargetType, string> = {
+  WEEKDAY_SLOT: 'bg-cyan-50 text-cyan-700 border border-cyan-200',
   ROOM_WEEK_DAY: 'bg-rose-50 text-rose-700 border border-rose-200',
   ALL: 'bg-info-50 text-indigo-700 border border-info-200',
   WEEK_DAY: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
@@ -22,6 +23,7 @@ const typeColors: Record<DiscountTargetType, string> = {
 };
 
 const typeBarColors: Record<DiscountTargetType, string> = {
+  WEEKDAY_SLOT: 'bg-cyan-600 hover:bg-cyan-700',
   ROOM_WEEK_DAY: 'bg-rose-500 hover:bg-rose-600',
   ALL: 'bg-indigo-500 hover:bg-indigo-600',
   WEEK_DAY: 'bg-emerald-500 hover:bg-emerald-600',
@@ -332,7 +334,7 @@ export function DiscountCalendarSection({ onEdit }: Props) {
                   {(Object.entries(typeColors) as [DiscountTargetType, string][]).map(([type, cls]) => (
                     <div key={type} className="flex items-center gap-1">
                       <span className={cn('text-[9px] font-bold uppercase px-1.5 py-0.5 rounded', cls)}>
-                        {type === 'ROOM_WEEK_DAY' ? 'Phòng + ngày' : type}
+                        {discountTypeLabel(type)}
                       </span>
                     </div>
                   ))}
